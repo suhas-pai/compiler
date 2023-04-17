@@ -1,11 +1,11 @@
 import AST from "./ast";
 
-import ASTNode from "./ast/node";
+import BinaryOperation from "./ast/binary-operation";
 import IntegerLiteral from "./ast/integer-literal";
+import ASTNode from "./ast/node";
 
 import { Token, TokenKind } from "./token";
 import BinaryOperator from "./binary-operator";
-import BinaryOperation from "./ast/binary-operation";
 
 export class Parser {
   tokens: Token[];
