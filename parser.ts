@@ -5,7 +5,7 @@ import IntegerLiteral from "./ast/IntegerLiteral";
 
 import { Token, TokenKind } from "./token";
 import BinaryOperator from "./binary-operator";
-import { BinaryOperation } from "./ast/BinaryOperation";
+import BinaryOperation from "./ast/BinaryOperation";
 
 export class Parser {
   tokens: Token[];

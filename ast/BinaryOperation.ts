@@ -3,7 +3,7 @@ import ASTNodeKind from "./Kind";
 import { BinaryOperatorToken } from "../token";
 import BinaryOperator from "../binary-operator";
 
-export class BinaryOperation implements ASTNode {
+export default class BinaryOperation implements ASTNode {
   kind: ASTNodeKind.BinaryOperation;
   children = [null, null];
   hasChildren = () => {

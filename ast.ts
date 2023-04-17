@@ -1,4 +1,4 @@
-import { BinaryOperation } from "./ast/BinaryOperation";
+import BinaryOperation from "./ast/BinaryOperation";
 import ASTNode from "./ast/Node";
 
 export class AST {
