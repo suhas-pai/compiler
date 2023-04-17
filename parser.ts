@@ -1,4 +1,4 @@
-import { AST } from "./ast";
+import AST from "./ast";
 
 import ASTNode from "./ast/Node";
 import IntegerLiteral from "./ast/IntegerLiteral";

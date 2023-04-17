@@ -1,7 +1,7 @@
 import BinaryOperation from "./ast/BinaryOperation";
 import ASTNode from "./ast/Node";
 
-export class AST {
+export default class AST {
   root?: ASTNode;
   currentOperation?: BinaryOperation; // Operation at the bottom most right of tree
 
