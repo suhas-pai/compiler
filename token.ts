@@ -1,10 +1,9 @@
 import BinaryOperator from "./binary-operator";
-import ParenthesisOperator from "./ast/parenthesis";
-
 export enum TokenKind {
   IntegerLiteral = "integer-literal",
   BinaryOperator = "binary-operator",
-  ParenthesisOperator = "parenthesis-operator",
+  ParenthesisOpen = "parenthesis-open",
+  ParenthesisClosed = "parenthesis-closed",
 }
 
 export interface IntegerLiteralToken {
@@ -17,11 +16,19 @@ export interface BinaryOperatorToken {
   op: BinaryOperator;
 }
 
-export interface ParenthesisOperatorToken {
-  kind: TokenKind.ParenthesisOperator;
-  op: ParenthesisOperator;
+export interface ParenthesisOpenToken {
+  kind: TokenKind.ParenthesisOpen;
 }
 
-export type Token = (IntegerLiteralToken | BinaryOperatorToken | ParenthesisOperatorToken) & {
+export interface ParenthesisClosedToken {
+  kind: TokenKind.ParenthesisClosed;
+}
+
+export type Token = (
+  | IntegerLiteralToken
+  | BinaryOperatorToken
+  | ParenthesisOpenToken
+  | ParenthesisClosedToken
+) & {
   loc: number;
 };

@@ -1,68 +1,97 @@
 import BinaryOperator from "./binary-operator";
-import ParenthesisOperator from "./ast/parenthesis";
-import { Token, TokenKind } from "./token";
+import { Token, TokenKind, ParenthesisOpenToken } from "./token";
 
 const spaces: string[] = [" ", "\n", "\t", "\r", "\f"];
 
 export default class Lexer {
-  static readNumber(expr: string, i: number): [number, number] {
-    let number = 0;
-    for (; i < expr.length; i++) {
-      const char = expr.charAt(i);
-      switch (true) {
-        case char >= "0" && char <= "9":
-          number *= 10;
-          number += char.charCodeAt(0) - "0".charCodeAt(0); // convert char to n
-          break;
-        case spaces.includes(char):
-        case Object.values(BinaryOperator).includes(char as BinaryOperator):
-        case Object.values(ParenthesisOperator).includes(char as ParenthesisOperator):
-          return [number, i];
-        default:
-          throw "Bad bad character!";
-      }
-    }
-    return [number, i];
+  expr: string;
+  index: number = -1;
+  tokens: Token[] = [];
+
+  constructor(expr: string) {
+    this.expr = expr;
   }
 
-  static lex(expr: string): Token[] {
-    const tokens: Token[] = [];
-    for (let i = 0; i < expr.length; i++) {
-      const char = expr.charAt(i);
+  peek(): string | undefined {
+    if (this.index + 1 >= this.expr.length) {
+      return undefined;
+    }
+
+    return this.expr[this.index + 1];
+  }
+
+  consume(): string | undefined {
+    this.index++;
+    if (this.index >= this.expr.length) {
+      return undefined;
+    }
+
+    return this.expr[this.index];
+  }
+
+  readNumber(firstChar: string): number {
+    let number = 0;
+    let char: string | undefined = firstChar;
+
+    do {
+      switch (true) {
+        case char >= "0" && char <= "9":
+          this.consume();
+
+          number *= 10;
+          number += char.charCodeAt(0) - "0".charCodeAt(0); // convert char to n
+
+          break;
+        default:
+          return number;
+      }
+    } while ((char = this.peek()));
+
+    return number;
+  }
+
+  lex(): Token[] {
+    let char: string | undefined = undefined;
+    while ((char = this.consume())) {
       switch (true) {
         case spaces.includes(char):
           // spaces
           // skip for now
           continue;
         case char >= "0" && char <= "9":
-          // digits
-          const [num, index] = this.readNumber(expr, i);
-          tokens.push({
+          this.tokens.push({
             kind: TokenKind.IntegerLiteral,
-            literal: num,
-            loc: i,
+            literal: this.readNumber(char),
+            loc: this.index,
           });
 
-          i = index-1;
           break;
         case Object.values(BinaryOperator).includes(char as BinaryOperator): // figure something else out for this
-          tokens.push({
+          this.tokens.push({
             kind: TokenKind.BinaryOperator,
             op: char as BinaryOperator,
-            loc: i,
+            loc: this.index,
           });
+
           break;
-        case Object.values(ParenthesisOperator).includes(char as ParenthesisOperator):
-          tokens.push({
-            kind: TokenKind.ParenthesisOperator,
-            op: char as ParenthesisOperator,
-            loc: i,
+        case char == "(":
+          this.tokens.push({
+            kind: TokenKind.ParenthesisOpen,
+            loc: this.index,
           });
+
+          break;
+        case char == ")":
+          this.tokens.push({
+            kind: TokenKind.ParenthesisClosed,
+            loc: this.index,
+          });
+
           break;
         default:
           throw `Not an allowed character ${char}`;
       }
     }
-    return tokens;
+    return this.tokens;
   }
 }

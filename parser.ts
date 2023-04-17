@@ -1,13 +1,12 @@
 import BinaryOperation from "./ast/binary-operation";
 import IntegerLiteral from "./ast/integer-literal";
-import ASTNode from "./ast/Node";
+import ASTNode from "./ast/node";
 
 import AST from "./ast";
 import BinaryOperator from "./binary-operator";
-import { Token, TokenKind } from "./token";
 
 import { Stack as Stack } from "./stack/stack";
-import ParenthesisOperator from "./ast/parenthesis";
+import { Token, TokenKind } from "./token";
 
 export default class Parser {
   tokens: Token[];
@@ -33,7 +32,7 @@ export default class Parser {
 
   parse(ast: AST): ASTNode {
     let token: Token | null;
-    
+
     const parenthesisOpStack = new Stack<BinaryOperation | ASTNode>(); // stores operator tokens before a parenthis
     let curOp: BinaryOperator;
     while ((token = this.next())) {
@@ -68,7 +67,7 @@ export default class Parser {
             ast.currentOperation = node;
             ast.currentOperation.setLeft(ast.root);
             ast.root = ast.currentOperation;
-            
+
             continue;
           }
 
@@ -96,19 +95,6 @@ export default class Parser {
 
           break;
         }
-
-        case TokenKind.ParenthesisOperator: {
-          if (token.op == ParenthesisOperator.left) {
-            console.log("left")
-            parenthesisOpStack.push(ast.root)
-          }
-          else if (token.op == ParenthesisOperator.right) {
-            console.log("Right")
-            ast.currentOperation.token.op = parenthesisOpStack.pop()
-          }
-          break;
-        }
-
         default:
           throw "Got unrecognized token";
       }

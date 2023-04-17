@@ -2,10 +2,17 @@ import AST from "./ast";
 import Lexer from "./lexer";
 import Parser from "./parser";
 
-// const exprs: string[] = ["2 + 4 * 8 - 2 * 4 - 1 * 8", "2 + 4 - 8 * 16", "2 + 4 * 8 - 16", "8 * 3 - 4"];
-const exprs: string[] = ["(2 + 2)"]
+const exprs: string[] = [
+  "2 + 4 * 8 - 2 * 4 - 1 * 8",
+  "2 + 4 - 8 * 16",
+  "2 + 4 * 8 - 16",
+  "8 * 3 - 4",
+];
+// const exprs: string[] = ["(2 + 2)"];
 for (const expr of exprs) {
-  const tokens = Lexer.lex(expr);
+  const lexer = new Lexer(expr);
+  const tokens = lexer.lex();
+
   console.log(tokens);
 
   const parser = new Parser(tokens);
