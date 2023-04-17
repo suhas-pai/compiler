@@ -24,7 +24,7 @@ export default class Lexer {
     }
     return [number, i];
   }
-  // (2 + 2)
+
   static lex(expr: string): Token[] {
     const tokens: Token[] = [];
     for (let i = 0; i < expr.length; i++) {

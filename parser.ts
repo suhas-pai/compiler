@@ -6,6 +6,8 @@ import AST from "./ast";
 import BinaryOperator from "./binary-operator";
 import { Token, TokenKind } from "./token";
 
+import { Stack as Stack } from "./stack/stack";
+
 export default class Parser {
   tokens: Token[];
   index: number = -1;
@@ -30,6 +32,8 @@ export default class Parser {
 
   parse(ast: AST): ASTNode {
     let token: Token | null;
+    const parenthesisOpStack = new Stack<Token>(); // stores operator tokens before a parenthis
+
     while ((token = this.next())) {
       switch (token.kind) {
         case TokenKind.IntegerLiteral: {
@@ -90,6 +94,12 @@ export default class Parser {
 
           break;
         }
+
+        case TokenKind.ParenthesisOperator: {
+
+          break;
+        }
+
         default:
           throw "Got unrecognized token";
       }
