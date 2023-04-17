@@ -15,5 +15,6 @@ export interface BinaryOperatorToken {
   op: BinaryOperator;
 }
 
-export type Token =
-  | (IntegerLiteralToken | BinaryOperatorToken) & { loc: number };
+export type Token = (IntegerLiteralToken | BinaryOperatorToken) & {
+  loc: number;
+};
