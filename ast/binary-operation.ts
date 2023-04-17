@@ -1,4 +1,4 @@
-import ASTNode from "./node";
+import ASTNode, { ASTNodeLink } from "./node";
 import ASTNodeKind from "./kind";
 import { BinaryOperatorToken } from "../token";
 import BinaryOperator from "../binary-operator";
@@ -6,6 +6,8 @@ import BinaryOperator from "../binary-operator";
 export default class BinaryOperation implements ASTNode {
   kind: ASTNodeKind.BinaryOperation;
   children = [null, null];
+  link: ASTNodeLink = new ASTNodeLink();
+
   hasChildren = () => {
     return this.left() != null && this.right() != null;
   };
@@ -39,10 +41,12 @@ export default class BinaryOperation implements ASTNode {
   }
 
   setLeft(node?: ASTNode) {
+    node.link.setToParent(node, 0);
     this.children[0] = node;
   }
 
   setRight(node?: ASTNode) {
+    node.link.setToParent(node, 1);
     this.children[1] = node;
   }
 
