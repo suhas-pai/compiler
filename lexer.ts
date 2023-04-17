@@ -38,6 +38,7 @@ export class Lexer {
           tokens.push({
             kind: TokenKind.IntegerLiteral,
             literal: num,
+            loc: i,
           });
 
           i = index;
@@ -46,6 +47,7 @@ export class Lexer {
           tokens.push({
             kind: TokenKind.BinaryOperator,
             op: char as BinaryOperator,
+            loc: i,
           });
 
           break;
