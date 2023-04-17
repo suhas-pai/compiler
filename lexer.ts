@@ -3,7 +3,7 @@ import { Token, TokenKind } from "./token";
 
 const spaces: string[] = [" ", "\n", "\t", "\r", "\f"];
 
-export class Lexer {
+export default class Lexer {
   static readNumber(expr: string, i: number): [number, number] {
     let number = 0;
     for (; i < expr.length; i++) {

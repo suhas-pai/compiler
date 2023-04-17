@@ -1,13 +1,12 @@
-import AST from "./ast";
-
 import BinaryOperation from "./ast/binary-operation";
 import IntegerLiteral from "./ast/integer-literal";
 import ASTNode from "./ast/node";
 
-import { Token, TokenKind } from "./token";
+import AST from "./ast";
 import BinaryOperator from "./binary-operator";
+import { Token, TokenKind } from "./token";
 
-export class Parser {
+export default class Parser {
   tokens: Token[];
   index: number = -1;
 
