@@ -29,4 +29,8 @@ export class AST {
       this.in(this.root, 0, tab);
     }
   }
+
+  run(): Object {
+    return this.root?.run();
+  }
 }
