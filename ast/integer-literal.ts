@@ -1,11 +1,11 @@
-import ASTNodeKind from "./Kind";
+import ASTNodeKind from "./kind";
 import { IntegerLiteralToken } from "../token";
-import ASTNode from "./Node";
+import ASTNode from "./node";
 
 export default class IntegerLiteral implements ASTNode {
   kind: ASTNodeKind.IntegerLiteral;
   children: null;
-  hasChildren: () => boolean = () => {
+  hasChildren = () => {
     return false;
   };
   run = () => {

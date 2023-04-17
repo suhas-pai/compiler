@@ -1,4 +1,4 @@
-import ASTNodeKind from "./Kind";
+import ASTNodeKind from "./kind";
 
 export default interface ASTNode {
   kind: ASTNodeKind;
