@@ -1,6 +1,6 @@
-import ASTNodeKind from "./kind";
+import ASTNodeKind from "./Kind";
 import { IntegerLiteralToken } from "../token";
-import ASTNode from "./node";
+import ASTNode from "./Node";
 
 export default class IntegerLiteral implements ASTNode {
   kind: ASTNodeKind.IntegerLiteral;

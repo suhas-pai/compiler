@@ -1,5 +1,5 @@
-import ASTNode from "./node";
-import ASTNodeKind from "./kind";
+import ASTNode from "./Node";
+import ASTNodeKind from "./Kind";
 import { BinaryOperatorToken } from "../token";
 import BinaryOperator from "../binary-operator";
 

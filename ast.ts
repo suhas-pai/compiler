@@ -1,5 +1,5 @@
 import BinaryOperation from "./ast/binary-operation";
-import ASTNode from "./ast/node";
+import ASTNode from "./ast/Node";
 
 export default class AST {
   root?: ASTNode;

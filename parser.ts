@@ -1,6 +1,6 @@
 import BinaryOperation from "./ast/binary-operation";
 import IntegerLiteral from "./ast/integer-literal";
-import ASTNode from "./ast/node";
+import ASTNode from "./ast/Node";
 
 import AST from "./ast";
 import BinaryOperator from "./binary-operator";
