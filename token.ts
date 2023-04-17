@@ -7,7 +7,7 @@ export enum TokenKind {
 
 export interface IntegerLiteralToken {
   kind: TokenKind.IntegerLiteral;
-  num: Number;
+  literal: Number;
 }
 
 export interface BinaryOperatorToken {

@@ -9,7 +9,7 @@ export default class IntegerLiteral implements ASTNode {
     return false;
   };
   run = () => {
-    return this.token.num;
+    return this.token.literal;
   };
 
   token: IntegerLiteralToken;
@@ -18,6 +18,6 @@ export default class IntegerLiteral implements ASTNode {
   }
 
   print() {
-    console.log(this.token.num);
+    console.log(this.token.literal);
   }
 }

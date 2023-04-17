@@ -37,7 +37,7 @@ export class Lexer {
           const [num, index] = this.readNumber(expr, i);
           tokens.push({
             kind: TokenKind.IntegerLiteral,
-            num: num,
+            literal: num,
           });
 
           i = index;

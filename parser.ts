@@ -46,7 +46,7 @@ export class Parser {
             ast.currentOperation == null ||
             ast.currentOperation.right() != null
           ) {
-            throw `Got number ${token.num}, expected an operation`;
+            throw `Got number ${token.literal}, expected an operation`;
           }
 
           ast.currentOperation.setRight(node);
