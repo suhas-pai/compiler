@@ -1,104 +1,121 @@
-import { assert } from 'console';
-import {Token, TokenKind, TokenOperator} from './lexer'
+import { AST } from "./ast";
 
-export enum Operator {
-    minus = '-',
-    plus = '+',
-    mult = '*',
-    div = '/'
-};
+import ASTNode from "./ast/Node";
+import IntegerLiteral from "./ast/IntegerLiteral";
 
-export class Node{
-    val: Token;
-    left: Node | null = null
-    right: Node | null = null
+import { Token, TokenKind } from "./token";
+import BinaryOperator from "./binary-operator";
+import { BinaryOperation } from "./ast/BinaryOperation";
 
-    constructor(val: Token) {
-        this.val = val
+export class Parser {
+  tokens: Token[];
+  index: number = -1;
+
+  constructor(tokens: Token[]) {
+    this.tokens = tokens;
+  }
+
+  next(kind?: TokenKind): Token | null {
+    this.index += 1;
+    if (this.index >= this.tokens.length) {
+      return null;
     }
 
-    in() {
-        console.log(this)
-        if (this.left != null) {
-            this.left.in()
-        } else {
-            console.log("(null)")
-        }
-        
-        if (this.right != null) {
-            this.right.in()
-        } else {
-            console.log("(null)")
-        }
-    }
-}
-
-export class Parser{
-    root: Node;
-    curOp: Node;
-
-    pop(tokens: Token[], kind: TokenKind): Token {
-        let token = tokens.shift()
-        assert((token as Token).kind == kind, `Token must be of type ${kind}`);
-
-        return tokens[0]
+    const token = this.tokens[this.index];
+    if (kind && token.kind != kind) {
+      throw `Expected a ${kind}, got ${token.kind})`;
     }
 
-    parse(tokens: Token[]): Node{
-        if (this.root == null){
-            let token = this.pop(tokens, TokenKind.Number)
-            this.root = new Node(token)
+    return token;
+  }
+
+  parse(ast: AST): ASTNode {
+    let token: Token | null;
+    while ((token = this.next())) {
+      switch (token.kind) {
+        case TokenKind.IntegerLiteral: {
+          const node = new IntegerLiteral(token);
+          if (ast.root == null) {
+            ast.root = node;
+            continue;
+          }
+
+          // If we have a number w/o a preceding operation (e.g "2 2") or
+          // If we have a number after a full binary operation (e.g "2 + 2 3").
+          if (
+            ast.currentOperation == null ||
+            ast.currentOperation.right() != null
+          ) {
+            throw `Got number ${token.num}, expected an operation`;
+          }
+
+          // When we have only two elements in the tree - a left-number and
+          // operator.
+
+          if (ast.currentOperation.right() == null) {
+            ast.currentOperation.setRight(node);
+            continue;
+          }
+
+          break;
         }
+        case TokenKind.BinaryOperator: {
+          const node = new BinaryOperation(token);
+          if (ast.root == null) {
+            throw `Got binary-operator ${token.op} w/o a preceding number`;
+          }
 
-        // Only 1 element in tree (a number)
-        if (this.curOp == null) {
-            let token = this.pop(tokens, TokenKind.Operator)
-            this.curOp = new Node(token)
-            this.curOp.left = this.root
-            this.root = this.curOp
+          // When we have only a single element in the tree - a left-number.
+          if (ast.currentOperation == null) {
+            ast.currentOperation = node;
+            ast.currentOperation.setLeft(ast.root);
+            ast.root = ast.currentOperation;
+
+            continue;
+          }
+
+          const curOp = ast.currentOperation.opTok.op;
+          if (Parser.precedence(curOp) > Parser.precedence(token.op)) {
+            // Create a new root for this binary operation, that sits above
+            // the current binary operation.
+            // The current (now previous) binary opeation will be the left child
+            // of this new operation.
+            ast.currentOperation = node;
+            ast.currentOperation.setLeft(ast.root);
+            ast.root = ast.currentOperation;
+          } else {
+            // Take the most-recently-seen number (the right-number of the
+            // current operation), and make it the left-number of this operation
+            // that has a higher precedence.
+            // The current (now previous) operation's right-number will be the
+            // result of this new, higher-precedenced operation.
+
+            node.setLeft(ast.currentOperation.right());
+
+            ast.currentOperation.setRight(node);
+            ast.currentOperation = node;
+          }
+
+          break;
         }
-
-        while (true) {
-            if (this.curOp.right == null) {
-                this.curOp.right = new Node(this.pop(tokens, TokenKind.Number))
-                continue
-            }
-
-            let opToken = this.pop(tokens, TokenKind.Operator) as TokenOperator
-            let curOp = (this.curOp.val as TokenOperator).op
-
-            if (Parser.precedence(curOp) <= Parser.precedence(opToken.op)) {
-                this.curOp = new Node(opToken)
-                this.curOp.left = this.root
-                this.root = this.curOp
-
-                continue
-            }
-
-            let newOp = new Node(opToken)
-            newOp.left = this.curOp.right
-
-            this.curOp.right = newOp
-            this.curOp = newOp
-        }
-
-        return this.root
+        default:
+          throw "Got unrecognized token";
+      }
     }
 
-    static precedence(operator: Operator): Number{
-        switch(operator){
-            case Operator.plus:
-            case Operator.minus:
-                return 0
-            case Operator.div:
-            case Operator.mult:
-                return 1
-            default:
-                throw "Illegal operator type (How did this happen??)"
-        }
-    }
+    return ast.root;
+  }
 
-    inOrder() {
-        this.root.in()
+  static precedence(operator: BinaryOperator): Number {
+    switch (operator) {
+      case BinaryOperator.plus:
+      case BinaryOperator.minus:
+        return 0;
+      case BinaryOperator.div:
+      case BinaryOperator.mult:
+        return 1;
+      default:
+        throw "Illegal operator type (How did this happen??)";
     }
+  }
 }

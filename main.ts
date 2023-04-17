@@ -1,13 +1,15 @@
-import { type } from "os";
-import { Lexer } from './lexer'
-import { Parser } from './parser'
+import { AST } from "./ast";
+import { Lexer } from "./lexer";
+import { Parser } from "./parser";
 
-let expr = "2 + 4 - 8"
-let tokens = Lexer.lex(expr)
+const exprs = ["2 + 4 - 8", "2 + 4 - 8 * 16", "2 + 4 * 8 - 16"];
+for (const expr of exprs) {
+  const tokens = Lexer.lex(expr);
+  console.log(tokens);
 
-console.log(tokens)
+  const parser = new Parser(tokens);
+  const ast = new AST();
 
-let parser = new Parser()
-let ast = parser.parse(tokens)
-
-console.log(ast.in())
+  parser.parse(ast);
+  ast.inOrder();
+}
