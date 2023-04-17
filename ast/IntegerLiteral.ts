@@ -9,15 +9,15 @@ export default class IntegerLiteral implements ASTNode {
     return false;
   };
   run = () => {
-    return this.numTok.num;
+    return this.token.num;
   };
 
-  numTok: IntegerLiteralToken;
-  constructor(numTok: IntegerLiteralToken) {
-    this.numTok = numTok;
+  token: IntegerLiteralToken;
+  constructor(token: IntegerLiteralToken) {
+    this.token = token;
   }
 
   print() {
-    console.log(this.numTok.num);
+    console.log(this.token.num);
   }
 }

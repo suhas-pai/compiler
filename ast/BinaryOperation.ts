@@ -11,7 +11,7 @@ export class BinaryOperation implements ASTNode {
   };
 
   run = () => {
-    switch (this.opTok.op) {
+    switch (this.token.op) {
       case BinaryOperator.plus:
         return (this.left().run() as number) + (this.right().run() as number);
       case BinaryOperator.minus:
@@ -21,13 +21,13 @@ export class BinaryOperation implements ASTNode {
       case BinaryOperator.div:
         return (this.left().run() as number) / (this.right().run() as number);
       default:
-        throw `Unrecognized BinaryOperator ${this.opTok.op} in BinaryOperation.run()`;
+        throw `Unrecognized BinaryOperator ${this.token.op} in BinaryOperation.run()`;
     }
   };
 
-  opTok: BinaryOperatorToken;
-  constructor(opTok: BinaryOperatorToken) {
-    this.opTok = opTok;
+  token: BinaryOperatorToken;
+  constructor(token: BinaryOperatorToken) {
+    this.token = token;
   }
 
   left(): ASTNode | null {
@@ -47,6 +47,6 @@ export class BinaryOperation implements ASTNode {
   }
 
   print() {
-    console.log(`${this.opTok.op}\t(Result: ${this.run()})`);
+    console.log(`${this.token.op}\t(Result: ${this.run()})`);
   }
 }
