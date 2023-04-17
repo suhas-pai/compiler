@@ -14,7 +14,7 @@ export default class AST {
     return space_string;
   }
 
-  in(node: ASTNode, spaces: number, tab: number) {
+  in(node: ASTNode, spaces: number, tab: number): void {
     node.print(this.getSpaceString(spaces));
     if (!node.hasChildren()) {
       return;
@@ -25,7 +25,7 @@ export default class AST {
     }
   }
 
-  inOrder(tab: number = 4) {
+  inOrder(tab: number = 4): void {
     if (this.root) {
       this.in(this.root, 0, tab);
     }
