@@ -6,12 +6,12 @@ export default class AST {
   currentOperation?: BinaryOperation; // Operation at the bottom most right of tree
 
   getSpaceString(spaces: number): string {
-    let space_string = "";
+    let spaceString = "";
     for (let i = 0; i != spaces; i++) {
-      space_string += " ";
+      spaceString += " ";
     }
 
-    return space_string;
+    return spaceString;
   }
 
   in(node: ASTNode, spaces: number, tab: number): void {
