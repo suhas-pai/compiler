@@ -20,8 +20,8 @@ export default class Lexer {
     return this.expr[this.index + 1];
   }
 
-  consume(): string | undefined {
-    this.index++;
+  consume(amount: number = 1): string | undefined {
+    this.index += amount;
     if (this.index >= this.expr.length) {
       return undefined;
     }
@@ -29,23 +29,74 @@ export default class Lexer {
     return this.expr[this.index];
   }
 
-  readNumber(firstChar: string): number {
-    let number = 0;
-    let char: string | undefined = firstChar;
+  readNumberGetDigit(char: string, base: number): number | undefined {
+    switch (true) {
+      case char >= "0" && char <= "9": {
+        const digit = char.charCodeAt(0) - "0".charCodeAt(0);
+        if (digit >= base) {
+          throw `Invalid digit ${digit} for number with base ${base}`;
+        }
 
-    do {
-      switch (true) {
-        case char >= "0" && char <= "9":
-          this.consume();
-
-          number *= 10;
-          number += char.charCodeAt(0) - "0".charCodeAt(0); // convert char to n
-
-          break;
-        default:
-          return number;
+        return digit;
       }
-    } while ((char = this.peek()));
+      case char >= "a" && char <= "z": {
+        const digit = 10 + (char.charCodeAt(0) - "a".charCodeAt(0));
+        if (digit >= base) {
+          throw `Invalid character ${digit} for number with base ${base}`;
+        }
+
+        return digit;
+      }
+      case char >= "A" && char <= "Z": {
+        const digit = 10 + (char.charCodeAt(0) - "A".charCodeAt(0));
+        if (digit >= base) {
+          throw `Invalid character ${digit} for number with base ${base}`;
+        }
+
+        return digit;
+      }
+    }
+
+    return undefined;
+  }
+
+  readNumber(firstChar: string): number {
+    let char: string | undefined = firstChar;
+    let base = 10;
+
+    if (firstChar == "0") {
+      const char = this.peek();
+      switch (char) {
+        case "b":
+        case "B":
+          base = 2;
+          firstChar = this.consume(2);
+          break;
+        case "o":
+        case "O":
+          base = 8;
+          firstChar = this.consume(2);
+          break;
+        case "x":
+        case "X":
+          base = 16;
+          firstChar = this.consume(2);
+          break;
+      }
+    }
+
+    let number = this.readNumberGetDigit(firstChar, base);
+    while ((char = this.peek())) {
+      const digit = this.readNumberGetDigit(char, base);
+      if (digit == undefined) {
+        return number;
+      }
+
+      this.consume();
+
+      number *= base;
+      number += digit;
+    }
 
     return number;
   }
