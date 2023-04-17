@@ -38,11 +38,11 @@ export default class BinaryOperation implements ASTNode {
     return this.children[1];
   }
 
-  setLeft(node: ASTNode | null) {
+  setLeft(node?: ASTNode) {
     this.children[0] = node;
   }
 
-  setRight(node: ASTNode | null) {
+  setRight(node?: ASTNode) {
     this.children[1] = node;
   }
 
