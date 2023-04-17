@@ -46,7 +46,7 @@ export default class BinaryOperation implements ASTNode {
     this.children[1] = node;
   }
 
-  print() {
-    console.log(`${this.token.op}\t(Result: ${this.run()})`);
+  print(prefix: string) {
+    console.log(`${prefix} ${this.token.op}\t(Result: ${this.run()})`);
   }
 }

@@ -5,16 +5,17 @@ export default class AST {
   root?: ASTNode;
   currentOperation?: BinaryOperation; // Operation at the bottom most right of tree
 
-  writeSpaces(spaces: number) {
+  getSpaceString(spaces: number): string {
+    let space_string = "";
     for (let i = 0; i != spaces; i++) {
-      process.stdout.write(" ");
+      space_string += " ";
     }
+
+    return space_string;
   }
 
   in(node: ASTNode, spaces: number, tab: number) {
-    this.writeSpaces(spaces);
-    node.print();
-
+    node.print(this.getSpaceString(spaces));
     if (!node.hasChildren()) {
       return;
     }

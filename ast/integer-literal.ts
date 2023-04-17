@@ -17,7 +17,7 @@ export default class IntegerLiteral implements ASTNode {
     this.token = token;
   }
 
-  print() {
-    console.log(this.token.literal);
+  print(prefix: string) {
+    console.log(`${prefix}${this.token.literal}`);
   }
 }
