@@ -49,14 +49,7 @@ export class Parser {
             throw `Got number ${token.num}, expected an operation`;
           }
 
-          // When we have only two elements in the tree - a left-number and
-          // operator.
-
-          if (ast.currentOperation.right() == null) {
-            ast.currentOperation.setRight(node);
-            continue;
-          }
-
+          ast.currentOperation.setRight(node);
           break;
         }
         case TokenKind.BinaryOperator: {
@@ -74,7 +67,7 @@ export class Parser {
             continue;
           }
 
-          const curOp = ast.currentOperation.opTok.op;
+          const curOp = ast.currentOperation.token.op;
           if (Parser.precedence(curOp) > Parser.precedence(token.op)) {
             // Create a new root for this binary operation, that sits above
             // the current binary operation.
