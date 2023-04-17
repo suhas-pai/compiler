@@ -11,7 +11,7 @@ for (const expr of exprs) {
   const ast = new AST();
 
   parser.parse(ast);
-  ast.inOrder();
+  ast.createTree();
 
   console.log(`Final Result: ${ast.run()}`);
 }

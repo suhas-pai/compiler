@@ -5,7 +5,7 @@ export default class AST {
   root?: ASTNode;
   currentOperation?: BinaryOperation; // Operation at the bottom most right of tree
 
-  getSpaceString(spaces: number): string {
+  private getSpaceString(spaces: number): string {
     let spaceString = "";
     for (let i = 0; i != spaces; i++) {
       spaceString += " ";
@@ -14,20 +14,20 @@ export default class AST {
     return spaceString;
   }
 
-  in(node: ASTNode, spaces: number, tab: number): void {
+  private create(node: ASTNode, spaces: number, tab: number): void {
     node.print(this.getSpaceString(spaces));
     if (!node.hasChildren()) {
       return;
     }
 
     for (const child of node.children) {
-      this.in(child, spaces + tab, tab);
+      this.create(child, spaces + tab, tab);
     }
   }
 
-  inOrder(tab: number = 4): void {
+  createTree(tab: number = 4): void {
     if (this.root) {
-      this.in(this.root, 0, tab);
+      this.create(this.root, 0, tab);
     }
   }
 
