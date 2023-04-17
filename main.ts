@@ -19,7 +19,7 @@ for (const expr of exprs) {
   const ast = new AST();
 
   parser.parse(ast);
-  ast.createTree();
+  ast.inOrder();
 
   console.log(`Final Result: ${ast.run()}`);
 }

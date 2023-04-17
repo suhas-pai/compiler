@@ -14,20 +14,20 @@ export default class AST {
     return spaceString;
   }
 
-  private create(node: ASTNode, spaces: number, tab: number): void {
+  private in(node: ASTNode, spaces: number, tab: number): void {
     node.print(this.getSpaceString(spaces));
     if (!node.hasChildren()) {
       return;
     }
 
     for (const child of node.children) {
-      this.create(child, spaces + tab, tab);
+      this.in(child, spaces + tab, tab);
     }
   }
 
-  createTree(tab: number = 4): void {
+  inOrder(tab: number = 4): void {
     if (this.root) {
-      this.create(this.root, 0, tab);
+      this.in(this.root, 0, tab);
     }
   }
 
