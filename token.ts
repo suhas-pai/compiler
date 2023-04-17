@@ -5,12 +5,11 @@ export enum TokenKind {
   BinaryOperator = "binary-operator",
 }
 
-const spaces: string[] = [" ", "\n", "\t", "\r", "\f"];
-
 export interface IntegerLiteralToken {
   kind: TokenKind.IntegerLiteral;
   num: Number;
 }
+
 export interface BinaryOperatorToken {
   kind: TokenKind.BinaryOperator;
   op: BinaryOperator;
