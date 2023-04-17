@@ -8,6 +8,9 @@ export default class IntegerLiteral implements ASTNode {
   hasChildren: () => boolean = () => {
     return false;
   };
+  run = () => {
+    return this.numTok.num;
+  };
 
   numTok: IntegerLiteralToken;
   constructor(numTok: IntegerLiteralToken) {

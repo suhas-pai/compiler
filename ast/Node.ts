@@ -5,4 +5,5 @@ export default interface ASTNode {
   children: ASTNode[];
   hasChildren: () => boolean;
   print: () => void;
+  run: () => Object;
 }
