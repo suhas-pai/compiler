@@ -21,7 +21,7 @@ export default class BinaryOperation implements ASTNode {
       case BinaryOperator.div:
         return (this.left().run() as number) / (this.right().run() as number);
       default:
-        throw `Unrecognized BinaryOperator ${this.token.op} in BinaryOperation.run()`;
+        throw `Unrecognized BinaryOperator "${this.token.op}" in BinaryOperation.run()`;
     }
   };
 
