@@ -1,4 +1,5 @@
 import BinaryOperator from "./binary-operator";
+import ParenthesisOperator from "./ast/parenthesis";
 import { Token, TokenKind } from "./token";
 
 const spaces: string[] = [" ", "\n", "\t", "\r", "\f"];
@@ -15,6 +16,7 @@ export default class Lexer {
           break;
         case spaces.includes(char):
         case Object.values(BinaryOperator).includes(char as BinaryOperator):
+        case Object.values(ParenthesisOperator).includes(char as ParenthesisOperator):
           return [number, i];
         default:
           throw "Bad bad character!";
@@ -22,7 +24,7 @@ export default class Lexer {
     }
     return [number, i];
   }
-
+  // (2 + 2)
   static lex(expr: string): Token[] {
     const tokens: Token[] = [];
     for (let i = 0; i < expr.length; i++) {
@@ -41,7 +43,7 @@ export default class Lexer {
             loc: i,
           });
 
-          i = index;
+          i = index-1;
           break;
         case Object.values(BinaryOperator).includes(char as BinaryOperator): // figure something else out for this
           tokens.push({
@@ -49,7 +51,13 @@ export default class Lexer {
             op: char as BinaryOperator,
             loc: i,
           });
-
+          break;
+        case Object.values(ParenthesisOperator).includes(char as ParenthesisOperator):
+          tokens.push({
+            kind: TokenKind.ParenthesisOperator,
+            op: char as ParenthesisOperator,
+            loc: i,
+          });
           break;
         default:
           throw `Not an allowed character ${char}`;
