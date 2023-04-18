@@ -2,6 +2,7 @@ import BinaryOperator from "./binary-operator";
 import { Token, TokenKind, ParenthesisOpenToken } from "./token";
 
 const spaces: string[] = [" ", "\n", "\t", "\r", "\f"];
+const separators: string[] = [...spaces, "(", ")", "[", "]"];
 
 export default class Lexer {
   expr: string;
@@ -10,6 +11,14 @@ export default class Lexer {
 
   constructor(expr: string) {
     this.expr = expr;
+  }
+
+  rpeek(): string | undefined {
+    if (this.index == 0) {
+      return undefined;
+    }
+
+    return this.expr[this.index - 1];
   }
 
   peek(): string | undefined {
@@ -133,8 +142,12 @@ export default class Lexer {
           });
 
           break;
-        case char == "-":
-          if (this.isdigit(this.peek())) {
+        case char == "-": {
+          const prev = this.rpeek();
+          if (
+            this.isdigit(this.peek()) &&
+            (prev == undefined || separators.includes(prev))
+          ) {
             const firstChar = this.consume();
             this.tokens.push({
               kind: TokenKind.IntegerLiteral,
@@ -146,6 +159,7 @@ export default class Lexer {
           }
 
           break;
+        }
         case char == "*":
           if (this.peek() == "*") {
             this.consume();
