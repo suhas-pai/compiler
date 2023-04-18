@@ -101,6 +101,18 @@ export default class Lexer {
     return number;
   }
 
+  private isdigit(str: string): boolean {
+    return str[0] >= "0" && str[0] <= "9";
+  }
+
+  private handleBinOp(char: string): void {
+    this.tokens.push({
+      kind: TokenKind.BinaryOperator,
+      op: char as BinaryOperator,
+      loc: this.index,
+    });
+  }
+
   lex(): Token[] {
     let char: string | undefined = undefined;
     while ((char = this.consume())) {
@@ -109,7 +121,7 @@ export default class Lexer {
           // spaces
           // skip for now
           continue;
-        case char >= "0" && char <= "9":
+        case this.isdigit(char):
           this.tokens.push({
             kind: TokenKind.IntegerLiteral,
             literal: this.readNumber(char),
@@ -117,13 +129,35 @@ export default class Lexer {
           });
 
           break;
-        case Object.values(BinaryOperator).includes(char as BinaryOperator): // figure something else out for this
-          this.tokens.push({
-            kind: TokenKind.BinaryOperator,
-            op: char as BinaryOperator,
-            loc: this.index,
-          });
+        case char == "+":
+          if (this.isdigit(this.peek())) {
+            const firstChar = this.consume();
+            this.tokens.push({
+              kind: TokenKind.IntegerLiteral,
+              literal: this.readNumber(firstChar),
+              loc: this.index,
+            });
+          } else {
+            this.handleBinOp(char);
+          }
 
+          break;
+        case char == "-":
+          if (this.isdigit(this.peek())) {
+            const firstChar = this.consume();
+            this.tokens.push({
+              kind: TokenKind.IntegerLiteral,
+              literal: -1 * this.readNumber(firstChar),
+              loc: this.index,
+            });
+          } else {
+            this.handleBinOp(char);
+          }
+
+          break;
+        case char == "*":
+        case char == "/":
+          this.handleBinOp(char);
           break;
         case char == "(":
           this.tokens.push({
