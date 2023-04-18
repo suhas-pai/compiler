@@ -67,6 +67,10 @@ export default class Parser {
 
     while ((token = this.next())) {
       if (token.kind == endTokenKind) {
+        if (currentOperation.right() == null) {
+          throw `Expected expression, found ${endTokenKind} instead`;
+        }
+
         break;
       }
 

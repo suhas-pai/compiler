@@ -133,19 +133,6 @@ export default class Lexer {
           });
 
           break;
-        case char == "+":
-          if (this.isdigit(this.peek())) {
-            const firstChar = this.consume();
-            this.tokens.push({
-              kind: TokenKind.IntegerLiteral,
-              literal: this.readNumber(firstChar),
-              loc: this.index,
-            });
-          } else {
-            this.handleBinOp(char);
-          }
-
-          break;
         case char == "-":
           if (this.isdigit(this.peek())) {
             const firstChar = this.consume();
@@ -168,9 +155,8 @@ export default class Lexer {
           }
 
           break;
+        case char == "+":
         case char == "%":
-          this.handleBinOp(char);
-          break;
         case char == "/":
           this.handleBinOp(char);
           break;
