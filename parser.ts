@@ -101,6 +101,11 @@ export default class Parser {
             continue;
           }
 
+          // We got two binary-operations one after another
+          if (currentOperation.right() == null) {
+            throw "Unexpected token: operation, expected expression";
+          }
+
           const curOp = currentOperation.token.op;
           if (binOpPrecedence(curOp) > binOpPrecedence(token.op)) {
             // Create a new root for this binary operation, that sits above
