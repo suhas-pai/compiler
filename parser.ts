@@ -101,7 +101,7 @@ export default class Parser {
             continue;
           }
 
-          // We got two binary-operations one after another
+          // We got two binary-operations one after another.
           if (currentOperation.right() == null) {
             throw "Unexpected token: operation, expected expression";
           }
