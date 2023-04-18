@@ -1,4 +1,4 @@
-import AST from "./ast";
+import AST from "./ast/base";
 import Lexer from "./lexer";
 import Parser from "./parser";
 

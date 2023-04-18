@@ -1,8 +1,8 @@
+import AST from "./ast/base";
 import BinaryOperation from "./ast/binary-operation";
 import IntegerLiteral from "./ast/integer-literal";
 import ASTNode from "./ast/node";
 
-import AST from "./ast";
 import BinaryOperator from "./binary-operator";
 
 import { Stack as Stack } from "./stack/stack";
@@ -32,9 +32,8 @@ export default class Parser {
 
   parse(ast: AST): ASTNode {
     let token: Token | null;
-
-    const parenthesisOpStack = new Stack<BinaryOperation | ASTNode>(); // stores operator tokens before a parenthis
     let curOp: BinaryOperator;
+
     while ((token = this.next())) {
       switch (token.kind) {
         case TokenKind.IntegerLiteral: {
