@@ -17,6 +17,8 @@ function binOpPrecedence(operator: BinaryOperator): Number {
     case BinaryOperator.div:
     case BinaryOperator.mult:
       return 1;
+    case BinaryOperator.power:
+      return 2;
     default:
       throw "Illegal operator type (How did this happen??)";
   }

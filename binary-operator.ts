@@ -3,6 +3,7 @@ enum BinaryOperator {
   minus = "-",
   mult = "*",
   div = "/",
+  power = "**",
 }
 
 export default BinaryOperator;

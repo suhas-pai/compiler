@@ -105,10 +105,10 @@ export default class Lexer {
     return str[0] >= "0" && str[0] <= "9";
   }
 
-  private handleBinOp(char: string): void {
+  private handleBinOp(op: string): void {
     this.tokens.push({
       kind: TokenKind.BinaryOperator,
-      op: char as BinaryOperator,
+      op: op as BinaryOperator,
       loc: this.index,
     });
   }
@@ -156,6 +156,14 @@ export default class Lexer {
 
           break;
         case char == "*":
+          if (this.peek() == "*") {
+            this.consume();
+            this.handleBinOp("**");
+          } else {
+            this.handleBinOp(char);
+          }
+
+          break;
         case char == "/":
           this.handleBinOp(char);
           break;
