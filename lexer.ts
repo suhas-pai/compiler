@@ -29,7 +29,7 @@ export default class Lexer {
     return this.expr[this.index];
   }
 
-  private readNumberGetDigit(char: string, base: number): number | undefined {
+  private todigit(char: string, base: number): number | undefined {
     switch (true) {
       case char >= "0" && char <= "9": {
         const digit = char.charCodeAt(0) - "0".charCodeAt(0);
@@ -85,11 +85,15 @@ export default class Lexer {
       }
     }
 
-    let number = this.readNumberGetDigit(firstChar, base);
+    let number = this.todigit(firstChar, base);
     while ((char = this.peek())) {
-      const digit = this.readNumberGetDigit(char, base);
+      const digit = this.todigit(char, base);
       if (digit == undefined) {
         return number;
+      }
+
+      if (digit >= base) {
+        throw `Invalid character ${digit} for base ${base}`;
       }
 
       this.consume();
