@@ -2,8 +2,8 @@ import BinaryOperator from "./binary-operator";
 export enum TokenKind {
   IntegerLiteral = "integer-literal",
   BinaryOperator = "binary-operator",
-  OpenParen = "parenthesis-open",
-  ClosedParen = "parenthesis-closed",
+  OpenParen = "open-parenthesis",
+  ClosedParen = "close-parenthesis",
 }
 
 export interface IntegerLiteralToken {
