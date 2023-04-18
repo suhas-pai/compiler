@@ -7,6 +7,7 @@ const exprs: string[] = [
   "2 + 4 - 8 * 16",
   "2 + 4 * 8 - 16",
   "8 * 3 - 4",
+  "8 * ((3 - 4) * 5)",
 ];
 // const exprs: string[] = ["(2 + 2)"];
 for (const expr of exprs) {

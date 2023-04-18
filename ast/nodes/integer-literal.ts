@@ -1,15 +1,24 @@
-import ASTNodeKind from "./kind";
-import ASTNode, { ASTNodeLink } from "./node";
-import { IntegerLiteralToken } from "../token";
+import ASTNodeKind from "../kind";
+import ASTNode, { ASTNodeLink } from "../node";
+import { IntegerLiteralToken } from "../../token";
 
 export default class IntegerLiteral implements ASTNode {
-  kind: ASTNodeKind.IntegerLiteral;
+  kind = ASTNodeKind.IntegerLiteral;
   children: null;
   link: ASTNodeLink = new ASTNodeLink();
 
   hasChildren = () => {
     return false;
   };
+
+  addChild = () => {
+    throw "Can't add child to IntegerLiteral";
+  };
+
+  removeChild = (index: number): ASTNode | undefined => {
+    return undefined;
+  };
+
   run = () => {
     return this.token.literal;
   };

@@ -1,15 +1,33 @@
-import ASTNode, { ASTNodeLink } from "./node";
-import ASTNodeKind from "./kind";
-import { BinaryOperatorToken } from "../token";
-import BinaryOperator from "../binary-operator";
+import ASTNode, { ASTNodeLink } from "../node";
+import ASTNodeKind from "../kind";
+import { BinaryOperatorToken } from "../../token";
+import BinaryOperator from "../../binary-operator";
 
 export default class BinaryOperation implements ASTNode {
-  kind: ASTNodeKind.BinaryOperation;
+  kind = ASTNodeKind.BinaryOperation;
   children = [null, null];
   link: ASTNodeLink = new ASTNodeLink();
 
   hasChildren = () => {
     return this.left() != null && this.right() != null;
+  };
+
+  addChild = (node: ASTNode) => {
+    if (this.right() != null) {
+      throw "BinaryOperation already has a right node";
+    }
+
+    this.setRight(node);
+  };
+
+  removeChild = (index: number): ASTNode | undefined => {
+    let oldValue: ASTNode | undefined;
+    if (index == 0 || index == 1) {
+      oldValue = this.children[index];
+      this.children[index] = null;
+    }
+
+    return oldValue;
   };
 
   run = () => {
@@ -41,12 +59,15 @@ export default class BinaryOperation implements ASTNode {
   }
 
   setLeft(node?: ASTNode) {
-    node.link.setToParent(node, 0);
+    node?.link.removeLink();
+    node?.link.setToParent(node, 0);
     this.children[0] = node;
   }
 
   setRight(node?: ASTNode) {
-    node.link.setToParent(node, 1);
+    node?.link.removeLink();
+    node?.link.setToParent(node, 1);
+
     this.children[1] = node;
   }
 

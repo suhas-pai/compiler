@@ -2,8 +2,8 @@ import BinaryOperator from "./binary-operator";
 export enum TokenKind {
   IntegerLiteral = "integer-literal",
   BinaryOperator = "binary-operator",
-  ParenthesisOpen = "parenthesis-open",
-  ParenthesisClosed = "parenthesis-closed",
+  OpenParen = "parenthesis-open",
+  ClosedParen = "parenthesis-closed",
 }
 
 export interface IntegerLiteralToken {
@@ -17,11 +17,11 @@ export interface BinaryOperatorToken {
 }
 
 export interface ParenthesisOpenToken {
-  kind: TokenKind.ParenthesisOpen;
+  kind: TokenKind.OpenParen;
 }
 
 export interface ParenthesisClosedToken {
-  kind: TokenKind.ParenthesisClosed;
+  kind: TokenKind.ClosedParen;
 }
 
 export type Token = (

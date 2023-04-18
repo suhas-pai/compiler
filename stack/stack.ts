@@ -1,30 +1,39 @@
-interface stackInterface<dataType> {
-  push(dataItem: dataType): void;
-  pop(): dataType | null | undefined;
-  peek(): dataType | null;
-  isEmpty(): boolean;
+interface stackInterface<DataType> {
+  push(dataItem: DataType): DataType;
+  pop(): DataType | null | undefined;
+  peek(): DataType | null;
+  empty(): boolean;
   size(): number;
   printStack(): void;
 }
 
-export class Stack<dataType> implements stackInterface<dataType> {
-  private data: Array<dataType> = [];
+export class Stack<DataType> implements stackInterface<DataType> {
+  private data: Array<DataType> = [];
   private stackSize: number = 0;
 
-  push(dataItem: dataType): void {
+  push(dataItem: DataType): DataType {
     this.data.push(dataItem);
+    return dataItem;
   }
 
-  pop(): dataType | null | undefined {
+  pop(): DataType | null | undefined {
     let element = this.data.pop();
     return element;
   }
 
-  peek(): dataType | null {
+  top(): DataType | null | undefined {
+    if (this.data.length != 0) {
+      return this.data.at(-1);
+    }
+
+    return undefined;
+  }
+
+  peek(): DataType | null {
     let element = this.data[this.size() - 1];
     return element;
   }
-  isEmpty(): boolean {
+  empty(): boolean {
     let result = this.data.length <= 0;
     return result;
   }

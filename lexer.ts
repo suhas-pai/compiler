@@ -29,7 +29,7 @@ export default class Lexer {
     return this.expr[this.index];
   }
 
-  readNumberGetDigit(char: string, base: number): number | undefined {
+  private readNumberGetDigit(char: string, base: number): number | undefined {
     switch (true) {
       case char >= "0" && char <= "9": {
         const digit = char.charCodeAt(0) - "0".charCodeAt(0);
@@ -127,14 +127,14 @@ export default class Lexer {
           break;
         case char == "(":
           this.tokens.push({
-            kind: TokenKind.ParenthesisOpen,
+            kind: TokenKind.OpenParen,
             loc: this.index,
           });
 
           break;
         case char == ")":
           this.tokens.push({
-            kind: TokenKind.ParenthesisClosed,
+            kind: TokenKind.ClosedParen,
             loc: this.index,
           });
 
