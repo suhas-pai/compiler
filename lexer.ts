@@ -168,6 +168,9 @@ export default class Lexer {
           }
 
           break;
+        case char == "%":
+          this.handleBinOp(char);
+          break;
         case char == "/":
           this.handleBinOp(char);
           break;

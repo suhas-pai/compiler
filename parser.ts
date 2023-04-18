@@ -14,8 +14,9 @@ function binOpPrecedence(operator: BinaryOperator): Number {
     case BinaryOperator.plus:
     case BinaryOperator.minus:
       return 0;
-    case BinaryOperator.div:
     case BinaryOperator.mult:
+    case BinaryOperator.modulo:
+    case BinaryOperator.div:
       return 1;
     case BinaryOperator.power:
       return 2;

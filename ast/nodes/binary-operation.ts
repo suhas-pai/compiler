@@ -38,6 +38,8 @@ export default class BinaryOperation implements ASTNode {
         return (this.left().run() as number) - (this.right().run() as number);
       case BinaryOperator.mult:
         return (this.left().run() as number) * (this.right().run() as number);
+      case BinaryOperator.modulo:
+        return (this.left().run() as number) % (this.right().run() as number);
       case BinaryOperator.div:
         return (this.left().run() as number) / (this.right().run() as number);
       case BinaryOperator.power:
