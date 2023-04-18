@@ -4,7 +4,7 @@ import { BinaryOperatorToken } from "../../token";
 import BinaryOperator from "../../binary-operator";
 
 export default class BinaryOperation implements ASTNode {
-  kind = ASTNodeKind.BinaryOperation;
+  readonly kind = ASTNodeKind.BinaryOperation;
   children = [null, null];
   link: ASTNodeLink = new ASTNodeLink();
 

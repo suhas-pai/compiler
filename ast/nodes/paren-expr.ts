@@ -2,7 +2,7 @@ import ASTNodeKind from "../kind";
 import ASTNode, { ASTNodeLink } from "../node";
 
 export default class ParenExpr implements ASTNode {
-  kind = ASTNodeKind.ParentExpression;
+  readonly kind = ASTNodeKind.ParentExpression;
   children: ASTNode[] = [];
   link: ASTNodeLink = new ASTNodeLink();
 

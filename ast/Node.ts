@@ -56,7 +56,7 @@ export class ASTNodeLink {
 }
 
 export default interface ASTNode {
-  kind: ASTNodeKind;
+  readonly kind: ASTNodeKind;
   children: ASTNode[];
   link: ASTNodeLink;
   hasChildren: () => boolean;
