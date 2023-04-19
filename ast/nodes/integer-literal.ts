@@ -15,7 +15,7 @@ export default class IntegerLiteral implements ASTNode {
     throw "Can't add child to IntegerLiteral";
   };
 
-  removeChild = (index: number): ASTNode | undefined => {
+  removeChild = (): ASTNode | undefined => {
     return undefined;
   };
 
