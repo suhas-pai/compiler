@@ -64,7 +64,7 @@ export default class Parser {
 
   consume(kind?: TokenKind): Token | null {
     this.index += 1;
-    return this.current();
+    return this.current(kind);
   }
 
   private parsePrimary(): ASTNode {
@@ -138,7 +138,7 @@ export default class Parser {
       lookahead.kind == TokenKind.BinaryOperator &&
       binOpPrecedence(lookahead.op) >= minPrecedence
     ) {
-      let opTok = this.consume() as BinaryOperatorToken; // = lookahead
+      const opTok = this.consume() as BinaryOperatorToken; // = lookahead
       let rhs = this.parsePrimary();
 
       root = new BinaryOperation(opTok, root, rhs);
