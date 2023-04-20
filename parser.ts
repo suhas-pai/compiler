@@ -67,7 +67,7 @@ export default class Parser {
     return this.current(kind);
   }
 
-  private parsePrimary(): ASTNode {
+  private parseLHS(): ASTNode {
     let token: Token;
     let root: ASTNode;
     while ((token = this.consume())) {
@@ -108,7 +108,7 @@ export default class Parser {
         case TokenKind.OpenParen: {
           const parenExpr = new ParenExpr();
           parenExpr.addChild(
-            this.parseExpr(this.parsePrimary(), 0, TokenKind.ClosedParen)
+            this.parseExpr(this.parseLHS(), 0, TokenKind.ClosedParen)
           );
 
           if (root) {
@@ -129,38 +129,37 @@ export default class Parser {
     minPrecedence: number,
     endTokenKind?: TokenKind
   ): ASTNode {
-    let lookahead = this.peek();
+    let nextToken = this.peek();
     // Not actually, but every successive prevNode is a BinaryOperation
     let root: BinaryOperation = lhs as BinaryOperation;
 
     while (
-      lookahead != null &&
-      lookahead.kind == TokenKind.BinaryOperator &&
-      binOpPrecedence(lookahead.op) >= minPrecedence
+      nextToken?.kind == TokenKind.BinaryOperator &&
+      binOpPrecedence(nextToken?.op) >= minPrecedence
     ) {
       const opTok = this.consume() as BinaryOperatorToken; // = lookahead
-      let rhs = this.parsePrimary();
+      let rhs = this.parseLHS();
 
       root = new BinaryOperation(opTok, root, rhs);
-      lookahead = this.peek();
+      nextToken = this.peek();
 
-      if (!lookahead) {
+      if (!nextToken) {
         break;
       }
 
-      if (lookahead.kind == endTokenKind) {
+      if (nextToken.kind == endTokenKind) {
         this.consume();
         break;
       }
 
       let currentOperation = root;
       while (
-        lookahead?.kind == TokenKind.BinaryOperator &&
-        binOpPrecedence((lookahead as BinaryOperatorToken).op) >
+        nextToken?.kind == TokenKind.BinaryOperator &&
+        binOpPrecedence((nextToken as BinaryOperatorToken).op) >
           binOpPrecedence(opTok.op)
       ) {
         rhs = this.parseExpr(rhs, binOpPrecedence(opTok.op) + 1);
-        lookahead = this.peek(TokenKind.BinaryOperator);
+        nextToken = this.peek(TokenKind.BinaryOperator);
 
         currentOperation.setRight(rhs);
         currentOperation = rhs as BinaryOperation;
@@ -172,7 +171,7 @@ export default class Parser {
 
   parse(ast: AST): ASTNode {
     ast.setRoot(new GlobalScope());
-    ast.root.addChild(this.parseExpr(this.parsePrimary(), 0));
+    ast.root.addChild(this.parseExpr(this.parseLHS(), 0));
 
     return ast.root;
   }
