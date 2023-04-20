@@ -2,9 +2,7 @@ import AST from "./ast/base";
 import Lexer from "./lexer";
 import Parser from "./parser";
 
-const exprs: string[] = [
-  "2+3*4/5"
-];
+const exprs: string[] = ["2+3*4/5"];
 // const exprs: string[] = ["(2 + 2)"];
 for (const expr of exprs) {
   const lexer = new Lexer(expr);
