@@ -1,8 +1,7 @@
-import BinaryOperator from "./binary-operator";
-import { Token, TokenKind, ParenthesisOpenToken } from "./token";
+import { BinaryOperator, UnaryOperator } from "./operators";
+import { Token, TokenKind } from "./token";
 
 const spaces: string[] = [" ", "\n", "\t", "\r", "\f"];
-const separators: string[] = [...spaces, "(", ")", "[", "]"];
 
 export default class Lexer {
   expr: string;
@@ -142,24 +141,6 @@ export default class Lexer {
           });
 
           break;
-        case char == "-": {
-          const prev = this.rpeek();
-          if (
-            this.isdigit(this.peek()) &&
-            (prev == undefined || separators.includes(prev))
-          ) {
-            const firstChar = this.consume();
-            this.tokens.push({
-              kind: TokenKind.IntegerLiteral,
-              literal: -1 * this.readNumber(firstChar),
-              loc: this.index,
-            });
-          } else {
-            this.handleBinOp(char);
-          }
-
-          break;
-        }
         case char == "*":
           if (this.peek() == "*") {
             this.consume();
@@ -169,11 +150,19 @@ export default class Lexer {
           }
 
           break;
+        case char == "-":
         case char == "+":
         case char == "%":
         case char == "/":
           this.handleBinOp(char);
           break;
+        case char == "!":
+        case char == "~":
+          this.tokens.push({
+            kind: TokenKind.UnaryOperator,
+            op: char as UnaryOperator,
+            loc: this.index,
+          });
         case char == "(":
           this.tokens.push({
             kind: TokenKind.OpenParen,

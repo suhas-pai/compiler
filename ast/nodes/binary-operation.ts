@@ -1,7 +1,7 @@
 import ASTNode, { ASTNodeLink } from "../node";
 import ASTNodeKind from "../kind";
 import { BinaryOperatorToken } from "../../token";
-import BinaryOperator from "../../binary-operator";
+import { BinaryOperator } from "../../operators";
 
 export default class BinaryOperation implements ASTNode {
   readonly kind = ASTNodeKind.BinaryOperation;
@@ -52,8 +52,8 @@ export default class BinaryOperation implements ASTNode {
   token: BinaryOperatorToken;
   constructor(token: BinaryOperatorToken, left?: ASTNode, right?: ASTNode) {
     this.token = token;
-    this.setLeft(left)
-    this.setRight(right)
+    this.setLeft(left);
+    this.setRight(right);
   }
 
   left(): ASTNode | null {

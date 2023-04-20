@@ -18,7 +18,7 @@ export default class ParenExpr implements ASTNode {
     let oldValue: ASTNode | undefined;
     if (index < this.children.length) {
       oldValue = this.children[index];
-      this.children.splice(index);
+      this.children.splice(index, 1);
     }
 
     return oldValue;

@@ -1,30 +1,19 @@
 import AST from "./ast/base";
 import BinaryOperation from "./ast/nodes/binary-operation";
+import GlobalScope from "./ast/nodes/global-scope";
 import IntegerLiteral from "./ast/nodes/integer-literal";
+import ParenExpr from "./ast/nodes/paren-expr";
+import UnaryOperation from "./ast/nodes/unary-operation";
 
 import ASTNode from "./ast/node";
 
-import BinaryOperator from "./binary-operator";
-import { Token, TokenKind } from "./token";
-import ParenExpr from "./ast/nodes/paren-expr";
-import GlobalScope from "./ast/nodes/global-scope";
-import { BinaryOperatorToken } from "./token";
-
-function binOpPrecedence(operator: BinaryOperator): number {
-  switch (operator) {
-    case BinaryOperator.plus:
-    case BinaryOperator.minus:
-      return 0;
-    case BinaryOperator.mult:
-    case BinaryOperator.modulo:
-    case BinaryOperator.div:
-      return 1;
-    case BinaryOperator.power:
-      return 2;
-    default:
-      throw "Illegal operator type (How did this happen??)";
-  }
-}
+import { BinaryOperator, binOpPrecedence } from "./operators";
+import {
+  IntegerLiteralToken,
+  Token,
+  TokenKind,
+  BinaryOperatorToken,
+} from "./token";
 
 export default class Parser {
   tokens: Token[];
@@ -60,8 +49,7 @@ export default class Parser {
     return token;
   }
 
-  consume(kind?: TokenKind): Token | null {
-    this.index += 1;
+  current(kind?: TokenKind): Token | null {
     if (this.index >= this.tokens.length) {
       return null;
     }
@@ -74,22 +62,66 @@ export default class Parser {
     return token;
   }
 
-  private parsePrimary(): ASTNode {
-    const token = this.consume();
-    switch (token.kind) {
-      case TokenKind.IntegerLiteral:
-        return new IntegerLiteral(token);
-      case TokenKind.BinaryOperator:
-        throw `Error`;
-      case TokenKind.OpenParen: {
-        const parenExpr = new ParenExpr();
-        parenExpr.addChild(
-          this.parseExpr(this.parsePrimary(), 0, TokenKind.ClosedParen)
-        );
+  consume(kind?: TokenKind): Token | null {
+    this.index += 1;
+    return this.current();
+  }
 
-        return parenExpr;
+  private parsePrimary(): ASTNode {
+    let token: Token;
+    let root: ASTNode;
+    while ((token = this.consume())) {
+      switch (token.kind) {
+        case TokenKind.IntegerLiteral:
+          if (root) {
+            root.addChild(new IntegerLiteral(token));
+            return root;
+          }
+
+          return new IntegerLiteral(token);
+        case TokenKind.BinaryOperator:
+          if (
+            token.op == BinaryOperator.minus &&
+            this.peek().kind == TokenKind.IntegerLiteral
+          ) {
+            // Remove the minus sign token, and treat the minus-sign +
+            // integer-literal as one token.
+
+            this.tokens.splice(this.index, 1);
+            const intTok = this.current() as IntegerLiteralToken;
+
+            intTok.loc = token.loc;
+            intTok.literal *= -1;
+
+            if (root) {
+              root.addChild(new IntegerLiteral(intTok));
+              return root;
+            }
+
+            return root;
+          }
+
+          throw `Error`;
+        case TokenKind.UnaryOperator:
+          root = new UnaryOperation(token);
+          break;
+        case TokenKind.OpenParen: {
+          const parenExpr = new ParenExpr();
+          parenExpr.addChild(
+            this.parseExpr(this.parsePrimary(), 0, TokenKind.ClosedParen)
+          );
+
+          if (root) {
+            root.addChild(parenExpr);
+            return root;
+          }
+
+          return parenExpr;
+        }
       }
     }
+
+    return root;
   }
 
   private parseExpr(
