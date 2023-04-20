@@ -50,8 +50,10 @@ export default class BinaryOperation implements ASTNode {
   };
 
   token: BinaryOperatorToken;
-  constructor(token: BinaryOperatorToken) {
+  constructor(token: BinaryOperatorToken, left?: ASTNode, right?: ASTNode) {
     this.token = token;
+    this.setLeft(left)
+    this.setRight(right)
   }
 
   left(): ASTNode | null {
