@@ -13,18 +13,21 @@ export enum UnaryOperator {
   // Negation = "-" handled as BinaryOperator.minus
 }
 
-export function binOpPrecedence(operator: BinaryOperator): number {
-  switch (operator) {
-    case BinaryOperator.plus:
-    case BinaryOperator.minus:
-      return 0;
-    case BinaryOperator.mult:
-    case BinaryOperator.modulo:
-    case BinaryOperator.div:
-      return 1;
-    case BinaryOperator.power:
-      return 2;
-    default:
-      throw "Illegal operator type (How did this happen??)";
-  }
+export enum AssocKind {
+  Left,
+  Right,
 }
+
+export class BinOperatorInfo {
+  assoc: AssocKind;
+  precedence: number;
+}
+
+export const BinOperatorInfoMap = new Map<BinaryOperator, BinOperatorInfo>([
+  [BinaryOperator.plus, { assoc: AssocKind.Left, precedence: 0 }],
+  [BinaryOperator.minus, { assoc: AssocKind.Left, precedence: 0 }],
+  [BinaryOperator.mult, { assoc: AssocKind.Left, precedence: 1 }],
+  [BinaryOperator.modulo, { assoc: AssocKind.Left, precedence: 1 }],
+  [BinaryOperator.div, { assoc: AssocKind.Left, precedence: 1 }],
+  [BinaryOperator.power, { assoc: AssocKind.Right, precedence: 2 }],
+]);

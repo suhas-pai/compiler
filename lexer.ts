@@ -130,8 +130,6 @@ export default class Lexer {
     while ((char = this.consume())) {
       switch (true) {
         case spaces.includes(char):
-          // spaces
-          // skip for now
           continue;
         case this.isdigit(char):
           this.tokens.push({
@@ -163,6 +161,7 @@ export default class Lexer {
             op: char as UnaryOperator,
             loc: this.index,
           });
+          break;
         case char == "(":
           this.tokens.push({
             kind: TokenKind.OpenParen,

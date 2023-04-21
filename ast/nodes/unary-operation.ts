@@ -1,5 +1,6 @@
 import { UnaryOperator } from "../../operators";
-import { BinaryOperatorToken, UnaryOperatorToken } from "../../token";
+import { UnaryOperatorToken } from "../../token";
+
 import ASTNodeKind from "../kind";
 import ASTNode, { ASTNodeLink } from "../node";
 
