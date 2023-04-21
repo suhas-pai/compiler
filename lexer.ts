@@ -68,7 +68,16 @@ export default class Lexer {
 
     return undefined;
   }
+  private readString(firstChar: string): string {
+    let char = this.consume()
+    let newString = "";
+    while (char != "\"") {
+      newString += char;
+      char = this.consume()
+    }
+    return newString
 
+  }
   private readNumber(firstChar: string): number {
     let char: string | undefined = firstChar;
     let base = 10;
@@ -164,6 +173,15 @@ export default class Lexer {
           });
 
           break;
+
+        case char == "\"":
+          this.tokens.push({
+            kind: TokenKind.StringLiteral,
+            literal: this.readString(char),
+            loc: this.index
+          });
+          break;
+
         case char == "*":
           if (this.peek() == "*") {
             this.consume();
@@ -207,6 +225,12 @@ export default class Lexer {
             loc: this.index,
           });
 
+          break;
+        case char == ";":
+          this.tokens.push({
+            kind: TokenKind.EndLine,
+            loc: this.index,
+          });
           break;
         case char >= "a" && char <= "z":
         case char >= "A" && char <= "Z": {

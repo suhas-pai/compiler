@@ -3,6 +3,7 @@ import { BinaryOperator, UnaryOperator } from "./operators";
 
 export enum TokenKind {
   IntegerLiteral = "integer-literal",
+  StringLiteral = "string-literal",
   BinaryOperator = "binary-operator",
   UnaryOperator = "unary-operator",
   OpenParen = "open-parenthesis",
@@ -10,12 +11,19 @@ export enum TokenKind {
   KeywordIdentifier = "KeywordIdentifier",
   Identifier = "identifier",
   Equal = "equal-sign",
+  EndLine = "end-line",
 }
 
 export interface IntegerLiteralToken {
   kind: TokenKind.IntegerLiteral;
   loc: number;
   literal: number;
+}
+
+export interface StringLiteralToken {
+  kind: TokenKind.StringLiteral;
+  loc: number;
+  literal: string;
 }
 
 export interface BinaryOperatorToken {
@@ -57,12 +65,19 @@ export interface EqualToken {
   loc: number;
 }
 
+export interface EndLineToken {
+  kind: TokenKind.EndLine;
+  loc: number;
+}
+
 export type Token =
   | IntegerLiteralToken
+  | StringLiteralToken
   | BinaryOperatorToken
   | UnaryOperatorToken
   | ParenthesisOpenToken
   | ParenthesisClosedToken
   | KeywordIdentifierToken
   | IdentifierToken
-  | EqualToken;
+  | EqualToken
+  | EndLineToken

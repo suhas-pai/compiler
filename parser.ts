@@ -16,6 +16,7 @@ import {
   TokenKind,
   BinaryOperatorToken,
 } from "./token";
+import StringLiteral from "./ast/nodes/string-literal";
 
 export default class Parser {
   tokens: Token[];
@@ -81,6 +82,13 @@ export default class Parser {
           }
 
           return new IntegerLiteral(token);
+        case TokenKind.StringLiteral:
+          if (root) {
+            root.addChild(new StringLiteral(token));
+            return root;
+          }
+          
+          return new StringLiteral(token);
         case TokenKind.BinaryOperator:
           if (
             token.op == BinaryOperator.minus &&
