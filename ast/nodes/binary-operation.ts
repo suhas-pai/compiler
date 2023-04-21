@@ -66,13 +66,13 @@ export default class BinaryOperation implements ASTNode {
 
   setLeft(node?: ASTNode) {
     node?.link.removeLink();
-    node?.link.setToParent(node, 0);
+    node?.link.setToParent(this, 0);
     this.children[0] = node;
   }
 
   setRight(node?: ASTNode) {
     node?.link.removeLink();
-    node?.link.setToParent(node, 1);
+    node?.link.setToParent(this, 1);
 
     this.children[1] = node;
   }

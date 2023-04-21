@@ -1,3 +1,4 @@
+import { KeywordKind } from "./keywords";
 import { BinaryOperator, UnaryOperator } from "./operators";
 
 export enum TokenKind {
@@ -6,6 +7,9 @@ export enum TokenKind {
   UnaryOperator = "unary-operator",
   OpenParen = "open-parenthesis",
   ClosedParen = "close-parenthesis",
+  KeywordIdentifier = "KeywordIdentifier",
+  Identifier = "identifier",
+  Equal = "equal-sign",
 }
 
 export interface IntegerLiteralToken {
@@ -36,9 +40,29 @@ export interface ParenthesisClosedToken {
   loc: number;
 }
 
+export interface KeywordIdentifierToken {
+  kind: TokenKind.KeywordIdentifier;
+  loc: number;
+  keyword: KeywordKind;
+}
+
+export interface IdentifierToken {
+  kind: TokenKind.Identifier;
+  loc: number;
+  name: string;
+}
+
+export interface EqualToken {
+  kind: TokenKind.Equal;
+  loc: number;
+}
+
 export type Token =
   | IntegerLiteralToken
   | BinaryOperatorToken
   | UnaryOperatorToken
   | ParenthesisOpenToken
-  | ParenthesisClosedToken;
+  | ParenthesisClosedToken
+  | KeywordIdentifierToken
+  | IdentifierToken
+  | EqualToken;

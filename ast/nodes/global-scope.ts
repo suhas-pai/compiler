@@ -25,8 +25,9 @@ export default class GlobalScope implements ASTNode {
   };
 
   print = (prefix: string) => {
-    console.log(`${prefix}Global-Scope`);
+    console.log(`${prefix}GlobalScope`);
   };
+
   run = () => {
     let result = 0;
     for (let child of this.children) {

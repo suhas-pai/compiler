@@ -1,3 +1,4 @@
+import { KeywordKind } from "./keywords";
 import { BinaryOperator, UnaryOperator } from "./operators";
 import { Token, TokenKind } from "./token";
 
@@ -68,7 +69,7 @@ export default class Lexer {
     return undefined;
   }
 
-  readNumber(firstChar: string): number {
+  private readNumber(firstChar: string): number {
     let char: string | undefined = firstChar;
     let base = 10;
 
@@ -111,6 +112,30 @@ export default class Lexer {
     }
 
     return number;
+  }
+
+  private readIdentifier(): string {
+    let start = this.index;
+    let end = start + 1;
+
+    let token: string = this.peek();
+    while ((token = this.peek())) {
+      if (
+        (token[0] >= "a" && token[0] <= "z") ||
+        (token[0] >= "A" && token[0] <= "Z") ||
+        (token[0] >= "0" && token[0] <= "9") ||
+        token == "_"
+      ) {
+        this.consume();
+        end += 1;
+
+        continue;
+      }
+
+      break;
+    }
+
+    return this.expr.substring(start, end);
   }
 
   private isdigit(str: string): boolean {
@@ -162,6 +187,13 @@ export default class Lexer {
             loc: this.index,
           });
           break;
+        case char == "=":
+          this.tokens.push({
+            kind: TokenKind.Equal,
+            loc: this.index,
+          });
+
+          break;
         case char == "(":
           this.tokens.push({
             kind: TokenKind.OpenParen,
@@ -176,6 +208,25 @@ export default class Lexer {
           });
 
           break;
+        case char >= "a" && char <= "z":
+        case char >= "A" && char <= "Z": {
+          const identifier = this.readIdentifier();
+          if (Object.values(KeywordKind).includes(identifier as KeywordKind)) {
+            this.tokens.push({
+              kind: TokenKind.KeywordIdentifier,
+              loc: this.index,
+              keyword: identifier as KeywordKind,
+            });
+          } else {
+            this.tokens.push({
+              kind: TokenKind.Identifier,
+              loc: this.index,
+              name: identifier,
+            });
+          }
+
+          break;
+        }
         default:
           throw `Not an allowed character ${char}`;
       }

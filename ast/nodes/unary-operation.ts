@@ -54,7 +54,7 @@ export default class UnaryOperation implements ASTNode {
 
   setChild(node?: ASTNode) {
     node?.link.removeLink();
-    node?.link.setToParent(node, 0);
+    node?.link.setToParent(this, 0);
 
     this.children[0] = node;
   }
