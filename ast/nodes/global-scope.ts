@@ -36,4 +36,10 @@ export default class GlobalScope implements ASTNode {
 
     return result;
   };
+
+  verify = () => {
+    for (let child of this.children) {
+      child.verify();
+    }
+  };
 }

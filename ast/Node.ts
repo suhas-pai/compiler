@@ -64,4 +64,5 @@ export default interface ASTNode {
   removeChild: (index: number) => ASTNode | undefined;
   print: (prefix: string) => void;
   run: () => Object;
+  verify: () => void;
 }

@@ -49,4 +49,8 @@ export default class VariableDecl implements ASTNode {
   print(prefix: string) {
     console.log(`${prefix}VarDecl\t("${this.nameToken.name}")`);
   }
+
+  verify = () => {
+    return this.expr()?.verify();
+  };
 }

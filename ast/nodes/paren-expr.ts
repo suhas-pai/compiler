@@ -36,4 +36,10 @@ export default class ParenExpr implements ASTNode {
 
     return result;
   };
+
+  verify = () => {
+    for (let child of this.children) {
+      child.verify();
+    }
+  };
 }

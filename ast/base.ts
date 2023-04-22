@@ -22,6 +22,10 @@ export default class AST {
     }
   }
 
+  verify() {
+    this.root?.verify();
+  }
+
   inOrder(tab: number = 4): void {
     if (this.root) {
       this.in(this.root, 0, tab);

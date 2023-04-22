@@ -62,4 +62,12 @@ export default class UnaryOperation implements ASTNode {
   print(prefix: string) {
     console.log(`${prefix} ${this.token.op}\t(Result: ${this.run()})`);
   }
+
+  verify = () => {
+    if (this.child() == null) {
+      throw "UnaryOperation has no child";
+    }
+
+    this.child().verify();
+  };
 }

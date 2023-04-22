@@ -31,4 +31,8 @@ export default class StringLiteral implements ASTNode {
   print(prefix: string) {
     console.log(`${prefix}\"${this.token.literal}\"`);
   }
+
+  verify = () => {
+    return;
+  };
 }

@@ -78,6 +78,19 @@ export default class BinaryOperation implements ASTNode {
   }
 
   print(prefix: string) {
-    console.log(`${prefix} ${this.token.op}\t(Result: ${this.run()})`);
+    console.log(`${prefix}${this.token.op}\t(Result: ${this.run()})`);
   }
+
+  verify = () => {
+    if (this.left() == null) {
+      throw `BinaryOperation has no left-child`;
+    }
+
+    if (this.right() == null) {
+      throw `BinaryOperation has no left-child`;
+    }
+
+    this.left().verify();
+    this.right().verify();
+  };
 }
