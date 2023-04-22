@@ -23,6 +23,7 @@ export interface IntegerLiteralToken {
 export interface StringLiteralToken {
   kind: TokenKind.StringLiteral;
   loc: number;
+  length: number;
   literal: string;
 }
 
@@ -80,4 +81,4 @@ export type Token =
   | KeywordIdentifierToken
   | IdentifierToken
   | EqualToken
-  | EndLineToken
+  | EndLineToken;

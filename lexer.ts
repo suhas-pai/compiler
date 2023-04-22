@@ -69,14 +69,16 @@ export default class Lexer {
     return undefined;
   }
 
-  private readString(): string {
+  private readString(): [string, number] {
     let newString = "";
+    let tokenLength = 1;
     let char: string;
 
     while ((char = this.consume())) {
+      tokenLength++;
       switch (char) {
         case '"':
-          return newString;
+          return [newString, tokenLength];
         case "\\":
           char = this.consume();
           if (!char) {
@@ -128,6 +130,7 @@ export default class Lexer {
 
     throw `String reaches to end of input`;
   }
+
   private readNumber(firstChar: string): number {
     let char: string | undefined = firstChar;
     let base = 10;
@@ -218,20 +221,24 @@ export default class Lexer {
         case this.isdigit(char):
           this.tokens.push({
             kind: TokenKind.IntegerLiteral,
-            literal: this.readNumber(char),
             loc: this.index,
+            literal: this.readNumber(char),
           });
 
           break;
+        case char == '"': {
+          const index = this.index;
+          const [string, length] = this.readString();
 
-        case char == '"':
           this.tokens.push({
             kind: TokenKind.StringLiteral,
-            literal: this.readString(),
-            loc: this.index,
+            literal: string,
+            loc: index,
+            length: length,
           });
-          break;
 
+          break;
+        }
         case char == "*":
           if (this.peek() == "*") {
             this.consume();
