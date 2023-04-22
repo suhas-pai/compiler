@@ -3,7 +3,7 @@ import Lexer from "./lexer";
 import Parser from "./parser";
 
 const exprs: string[] = [
-  "let varName = \"Hello\"",
+  'let varName = "Hello"',
   "let varName = ~3*2**6/2",
   "( 2+ 2)",
   "2+3*4/5",

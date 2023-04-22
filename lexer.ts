@@ -68,15 +68,65 @@ export default class Lexer {
 
     return undefined;
   }
-  private readString(firstChar: string): string {
-    let char = this.consume()
-    let newString = "";
-    while (char != "\"") {
-      newString += char;
-      char = this.consume()
-    }
-    return newString
 
+  private readString(): string {
+    let newString = "";
+    let char: string;
+
+    while ((char = this.consume())) {
+      switch (char) {
+        case '"':
+          return newString;
+        case "\\":
+          char = this.consume();
+          if (!char) {
+            throw `Unexpected end of string`;
+          }
+
+          switch (char) {
+            case "\0":
+              throw `Invalid escape sequence \\0`;
+            case "a":
+              newString += "a";
+              break;
+            case "b":
+              newString += "\b";
+              break;
+            case "f":
+              newString += "\f";
+              break;
+            case "n":
+              newString += "\n";
+              break;
+            case "r":
+              newString += "\r";
+              break;
+            case "t":
+              newString += "\t";
+              break;
+            case "v":
+              newString += "\v";
+              break;
+            case "\\":
+              newString += "\\";
+              break;
+            case "'":
+              newString += "'";
+              break;
+            case '"':
+              newString += '"';
+              break;
+            default:
+              throw `Invalid escape sequence \\${char}`;
+          }
+
+          break;
+      }
+
+      newString += char;
+    }
+
+    throw `String reaches to end of input`;
   }
   private readNumber(firstChar: string): number {
     let char: string | undefined = firstChar;
@@ -174,11 +224,11 @@ export default class Lexer {
 
           break;
 
-        case char == "\"":
+        case char == '"':
           this.tokens.push({
             kind: TokenKind.StringLiteral,
-            literal: this.readString(char),
-            loc: this.index
+            literal: this.readString(),
+            loc: this.index,
           });
           break;
 
