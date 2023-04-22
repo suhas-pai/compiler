@@ -87,7 +87,7 @@ export default class Parser {
             root.addChild(new StringLiteral(token));
             return root;
           }
-          
+
           return new StringLiteral(token);
         case TokenKind.BinaryOperator:
           if (
@@ -172,19 +172,11 @@ export default class Parser {
       let currentOperation = root;
       while (nextToken?.kind == TokenKind.BinaryOperator) {
         const nextTokenBinInfo = BinOperatorInfoMap.get(nextToken.op);
-        if (
-          nextTokenBinInfo.precedence <= opInfo.precedence &&
-          (nextTokenBinInfo.assoc != AssocKind.Right ||
-            nextTokenBinInfo.precedence != opInfo.precedence)
-        ) {
+        if (nextTokenBinInfo.precedence <= opInfo.precedence) {
           break;
         }
 
-        const nextMinPrecedence =
-          nextTokenBinInfo.precedence +
-          (nextTokenBinInfo.assoc != AssocKind.Right ? 1 : 0);
-
-        rhs = this.parseRHSOfExpression(rhs, nextMinPrecedence);
+        rhs = this.parseRHSOfExpression(rhs, opInfo.precedence + 1);
         nextToken = this.peek(TokenKind.BinaryOperator);
 
         currentOperation.setRight(rhs);
@@ -214,7 +206,7 @@ export default class Parser {
     }
 
     const varDecl = new VariableDecl(nameToken);
-    const nextToken = this.consume(TokenKind.Equal);
+    this.consume(TokenKind.Equal);
 
     varDecl.setExpr(this.parseExpression());
     return varDecl;
