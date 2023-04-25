@@ -6,8 +6,8 @@
 #include "Lex/Keyword.h"
 
 #include "Parse/OperatorPrecedence.h"
-#include "Parse/String.h"
 #include "Parse/Parser.h"
+#include "Parse/String.h"
 
 namespace Parse {
     auto Parser::peek() -> std::optional<Lex::Token> {
@@ -48,7 +48,7 @@ namespace Parse {
             Parse::UnaryOperatorToLexemeMap.keyFor(TokenString);
 
         if (!UnaryOpOpt.has_value()) {
-            printf("internal error: unary operator not lexed correctly\n");
+            printf("Internal error: unary operator not lexed correctly\n");
             exit(1);
         }
 
@@ -81,7 +81,7 @@ namespace Parse {
         if (FirstChar != '\\') {
             if (TokenString.size() != 3) {
                 printf("Use double quotes to store strings with multiple "
-                    "characters\n");
+                       "characters\n");
                 exit(1);
             }
 
@@ -201,7 +201,6 @@ namespace Parse {
                         exit(1);
                 }
             }
-
 
             if (Root == nullptr) {
                 Root = static_cast<AST::UnaryOperation *>(Expr);
