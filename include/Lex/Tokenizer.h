@@ -39,15 +39,6 @@ namespace Lex {
         uint64_t Index = 0;
 
         [[nodiscard]] constexpr auto peek() const noexcept -> char {
-            if (Index + 1 >= Text.length()) {
-                return '\0';
-            }
-
-            return Text.at(Index + 1);
-        }
-
-        [[nodiscard]]
-        constexpr auto current() const noexcept -> char {
             if (Index >= Text.length()) {
                 return '\0';
             }
@@ -60,10 +51,8 @@ namespace Lex {
                 return '\0';
             }
 
-            const auto Result = Text.at(Index);
-            Index++;
-
-            return Result;
+            Index += Skip + 1;
+            return Text.at(Index - 1);
         }
     public:
         constexpr explicit Tokenizer(std::string_view Text) noexcept

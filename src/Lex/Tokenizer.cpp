@@ -6,7 +6,6 @@
 
 #include "Lex/Tokenizer.h"
 #include "Lex/Keyword.h"
-#include "Lex/Token.h"
 #include "Parse/String.h"
 
 namespace Lex {
@@ -131,45 +130,22 @@ namespace Lex {
                     switch (Char) {
                         case '\\': {
                             Index++;
-                            const auto Peek = this->peek();
-
-                            if (!Peek || !Parse::VerifyEscapeSequence(Peek)) {
-                                printf("Tokenizer: Unexpected end of file\n");
-                                exit(1);
-                            }
-
                             break;
                         }
                         case '\'':
-                            if (State == State::CharLiteral) {
-                                Result.Kind = TokenKind::CharLiteral;
-                                goto done;
-                            }
-
-                            break;
+                            Result.Kind = TokenKind::CharLiteral;
+                            goto done;
                         default:
                             break;
                     }
                 case State::StringLiteral:
                     switch (Char) {
-                        case '\\': {
+                        case '\\':
                             Index++;
-                            const auto Peek = this->peek();
-
-                            if (!Peek || !Parse::VerifyEscapeSequence(Peek)) {
-                                printf("Tokenizer: Unexpected end of file\n");
-                                exit(1);
-                            }
-
                             break;
-                        }
                         case '"':
-                            if (State == State::StringLiteral) {
-                                Result.Kind = TokenKind::StringLiteral;
-                                goto done;
-                            }
-
-                            break;
+                            Result.Kind = TokenKind::StringLiteral;
+                            goto done;
                         default:
                             break;
                     }
