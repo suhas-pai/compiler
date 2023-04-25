@@ -9,12 +9,7 @@
 
 #include "AST/BinaryOperation.h"
 #include "Backend/LLVM/Vars.h"
-#include "Basic/Casting.h"
-#include "Lex/Token.h"
 #include "Lex/Tokenizer.h"
-
-#include "Parse/Number.h"
-#include "Parse/Operator.h"
 #include "Parse/Parser.h"
 
 static void PrintResultIfAvailable(llvm::Value *const Value) noexcept {
