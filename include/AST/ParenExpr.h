@@ -3,9 +3,8 @@
  */
 
 #pragma once
+
 #include "AST/Expr.h"
-#include "AST/ExprKind.h"
-#include "Basic/SourceLocation.h"
 #include "Lex/Token.h"
 
 namespace AST {
