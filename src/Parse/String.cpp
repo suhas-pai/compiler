@@ -3,7 +3,6 @@
  */
 
 #include "Parse/String.h"
-#include <optional>
 
 namespace Parse {
     auto VerifyEscapeSequence(const char NextChar) -> char {
