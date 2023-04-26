@@ -68,7 +68,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             break;
         }
-        case AST::ExprKind::IntegerLiteral: {
+        case AST::ExprKind::NumberLiteral: {
             const auto IntLit = static_cast<AST::NumberLiteral *>(Expr);
             switch (IntLit->getNumber().Kind) {
                 case Parse::NumberKind::UnsignedInteger:
@@ -120,6 +120,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
 struct ArgumentOptions {
     bool PrintTokens : 1 = false;
+    bool PrintAST : 1 = false;
+
     uint64_t PrintDepth = 0;
 };
 
@@ -168,17 +170,20 @@ HandlePrompt(const std::string_view &Prompt,
         exit(1);
     }
 
-    PrintAST(*BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
-
-    const auto Value = Expr->codegen(*BackendHandler);
-    if (const auto Constant = llvm::dyn_cast<llvm::ConstantFP>(Value)) {
-        printf("\nEvaluated to %f\n", Constant->getValue().convertToDouble());
+    if (ArgOptions.PrintAST) {
+        PrintAST(*BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
+        fputc('\n', stdout);
     }
+
+    fputs("Evaluated to ", stdout);
+    BackendHandler->evalulateAndPrint(*Expr);
+    fputc('\n', stdout);
 }
 
 void PrintUsage(const char *const Name) noexcept {
     fprintf(stdout,
-            "Usage: %s [<prompt>] [-h/--help/-u/--usage] [--print-tokens]\n",
+            "Usage: %s [<prompt>] [-h/--help/-u/--usage] [--print-tokens] "
+            "[--print-ast]\n",
             Name);
 }
 
@@ -221,10 +226,17 @@ int main(const int argc, const char *const argv[]) {
             Lexer.consume();
 
             continue;
-        } else {
-            fprintf(stderr, "Unrecognized option: %s\n", Option.data());
-            return 1;
         }
+
+        if (Option == "--print-ast") {
+            Options.PrintAST = true;
+            Lexer.consume();
+
+            continue;
+        }
+
+        fprintf(stderr, "Unrecognized option: %s\n", Option.data());
+        return 1;
     }
 
     if (Prompt.empty()) {

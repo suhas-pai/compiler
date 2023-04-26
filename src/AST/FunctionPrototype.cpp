@@ -26,7 +26,7 @@ namespace AST {
                                    Module);
 
         // Set names for all arguments.
-        unsigned Idx = 0;
+        auto Idx = unsigned();
         for (auto &Arg : F->args())
             Arg.setName(this->ParamList[Idx++].getName());
 

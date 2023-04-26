@@ -11,7 +11,7 @@ namespace AST {
         BinaryOperation,
         UnaryOperation,
         CharLiteral,
-        IntegerLiteral,
+        NumberLiteral,
         FloatLiteral,
         StringLiteral,
         VarDecl,

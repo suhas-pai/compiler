@@ -316,6 +316,10 @@ namespace Parse {
             }
 
             const auto BinOp = LexTokenKindToBinaryOperatorMap[BinOpToken.Kind];
+            assert(BinOp.has_value() &&
+                   "Internal Error: LexTokenKindToBinaryOperatorMap missing "
+                   "BinOp");
+
             LHS = new AST::BinaryOperation(Token.Loc, BinOp.value(), LHS, RHS);
         } while (true);
     }

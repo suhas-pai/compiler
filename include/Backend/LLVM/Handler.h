@@ -38,7 +38,6 @@ namespace Backend::LLVM {
 
         std::unique_ptr<llvm::legacy::FunctionPassManager> FPM;
         llvm::ExitOnError ExitOnErr;
-        llvm::Function *PowerFunc = nullptr;
 
         static void LLVMInitialize() noexcept;
 
@@ -85,9 +84,9 @@ namespace Backend::LLVM {
             return nullptr;
         }
 
-        [[nodiscard]] constexpr auto &getPowerFunc() const noexcept {
-            return PowerFunc;
-        }
+        [[nodiscard]]
+        auto findFunction(std::string_view Name) const noexcept
+            -> llvm::Function *;
 
         virtual void evalulateAndPrint(AST::Expr &Expr) noexcept;
     };

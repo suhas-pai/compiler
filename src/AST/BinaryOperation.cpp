@@ -42,7 +42,7 @@ namespace AST {
                     Builder.CreateUIToFP(Right,
                                          llvm::Type::getDoubleTy(Context));
 
-                return Builder.CreateCall(Handler.getPowerFunc(),
+                return Builder.CreateCall(Handler.findFunction("pow"),
                                           {LeftDouble, RightDouble},
                                           "calltmp");
             }

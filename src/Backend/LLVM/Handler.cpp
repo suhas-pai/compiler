@@ -50,6 +50,13 @@ namespace Backend::LLVM {
     Handler::Handler(const llvm::StringRef &Name) noexcept
     {
         Initialize("Simple");
+    }
+
+    Handler::Handler() noexcept : Handler("Handler") {}
+
+    auto Handler::findFunction(const std::string_view Name) const noexcept
+        -> llvm::Function *
+    {
         const auto Doubles =
             std::vector(2, llvm::Type::getDoubleTy(*TheContext));
         const auto FT =
@@ -57,14 +64,12 @@ namespace Backend::LLVM {
                                     Doubles,
                                     /*isVarArg=*/false);
 
-        PowerFunc =
+        return
             llvm::Function::Create(FT,
                                    llvm::Function::ExternalLinkage,
-                                   "_pow",
+                                   "pow",
                                    TheModule.get());
     }
-
-    Handler::Handler() noexcept : Handler("Handler") {}
 
     void Handler::evalulateAndPrint(AST::Expr &Expr) noexcept {
         const auto Codegen = Expr.codegen(*this);

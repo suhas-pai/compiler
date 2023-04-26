@@ -54,6 +54,10 @@ namespace Interface {
 
         while (true) {
             const auto Input = std::string_view(readline(FullPrompt.c_str()));
+            if (Input.empty()) {
+                continue;
+            }
+
             add_history(Input.data());
 
             if (Input == "exit") {

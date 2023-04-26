@@ -1,5 +1,5 @@
 /*
- * AST/IntegerLiteral.h
+ * AST/NumberLiteral.h
  */
 
 #pragma once
@@ -20,7 +20,7 @@ namespace AST {
         constexpr explicit
         NumberLiteral(const SourceLocation Loc,
                       const Parse::ParseNumberResult Number) noexcept
-        : Expr(ExprKind::IntegerLiteral), Loc(Loc), Number(Number) {}
+        : Expr(ExprKind::NumberLiteral), Loc(Loc), Number(Number) {}
 
         [[nodiscard]] constexpr auto getNumber() const noexcept {
             return this->Number;
