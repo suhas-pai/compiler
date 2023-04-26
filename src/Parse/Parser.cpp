@@ -334,13 +334,12 @@ namespace Parse {
     }
 
     auto Parser::parseExpression() noexcept -> AST::Expr * {
-        const auto Lhs = this->parseLHS();
-        if (Lhs == nullptr) {
+        if (!this->peek().has_value()) {
             Diag.emitError("Expected an expression");
             return nullptr;
         }
 
-        return this->parseBinOpRHS(Lhs, /*MinPrec=*/0);
+        return this->parseBinOpRHS(this->parseLHS(), /*MinPrec=*/0);
     }
 
     auto Parser::parseVarDecl() noexcept -> AST::VarDecl * {
