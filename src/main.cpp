@@ -195,6 +195,8 @@ void HandleReplOption(const ArgumentOptions ArgOptions) noexcept {
     auto ParserOptions = Parse::ParserOptions();
 
     ParserOptions.DontRequireSemicolons = true;
+    ParserOptions.ParseTopLevelExpressionsAsStmts = true;
+
     Interface::SetupRepl("Compiler",
                          [&](const std::string_view Input) noexcept {
                             HandlePrompt(Input,

@@ -3,6 +3,8 @@
  */
 
 #include "AST/BinaryOperation.h"
+#include "AST/VarDecl.h"
+#include "Basic/SourceLocation.h"
 #include "Lex/Token.h"
 
 #include "Parse/OperatorPrecedence.h"
@@ -415,6 +417,11 @@ namespace Parse {
                 [[fallthrough]];
             }
             default:
+                if (Options.ParseTopLevelExpressionsAsStmts) {
+                    Index--;
+                    return static_cast<AST::Stmt *>(this->parseExpression());
+                }
+
                 Diag.emitError("Unexpected token \"%s\"",
                                tokenContent(Token).data());
                 return nullptr;

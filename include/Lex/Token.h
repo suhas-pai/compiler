@@ -335,6 +335,10 @@ namespace Lex {
             return Token { .Kind = TokenKind::EOFToken };
         }
 
+        [[nodiscard]] static auto invalid() -> Token {
+            return Token { .Kind = TokenKind::Invalid };
+        }
+
         [[nodiscard]]
         constexpr auto getString(const std::string_view Text) const noexcept
             -> std::string_view

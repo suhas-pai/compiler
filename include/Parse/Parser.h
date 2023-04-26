@@ -20,6 +20,7 @@
 namespace Parse {
     struct ParserOptions {
         bool DontRequireSemicolons : 1 = false;
+        bool ParseTopLevelExpressionsAsStmts : 1 = false;
     };
 
     struct Parser {
@@ -73,6 +74,7 @@ namespace Parse {
           Options(Options) {}
 
         auto startParsing() noexcept -> AST::Expr *;
+        auto startParsingForRepl() noexcept -> AST::Expr *;
 
         [[nodiscard]] constexpr const auto &tokenList() const noexcept {
             return TokenList;
