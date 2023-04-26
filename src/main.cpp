@@ -169,6 +169,11 @@ HandlePrompt(const std::string_view &Prompt,
     }
 
     PrintAST(*BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
+
+    const auto Value = Expr->codegen(*BackendHandler);
+    if (const auto Constant = llvm::dyn_cast<llvm::ConstantFP>(Value)) {
+        printf("\nEvaluated to %f\n", Constant->getValue().convertToDouble());
+    }
 }
 
 void PrintUsage(const char *const Name) noexcept {

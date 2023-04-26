@@ -8,8 +8,7 @@
 namespace Parse {
     auto
     ParseNumber(const std::string_view Text,
-                const ParseNumberOptions Options) noexcept
-        -> ParseNumberResult
+                const ParseNumberOptions Options) noexcept -> ParseNumberResult
     {
         auto Result = ParseNumberResult();
         if (Text.empty()) {

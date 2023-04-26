@@ -91,7 +91,7 @@ namespace Backend::LLVM {
         auto Func = AST::FunctionDecl(&Proto, &Expr);
         Func.codegen(*this);
 
-        auto RT = this->getMainJITDylib().createResourceTracker();
+        const auto RT = this->getMainJITDylib().createResourceTracker();
         auto TSM =
             llvm::orc::ThreadSafeModule(std::move(TheModule),
                                         std::move(TheContext));
@@ -100,7 +100,7 @@ namespace Backend::LLVM {
         Initialize("JIT");
 
         // Search the JIT for the __anon_expr symbol.
-        auto ExprSymbol = ExitOnErr(this->lookup("__anon_expr"));
+        const auto ExprSymbol = ExitOnErr(this->lookup("__anon_expr"));
         assert(ExprSymbol && "Function not found");
 
         // Get the symbol's address and cast it to the right type (takes no
