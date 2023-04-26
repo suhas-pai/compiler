@@ -67,10 +67,17 @@ namespace Parse {
         return Optional;
     }
 
+    [[nodiscard]]
+    auto Parser::tokenContent(const Lex::Token Token) const noexcept
+        -> std::string_view
+    {
+        return Token.getString(SourceMngr.getText());
+    }
+
     auto Parser::parseUnaryOper(const Lex::Token Token) noexcept
         -> AST::UnaryOperation *
     {
-        const auto TokenString = Token.getString(Text);
+        const auto TokenString = tokenContent(Token);
         const auto UnaryOpOpt =
             Parse::UnaryOperatorToLexemeMap.keyFor(TokenString);
 
@@ -86,7 +93,7 @@ namespace Parse {
     auto Parser::parseNumberLiteral(const Lex::Token Token) noexcept
         -> AST::NumberLiteral *
     {
-        const auto ParseResult = Parse::ParseNumber(Token.getString(Text));
+        const auto ParseResult = Parse::ParseNumber(tokenContent(Token));
         if (ParseResult.Error != ParseNumberError::None) {
             Diag.emitError("Failed to parse number-literal");
             return nullptr;
@@ -98,7 +105,7 @@ namespace Parse {
     auto Parser::parseCharLiteral(const Lex::Token Token) noexcept
         -> AST::CharLiteral *
     {
-        const auto TokenString = Token.getString(Text);
+        const auto TokenString = tokenContent(Token);
         if (TokenString.size() == 2) {
             Diag.emitError("Characters cannot be empty. Use \'\'0\' to store a "
                            "null-character");
@@ -135,7 +142,7 @@ namespace Parse {
     auto Parser::parseStringLiteral(const Lex::Token Token) noexcept
         -> AST::StringLiteral *
     {
-        const auto TokenString = Token.getString(Text);
+        const auto TokenString = tokenContent(Token);
         const auto TokenStringLiteral =
             TokenString.substr(1, TokenString.size() - 1);
 
@@ -207,7 +214,7 @@ namespace Parse {
                     case Lex::TokenKind::Keyword:
                         Diag.emitError("Keyword \"%s\" cannot be used in an "
                                        "expression",
-                                       Token.getString(Text).data());
+                                       tokenContent(Token).data());
                         return nullptr;
                     case Lex::TokenKind::NumberLiteral:
                         Expr = this->parseNumberLiteral(Token);
@@ -227,7 +234,7 @@ namespace Parse {
                         break;
                     default:
                         Diag.emitError("Unexpected token \"%s\"",
-                                       Token.getString(Text).data());
+                                       tokenContent(Token).data());
                         return nullptr;
                 }
             }
@@ -348,16 +355,16 @@ namespace Parse {
             case Lex::TokenKind::Keyword:
                 Diag.emitError("Keyword \"%s\" cannot be used as a variable "
                                "name",
-                               NameToken.getString(Text).data());
+                               tokenContent(NameToken).data());
                 return nullptr;
             case Lex::TokenKind::NumberLiteral:
                 Diag.emitError("Integer Literal \"%s\" cannot be used as a "
                                "variable name",
-                               NameToken.getString(Text).data());
+                               tokenContent(NameToken).data());
                 return nullptr;
             default:
                 Diag.emitError("Expected a variable name, got \"%s\" instead",
-                               NameToken.getString(Text).data());
+                               tokenContent(NameToken).data());
                 return nullptr;
         }
 
@@ -367,7 +374,7 @@ namespace Parse {
             return nullptr;
         }
 
-        const auto Name = NameToken.getString(Text);
+        const auto Name = tokenContent(NameToken);
         const auto Expr = this->parseExpression();
 
         if (Expr == nullptr) {
@@ -399,7 +406,8 @@ namespace Parse {
         const auto Token = TokenOpt.value();
         switch (Token.Kind) {
             case Lex::TokenKind::Keyword: {
-                switch (Lex::KeywordTokenGetKeyword(Token, Text)) {
+                const auto TokenString = tokenContent(Token);
+                switch (Lex::KeywordTokenGetKeyword(Token, TokenString)) {
                     case Lex::Keyword::Let:
                         return this->parseVarDecl();
                 }
@@ -408,7 +416,7 @@ namespace Parse {
             }
             default:
                 Diag.emitError("Unexpected token \"%s\"",
-                               Token.getString(Text).data());
+                               tokenContent(Token).data());
                 return nullptr;
         }
 

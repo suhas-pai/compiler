@@ -336,7 +336,7 @@ namespace Lex {
         }
 
         [[nodiscard]]
-        constexpr auto getString(const std::string_view &Text) const noexcept
+        constexpr auto getString(const std::string_view Text) const noexcept
             -> std::string_view
         {
             return Text.substr(Loc.Value, End.Value - Loc.Value);

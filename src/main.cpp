@@ -11,6 +11,7 @@
 #include "Backend/LLVM/JIT.h"
 #include "Basic/ArgvLexer.h"
 
+#include "Basic/SourceManager.h"
 #include "Interface/DiagnosticsEngine.h"
 #include "Interface/Repl.h"
 
@@ -154,8 +155,8 @@ HandlePrompt(const std::string_view &Prompt,
         }
     }
 
-    auto Parser =
-        Parse::Parser(std::string(Prompt), TokenList, Diag, ParseOptions);
+    auto SourceMngr = SourceManager(Prompt);
+    auto Parser = Parse::Parser(SourceMngr, TokenList, Diag, ParseOptions);
 
     auto Expr = Parser.startParsing();
 

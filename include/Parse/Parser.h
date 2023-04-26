@@ -14,6 +14,7 @@
 #include "AST/UnaryOperation.h"
 #include "AST/VarDecl.h"
 
+#include "Basic/SourceManager.h"
 #include "Interface/DiagnosticsEngine.h"
 
 namespace Parse {
@@ -50,10 +51,13 @@ namespace Parse {
         [[nodiscard]] auto peek() -> std::optional<Lex::Token>;
         [[nodiscard]] auto prev() -> std::optional<Lex::Token>;
 
+        [[nodiscard]]
+        auto tokenContent(Lex::Token Token) const noexcept -> std::string_view;
+
         auto consume(uint64_t Skip = 0) -> std::optional<Lex::Token>;
         auto expect(Lex::TokenKind Kind, bool Optional = false) -> bool;
 
-        const std::string &Text;
+        const SourceManager &SourceMngr;
         const std::vector<Lex::Token> &TokenList;
         Interface::DiagnosticsEngine &Diag;
 
@@ -61,11 +65,12 @@ namespace Parse {
         ParserOptions Options;
     public:
         constexpr explicit
-        Parser(const std::string &Text,
+        Parser(const SourceManager &SourceMngr,
                const std::vector<Lex::Token> &TokenList,
                Interface::DiagnosticsEngine &Diag,
                ParserOptions Options = {}) noexcept
-        : Text(Text), TokenList(TokenList), Diag(Diag), Options(Options) {}
+        : SourceMngr(SourceMngr), TokenList(TokenList), Diag(Diag),
+          Options(Options) {}
 
         auto startParsing() noexcept -> AST::Expr *;
 
