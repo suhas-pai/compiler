@@ -5,7 +5,6 @@
 #pragma once
 
 #include <optional>
-#include <string>
 #include <string_view>
 
 #include "AST/CharLiteral.h"
@@ -14,9 +13,14 @@
 #include "AST/StringLiteral.h"
 #include "AST/UnaryOperation.h"
 #include "AST/VarDecl.h"
-#include "Lex/Token.h"
+
+#include "Interface/DiagnosticsEngine.h"
 
 namespace Parse {
+    struct ParserOptions {
+        bool DontRequireSemicolons : 1 = false;
+    };
+
     struct Parser {
     protected:
         [[nodiscard]] auto
@@ -47,17 +51,21 @@ namespace Parse {
         [[nodiscard]] auto prev() -> std::optional<Lex::Token>;
 
         auto consume(uint64_t Skip = 0) -> std::optional<Lex::Token>;
-        auto expect(Lex::TokenKind Kind) -> bool;
+        auto expect(Lex::TokenKind Kind, bool Optional = false) -> bool;
 
         const std::string &Text;
         const std::vector<Lex::Token> &TokenList;
+        Interface::DiagnosticsEngine &Diag;
 
         uint64_t Index = 0;
+        ParserOptions Options;
     public:
         constexpr explicit
         Parser(const std::string &Text,
-               const std::vector<Lex::Token> &TokenList) noexcept
-        : Text(Text), TokenList(TokenList) {}
+               const std::vector<Lex::Token> &TokenList,
+               Interface::DiagnosticsEngine &Diag,
+               ParserOptions Options = {}) noexcept
+        : Text(Text), TokenList(TokenList), Diag(Diag), Options(Options) {}
 
         auto startParsing() noexcept -> AST::Expr *;
 

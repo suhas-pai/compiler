@@ -10,8 +10,21 @@ namespace Lex {
         auto State = State::Start;
         auto Result = Token();
 
-        for (auto Char = this->consume();; Char = this->consume()) {
+        for (auto Char = this->consume();;
+             Char = this->consume(), Result.End.Value++)
+        {
             if (Char == '\0') {
+                if (State == State::Identifier) {
+                    const auto KeywordOpt =
+                        KeywordToLexemeMap.keyFor(Result.getString(Text));
+
+                    if (KeywordOpt.has_value()) {
+                        Result.Kind = TokenKind::Keyword;
+                    }
+
+                    goto done;
+                }
+
                 if (State != State::Start) {
                     break;
                 }
@@ -21,8 +34,8 @@ namespace Lex {
                     break;
                 }
 
-                printf("Tokenizer::next(): Unexpected end of file\n");
-                exit(1);
+                Diag.emitError("Tokenizer::next(): Unexpected end of file\n");
+                return Result;
             }
 
             switch (State) {
@@ -44,48 +57,77 @@ namespace Lex {
                         case 'A'...'Z':
                         case '_':
                             State = State::Identifier;
+                            Result.Kind = TokenKind::Identifier;
+
                             continue;
                         case '0'...'9':
                             State = State::NumberLiteral;
+                            Result.Kind = TokenKind::NumberLiteral;
+
                             continue;
                         case '+':
                             State = State::Plus;
+                            Result.Kind = TokenKind::Plus;
+
                             continue;
                         case '-':
                             State = State::Minus;
+                            Result.Kind = TokenKind::Minus;
+
                             continue;
                         case '*':
                             State = State::Star;
+                            Result.Kind = TokenKind::Star;
+
                             continue;
                         case '%':
                             State = State::Percent;
+                            Result.Kind = TokenKind::Percent;
+
                             continue;
                         case '/':
                             State = State::Slash;
+                            Result.Kind = TokenKind::Slash;
+
                             continue;
                         case '^':
                             State = State::Caret;
+                            Result.Kind = TokenKind::Caret;
+
                             break;
                         case '&':
                             State = State::Ampersand;
+                            Result.Kind = TokenKind::Ampersand;
                             break;
                         case '|':
                             State = State::Pipe;
+                            Result.Kind = TokenKind::Pipe;
+
                             break;
                         case '~':
                             State = State::Tilde;
+                            Result.Kind = TokenKind::Tilde;
+
                             break;
                         case '<':
                             State = State::LessThan;
+                            Result.Kind = TokenKind::LessThan;
+
                             break;
                         case '>':
                             State = State::GreaterThan;
+                            Result.Kind = TokenKind::GreaterThan;
+
                             break;
                         case '=':
                             State = State::Equal;
+                            Result.Kind = TokenKind::Equal;
+
                             break;
                         case '!':
                             State = State::Exclamation;
+                            Result.Kind = TokenKind::Exclamation;
+
                             break;
                         case '(':
                             Result.Kind = TokenKind::LeftParen;
@@ -118,8 +160,10 @@ namespace Lex {
                             Result.Kind = TokenKind::Semicolon;
                             goto done;
                         default:
-                            printf("Unrecognized token: %c\n", Char);
-                            exit(1);
+                            Diag.emitError("Unrecognized token: %c\n", Char);
+                            Result.Kind = TokenKind::Invalid;
+
+                            goto done;
                     }
 
                     break;
@@ -130,18 +174,18 @@ namespace Lex {
                             break;
                         }
                         case '\'':
-                            Result.Kind = TokenKind::CharLiteral;
                             goto done;
                         default:
                             break;
                     }
+
+                    break;
                 case State::StringLiteral:
                     switch (Char) {
                         case '\\':
                             Index++;
                             break;
                         case '"':
-                            Result.Kind = TokenKind::StringLiteral;
                             goto done;
                         default:
                             break;
@@ -159,11 +203,12 @@ namespace Lex {
                         case 'X':
                             break;
                         case '.':
-                            assert(false && "Floating-point not yet supported");
+                            Diag.emitError("Floating-point not yet supported");
+                            Result.Kind = TokenKind::Invalid;
+
+                            goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::IntegerLiteral;
-
                             goto done;
                     }
 
@@ -185,8 +230,6 @@ namespace Lex {
 
                             if (KeywordOpt.has_value()) {
                                 Result.Kind = TokenKind::Keyword;
-                            } else {
-                                Result.Kind = TokenKind::Identifier;
                             }
 
                             goto done;
@@ -200,8 +243,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Plus;
-
                             goto done;
                     }
 
@@ -213,8 +254,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Minus;
-
                             goto done;
                     }
 
@@ -229,8 +268,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Star;
-
                             goto done;
                     }
 
@@ -242,8 +279,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Percent;
-
                             goto done;
                     }
 
@@ -255,8 +290,6 @@ namespace Lex {
                             break;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Slash;
-
                             goto done;
                     }
 
@@ -268,8 +301,6 @@ namespace Lex {
                             break;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Caret;
-
                             goto done;
                     }
 
@@ -284,8 +315,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Ampersand;
-
                             goto done;
                     }
 
@@ -300,8 +329,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Pipe;
-
                             goto done;
                     }
 
@@ -313,8 +340,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Tilde;
-
                             goto done;
                     }
 
@@ -323,6 +348,8 @@ namespace Lex {
                     switch (Char) {
                         case '<':
                             State = State::Shl;
+                            Result.Kind = TokenKind::Shl;
+
                             continue;
                         case '=':
                             Result.Kind = TokenKind::LessThanOrEqual;
@@ -339,6 +366,8 @@ namespace Lex {
                     switch (Char) {
                         case '>':
                             State = State::Shr;
+                            Result.Kind = TokenKind::Shr;
+
                             continue;
                         case '=':
                             Result.Kind = TokenKind::GreaterThanOrEqual;
@@ -358,8 +387,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Shl;
-
                             goto done;
                     }
 
@@ -371,8 +398,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Shr;
-
                             goto done;
                     }
 
@@ -384,8 +409,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Equal;
-
                             goto done;
                     }
 
@@ -397,8 +420,6 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            Result.Kind = TokenKind::Exclamation;
-
                             goto done;
                     }
 

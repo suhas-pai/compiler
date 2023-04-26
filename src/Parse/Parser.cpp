@@ -3,6 +3,7 @@
  */
 
 #include "AST/BinaryOperation.h"
+#include "Lex/Token.h"
 
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
@@ -34,9 +35,36 @@ namespace Parse {
         return tokenList().at(position() - 1);
     }
 
-    auto Parser::expect(const Lex::TokenKind Kind) -> bool {
-        const auto TokenOpt = this->consume();
-        return (TokenOpt.has_value() && TokenOpt.value().Kind == Kind);
+    auto
+    Parser::expect(const Lex::TokenKind Kind, const bool Optional) -> bool {
+        auto TokenOpt = this->consume();
+        if (TokenOpt.has_value()) {
+            if (TokenOpt.value().Kind == Kind) {
+                if (Kind == Lex::TokenKind::Semicolon) {
+                    while ((TokenOpt = this->peek())) {
+                        /* Skip past multiple semicolons */
+                        const auto Token = TokenOpt.value();
+                        if (Token.Kind != Lex::TokenKind::Semicolon) {
+                            break;
+                        }
+
+                        this->consume();
+                    }
+                }
+
+                return true;
+            }
+
+            if (Kind == Lex::TokenKind::EOFToken) {
+                return false;
+            }
+
+            this->Index--;
+        } else if (Kind == Lex::TokenKind::EOFToken) {
+            return true;
+        }
+
+        return Optional;
     }
 
     auto Parser::parseUnaryOper(const Lex::Token Token) noexcept
@@ -47,8 +75,9 @@ namespace Parse {
             Parse::UnaryOperatorToLexemeMap.keyFor(TokenString);
 
         if (!UnaryOpOpt.has_value()) {
-            printf("Internal error: unary operator not lexed correctly\n");
-            exit(1);
+            Diag.emitError("Internal error: unary operator not lexed "
+                           "correctly");
+            return nullptr;
         }
 
         return new AST::UnaryOperation(Token.Loc, UnaryOpOpt.value());
@@ -59,8 +88,8 @@ namespace Parse {
     {
         const auto ParseResult = Parse::ParseNumber(Token.getString(Text));
         if (ParseResult.Error != ParseNumberError::None) {
-            printf("Failed to parse integer-literal\n");
-            exit(1);
+            Diag.emitError("Failed to parse number-literal");
+            return nullptr;
         }
 
         return new AST::NumberLiteral(Token.Loc, ParseResult);
@@ -71,32 +100,33 @@ namespace Parse {
     {
         const auto TokenString = Token.getString(Text);
         if (TokenString.size() == 2) {
-            printf("Characters cannot be empty. Use \'\'0\' to store a "
-                   "null-character\n");
-            exit(1);
+            Diag.emitError("Characters cannot be empty. Use \'\'0\' to store a "
+                           "null-character");
+            return nullptr;
         }
 
         const auto FirstChar = TokenString.at(1);
         if (FirstChar != '\\') {
             if (TokenString.size() != 3) {
-                printf("Use double quotes to store strings with multiple "
-                       "characters\n");
-                exit(1);
+                Diag.emitError("Use double quotes to store strings with "
+                               "multiple characters");
+                return nullptr;
             }
 
             return new AST::CharLiteral(Token.Loc, FirstChar);
         }
 
         if (FirstChar == '\\' && TokenString.size() == 3) {
-            printf("Expected another character to parse escape-sequence. "
-                   "Use \'\\\\\' to store a back-slash\n");
-            exit(1);
+            Diag.emitError(
+                "Expected another character to parse escape-sequence. "
+                "Use \'\\\\\' to store a back-slash");
+            return nullptr;
         }
 
         const auto EscapedChar = VerifyEscapeSequence(TokenString.at(2));
         if (EscapedChar == '\0') {
-            printf("Invalid escape-sequence\n");
-            exit(1);
+            Diag.emitError("Invalid escape-sequence");
+            return nullptr;
         }
 
         return new AST::CharLiteral(Token.Loc, EscapedChar);
@@ -116,9 +146,9 @@ namespace Parse {
             auto Char = TokenStringLiteral.at(I);
             if (Char == '\\') {
                 if (I + 1 == TokenStringLiteral.size()) {
-                    printf("Expected another character to parse "
-                           "escape-sequence.\n");
-                    exit(1);
+                    Diag.emitError("Expected another character to parse "
+                                   "escape-sequence");
+                    return nullptr;
                 }
 
                 I++;
@@ -126,8 +156,8 @@ namespace Parse {
                     VerifyEscapeSequence(TokenStringLiteral.at(I));
 
                 if (NextChar == '\0') {
-                    printf("Invalid escape-sequence\n");
-                    exit(1);
+                    Diag.emitError("Invalid escape-sequence");
+                    return nullptr;
                 }
 
                 Char = NextChar;
@@ -144,8 +174,8 @@ namespace Parse {
     {
         const auto ChildExpr = this->parseExpression();
         if (!this->expect(Lex::TokenKind::RightParen)) {
-            printf("Expected closing parenthesis\n");
-            exit(1);
+            Diag.emitError("Expected closing parenthesis");
+            return nullptr;
         }
 
         return new AST::ParenExpr(Token, ChildExpr);
@@ -172,19 +202,20 @@ namespace Parse {
             } else {
                 switch (Token.Kind) {
                     case Lex::TokenKind::Identifier:
-                        printf("Variable reference not yet supported");
-                        exit(1);
+                        Diag.emitError("Variable reference not yet supported");
+                        return nullptr;
                     case Lex::TokenKind::Keyword:
-                        printf("Keyword \"%s\" cannot be used in an "
-                               "expression\n",
-                               Token.getString(Text).data());
-                        exit(1);
-                    case Lex::TokenKind::IntegerLiteral:
+                        Diag.emitError("Keyword \"%s\" cannot be used in an "
+                                       "expression",
+                                       Token.getString(Text).data());
+                        return nullptr;
+                    case Lex::TokenKind::NumberLiteral:
                         Expr = this->parseNumberLiteral(Token);
                         break;
                     case Lex::TokenKind::FloatLiteral:
-                        printf("Floating point literals not yet supported");
-                        exit(1);
+                        Diag.emitError("Floating point literals not yet "
+                                       "supported");
+                        return nullptr;
                     case Lex::TokenKind::CharLiteral:
                         Expr = this->parseCharLiteral(Token);
                         break;
@@ -195,10 +226,14 @@ namespace Parse {
                         Expr = this->parseParenExpr(Token);
                         break;
                     default:
-                        printf("Unexpected token \"%s\"\n",
-                               Token.getString(Text).data());
-                        exit(1);
+                        Diag.emitError("Unexpected token \"%s\"",
+                                       Token.getString(Text).data());
+                        return nullptr;
                 }
+            }
+
+            if (Expr == nullptr) {
+                return nullptr;
             }
 
             if (Root == nullptr) {
@@ -286,14 +321,20 @@ namespace Parse {
     }
 
     auto Parser::parseExpression() noexcept -> AST::Expr * {
-        return this->parseBinOpRHS(this->parseLHS(), /*MinPrec=*/0);
+        const auto Lhs = this->parseLHS();
+        if (Lhs == nullptr) {
+            Diag.emitError("Expected an expression");
+            return nullptr;
+        }
+
+        return this->parseBinOpRHS(Lhs, /*MinPrec=*/0);
     }
 
     auto Parser::parseVarDecl() noexcept -> AST::VarDecl * {
         const auto NameTokenOpt = this->consume();
         if (!NameTokenOpt.has_value()) {
-            printf("Expected a name for variable declaration\n");
-            exit(1);
+            Diag.emitError("Expected a name for variable declaration");
+            return nullptr;
         }
 
         const auto NameToken = NameTokenOpt.value();
@@ -301,33 +342,44 @@ namespace Parse {
             case Lex::TokenKind::Identifier:
                 break;
             case Lex::TokenKind::Keyword:
-                printf("Keyword \"%s\" cannot be used as a variable name\n",
-                       NameToken.getString(Text).data());
-                exit(1);
-            case Lex::TokenKind::IntegerLiteral:
-                printf("Integer Literal \"%s\" cannot be used as a variable "
-                       "name\n",
-                       NameToken.getString(Text).data());
-                exit(1);
+                Diag.emitError("Keyword \"%s\" cannot be used as a variable "
+                               "name",
+                               NameToken.getString(Text).data());
+                return nullptr;
+            case Lex::TokenKind::NumberLiteral:
+                Diag.emitError("Integer Literal \"%s\" cannot be used as a "
+                               "variable name",
+                               NameToken.getString(Text).data());
+                return nullptr;
             default:
-                printf("Expected a variable name, got \"%s\" instead\n",
-                       NameToken.getString(Text).data());
-                exit(1);
+                Diag.emitError("Expected a variable name, got \"%s\" instead",
+                               NameToken.getString(Text).data());
+                return nullptr;
         }
 
         if (!this->expect(Lex::TokenKind::Equal)) {
-            printf("Expected an equal sign for variable declaration, got "
-                   "\"%s\" instead\n",
-                   this->prev().value().getString(Text).data());
-            exit(1);
+            Diag.emitError("Expected an equal sign after name for variable "
+                           "declaration");
+            return nullptr;
         }
 
         const auto Name = NameToken.getString(Text);
         const auto Expr = this->parseExpression();
 
-        if (!this->expect(Lex::TokenKind::Semicolon)) {
-            printf("Expected a semicolon after variable declaration\n");
-            exit(1);
+        if (Expr == nullptr) {
+            return nullptr;
+        }
+
+        if (!this->expect(Lex::TokenKind::Semicolon,
+                          /*Optional=*/Options.DontRequireSemicolons))
+        {
+            Diag.emitError("Expected a semicolon after variable declaration");
+            return nullptr;
+        }
+
+        if (!this->expect(Lex::TokenKind::EOFToken)) {
+            Diag.emitError("Unexpected token past end of statement");
+            return nullptr;
         }
 
         return new AST::VarDecl(NameToken, Name, Expr);
@@ -336,8 +388,8 @@ namespace Parse {
     auto Parser::parseStmt() noexcept -> AST::Stmt * {
         const auto TokenOpt = this->consume();
         if (!TokenOpt.has_value()) {
-            printf("Unexpected end of file\n");
-            exit(1);
+            Diag.emitError("Unexpected end of file");
+            return nullptr;
         }
 
         const auto Token = TokenOpt.value();
@@ -351,9 +403,9 @@ namespace Parse {
                 [[fallthrough]];
             }
             default:
-                printf("Unexpected token \"%s\"\n",
-                       Token.getString(Text).data());
-                exit(1);
+                Diag.emitError("Unexpected token \"%s\"",
+                               Token.getString(Text).data());
+                return nullptr;
         }
 
         return nullptr;

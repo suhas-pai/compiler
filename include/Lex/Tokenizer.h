@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <string_view>
+#include "Interface/DiagnosticsEngine.h"
 #include "Token.h"
 
 namespace Lex {
@@ -37,6 +37,7 @@ namespace Lex {
     protected:
         std::string_view Text;
         uint64_t Index = 0;
+        Interface::DiagnosticsEngine &Diag;
 
         [[nodiscard]] constexpr auto peek() const noexcept -> char {
             if (Index >= Text.length()) {
@@ -55,8 +56,10 @@ namespace Lex {
             return Text.at(Index - 1);
         }
     public:
-        constexpr explicit Tokenizer(std::string_view Text) noexcept
-        : Text(Text) {}
+        constexpr explicit
+        Tokenizer(std::string_view Text,
+                  Interface::DiagnosticsEngine &Diag) noexcept
+        : Text(Text), Diag(Diag) {}
 
         [[nodiscard]] constexpr auto index() const noexcept {
             return Index;

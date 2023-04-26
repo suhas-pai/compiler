@@ -13,7 +13,7 @@
 
 namespace Lex {
     enum class TokenKind : uint8_t {
-        IntegerLiteral,
+        NumberLiteral,
         FloatLiteral,
 
         CharLiteral,
@@ -85,6 +85,7 @@ namespace Lex {
         Dot,
 
         EOFToken,
+        Invalid,
     };
 
     [[nodiscard]]
@@ -110,7 +111,7 @@ namespace Lex {
             case TokenKind::GreaterThanOrEqual:
             case TokenKind::Equal:
             case TokenKind::NotEqual:
-            case TokenKind::IntegerLiteral:
+            case TokenKind::NumberLiteral:
             case TokenKind::FloatLiteral:
             case TokenKind::CharLiteral:
             case TokenKind::StringLiteral:
@@ -143,6 +144,8 @@ namespace Lex {
             case TokenKind::Dot:
             case TokenKind::EOFToken:
                 break;
+            case TokenKind::Invalid:
+                assert(false && "TokenKindIsUnaryOp() is invalid");
         }
 
         return false;
@@ -169,7 +172,7 @@ namespace Lex {
             case TokenKind::Equal:
             case TokenKind::NotEqual:
                 return true;
-            case TokenKind::IntegerLiteral:
+            case TokenKind::NumberLiteral:
             case TokenKind::FloatLiteral:
             case TokenKind::CharLiteral:
             case TokenKind::StringLiteral:
@@ -204,6 +207,8 @@ namespace Lex {
             case TokenKind::Dot:
             case TokenKind::EOFToken:
                 break;
+            case TokenKind::Invalid:
+                assert(false && "TokenKindIsBinOp() is invalid");
         }
 
         return false;
@@ -214,8 +219,8 @@ namespace Lex {
         -> std::string_view
     {
         switch (Kind) {
-            case TokenKind::IntegerLiteral:
-                return "integer-literal";
+            case TokenKind::NumberLiteral:
+                return "number-literal";
             case TokenKind::FloatLiteral:
                 return "float-literal";
             case TokenKind::CharLiteral:
@@ -316,6 +321,8 @@ namespace Lex {
                 return "dot";
             case TokenKind::EOFToken:
                 return "eof";
+            case TokenKind::Invalid:
+                assert(false && "TokenKindGetName() is invalid");
         }
     }
 

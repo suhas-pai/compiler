@@ -6,9 +6,14 @@
 #include <cstdio>
 
 #include <inttypes.h>
-
 #include "AST/BinaryOperation.h"
+
 #include "Backend/LLVM/JIT.h"
+#include "Basic/ArgvLexer.h"
+
+#include "Interface/DiagnosticsEngine.h"
+#include "Interface/Repl.h"
+
 #include "Lex/Tokenizer.h"
 #include "Parse/Parser.h"
 
@@ -67,10 +72,12 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto IntLit = static_cast<AST::NumberLiteral *>(Expr);
             switch (IntLit->getNumber().Kind) {
                 case Parse::NumberKind::UnsignedInteger:
-                    printf("integer-literal<%llu>\n", IntLit->getNumber().UInt);
+                    printf("number-literal<%llu, unsigned>\n",
+                           IntLit->getNumber().UInt);
                     break;
                 case Parse::NumberKind::SignedInteger:
-                    printf("integer-literal<%lld>\n", IntLit->getNumber().SInt);
+                    printf("number-literal<%lld, signed>\n",
+                           IntLit->getNumber().SInt);
                     break;
                 case Parse::NumberKind::FloatingPoint32:
                 case Parse::NumberKind::FloatingPoint64:
@@ -111,15 +118,18 @@ PrintAST(Backend::LLVM::Handler &Handler,
     }
 }
 
-int main(int argc, const char *const argv[]) {
-    if (argc != 2) {
-        printf("Usage: %s <prompt>\n", argv[0]);
-        return 1;
-    }
+struct ArgumentOptions {
+    bool PrintTokens : 1 = false;
+    uint64_t PrintDepth = 0;
+};
 
-    const char *const Prompt = argv[1];
-
-    auto Tokenizer = Lex::Tokenizer(Prompt);
+void
+HandlePrompt(const std::string_view &Prompt,
+             Interface::DiagnosticsEngine &Diag,
+             const Parse::ParserOptions &ParseOptions,
+             const ArgumentOptions ArgOptions) noexcept
+{
+    auto Tokenizer = Lex::Tokenizer(Prompt, Diag);
     auto TokenList = std::vector<Lex::Token>();
 
     while (true) {
@@ -128,22 +138,97 @@ int main(int argc, const char *const argv[]) {
             break;
         }
 
+        if (Token.Kind == Lex::TokenKind::Invalid) {
+            return;
+        }
+
         TokenList.emplace_back(std::move(Token));
     }
 
-    for (const auto &Token : TokenList) {
-        printf("%s\n", Lex::TokenKindGetName(Token.Kind).data());
+    if (ArgOptions.PrintTokens) {
+        fputs("Tokens:\n", stdout);
+        for (const auto &Token : TokenList) {
+            fprintf(stdout, "\t%s\n", Lex::TokenKindGetName(Token.Kind).data());
+        }
     }
 
-    auto Parser = Parse::Parser(Prompt, TokenList);
+    auto Parser =
+        Parse::Parser(std::string(Prompt), TokenList, Diag, ParseOptions);
+
     auto Expr = Parser.startParsing();
 
-    auto BackendHandler = Backend::LLVM::JITHandler::Create();
-    if (BackendHandler == nullptr) {
-        printf("Failed to create JITHandler\n");
-        return 1;
+    // We got an error while parsing.
+    if (Expr == nullptr) {
+        return;
     }
 
-    PrintAST(*BackendHandler, Expr, /*Depth=*/0);
+    const auto BackendHandler = Backend::LLVM::JITHandler::Create();
+    if (BackendHandler == nullptr) {
+        printf("Failed to create JITHandler\n");
+        exit(1);
+    }
+
+    PrintAST(*BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
+}
+
+void PrintUsage(const char *const Name) noexcept {
+    fprintf(stdout,
+            "Usage: %s [<prompt>] [-h/--help/-u/--usage] [--print-tokens]\n",
+            Name);
+}
+
+void HandleReplOption(const ArgumentOptions ArgOptions) noexcept {
+    auto Diag = Interface::DiagnosticsEngine();
+    auto ParserOptions = Parse::ParserOptions();
+
+    ParserOptions.DontRequireSemicolons = true;
+    Interface::SetupRepl("Compiler",
+                         [&](const std::string_view Input) noexcept {
+                            HandlePrompt(Input,
+                                         Diag,
+                                         ParserOptions,
+                                         ArgOptions);
+                            return true;
+                         });
+}
+
+int main(const int argc, const char *const argv[]) {
+    auto Options = ArgumentOptions();
+    auto Prompt = std::string_view();
+    auto Lexer = ArgvLexer(argc, argv);
+
+    while (const auto OptionOpt = Lexer.peek()) {
+        const auto Option = std::string_view(OptionOpt);
+        if (!Option.starts_with("-")) {
+            Prompt = Option.data();
+            break;
+        }
+
+        if (Option == "-h" || Option == "--help" ||
+            Option == "-u" || Option == "--usage")
+        {
+            PrintUsage(argv[0]);
+            return 0;
+        }
+
+        if (Option == "--print-tokens") {
+            Options.PrintTokens = true;
+            Lexer.consume();
+
+            continue;
+        } else {
+            fprintf(stderr, "Unrecognized option: %s\n", Option.data());
+            return 1;
+        }
+    }
+
+    if (Prompt.empty()) {
+        HandleReplOption(Options);
+        return 0;
+    }
+
+    auto Diag = Interface::DiagnosticsEngine();
+    HandlePrompt(Prompt, Diag, Parse::ParserOptions(), Options);
+
     return 0;
 }
