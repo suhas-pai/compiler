@@ -153,6 +153,8 @@ HandlePrompt(const std::string_view &Prompt,
         for (const auto &Token : TokenList) {
             fprintf(stdout, "\t%s\n", Lex::TokenKindGetName(Token.Kind).data());
         }
+
+        fputc('\n', stdout);
     }
 
     auto SourceMngr = SourceManager(Prompt);
