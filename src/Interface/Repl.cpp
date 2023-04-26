@@ -53,14 +53,16 @@ namespace Interface {
         FullPrompt.insert(0, BHBLK);
 
         while (true) {
-            const auto Input = std::string_view(readline(FullPrompt.c_str()));
-            if (Input.empty()) {
+            const auto InputCStr = readline(FullPrompt.c_str());
+            if (InputCStr == NULL || *InputCStr == '\0') {
+                fputc('\n', stdout);
                 continue;
             }
 
+            const auto Input = std::string_view(InputCStr);
             add_history(Input.data());
 
-            if (Input == "exit") {
+            if (Input == "exit" || Input == "quit") {
                 exit(0);
             } else if (Input == "clear") {
                 system("clear");
