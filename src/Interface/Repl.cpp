@@ -54,8 +54,12 @@ namespace Interface {
 
         while (true) {
             const auto InputCStr = readline(FullPrompt.c_str());
-            if (InputCStr == NULL || *InputCStr == '\0') {
+            if (InputCStr == NULL) {
                 fputc('\n', stdout);
+                continue;
+            }
+
+            if (*InputCStr == '\0') {
                 continue;
             }
 
