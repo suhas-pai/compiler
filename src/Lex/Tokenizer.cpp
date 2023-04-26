@@ -2,10 +2,7 @@
  * Lex/Tokenizer.cpp
  */
 
-#include <cassert>
-
 #include "Lex/Tokenizer.h"
-#include "Lex/Keyword.h"
 #include "Parse/String.h"
 
 namespace Lex {

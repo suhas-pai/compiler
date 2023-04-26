@@ -5,6 +5,7 @@
 #pragma once
 
 #include "AST/ExprKind.h"
+#include "Backend/LLVM/Handler.h"
 #include "llvm/IR/IRBuilder.h"
 
 namespace AST {
@@ -19,6 +20,7 @@ namespace AST {
             return Kind;
         }
 
-        [[nodiscard]] virtual llvm::Value *codegen() noexcept = 0;
+        virtual
+        llvm::Value *codegen(Backend::LLVM::Handler &Handler) noexcept = 0;
     };
 }

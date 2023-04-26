@@ -3,7 +3,6 @@
  */
 
 #include "AST/BinaryOperation.h"
-#include "Lex/Keyword.h"
 
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
@@ -55,8 +54,8 @@ namespace Parse {
         return new AST::UnaryOperation(Token.Loc, UnaryOpOpt.value());
     }
 
-    auto Parser::parseIntegerLiteral(const Lex::Token Token) noexcept
-        -> AST::IntegerLiteral *
+    auto Parser::parseNumberLiteral(const Lex::Token Token) noexcept
+        -> AST::NumberLiteral *
     {
         const auto ParseResult = Parse::ParseNumber(Token.getString(Text));
         if (ParseResult.Error != ParseNumberError::None) {
@@ -64,7 +63,7 @@ namespace Parse {
             exit(1);
         }
 
-        return new AST::IntegerLiteral(Token.Loc, ParseResult);
+        return new AST::NumberLiteral(Token.Loc, ParseResult);
     }
 
     auto Parser::parseCharLiteral(const Lex::Token Token) noexcept
@@ -113,9 +112,9 @@ namespace Parse {
         auto String = std::string();
         String.reserve(TokenStringLiteral.size());
 
-        for (auto I = uint64_t(); I != TokenStringLiteral.size() - 1; ++I) {
+        for (auto I = uint64_t(); I != TokenStringLiteral.size(); ++I) {
             auto Char = TokenStringLiteral.at(I);
-            if (TokenStringLiteral.at(I) == '\\') {
+            if (Char == '\\') {
                 if (I + 1 == TokenStringLiteral.size()) {
                     printf("Expected another character to parse "
                            "escape-sequence.\n");
@@ -181,7 +180,7 @@ namespace Parse {
                                Token.getString(Text).data());
                         exit(1);
                     case Lex::TokenKind::IntegerLiteral:
-                        Expr = this->parseIntegerLiteral(Token);
+                        Expr = this->parseNumberLiteral(Token);
                         break;
                     case Lex::TokenKind::FloatLiteral:
                         printf("Floating point literals not yet supported");
@@ -344,11 +343,9 @@ namespace Parse {
         const auto Token = TokenOpt.value();
         switch (Token.Kind) {
             case Lex::TokenKind::Keyword: {
-                const auto LetKeyword =
-                    Lex::KeywordToLexemeMap[Lex::Keyword::Let];
-
-                if (Token.getString(Text) == LetKeyword) {
-                    return this->parseVarDecl();
+                switch (Lex::KeywordTokenGetKeyword(Token, Text)) {
+                    case Lex::Keyword::Let:
+                        return this->parseVarDecl();
                 }
 
                 [[fallthrough]];

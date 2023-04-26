@@ -3,10 +3,9 @@
  */
 
 #include "AST/VarDecl.h"
-#include "Backend/LLVM/Vars.h"
 
 namespace AST {
-    llvm::Value *VarDecl::codegen() noexcept {
-        return InitExpr->codegen();
+    llvm::Value *VarDecl::codegen(Backend::LLVM::Handler &Handler) noexcept {
+        return InitExpr->codegen(Handler);
     }
 }

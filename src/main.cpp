@@ -8,19 +8,24 @@
 #include <inttypes.h>
 
 #include "AST/BinaryOperation.h"
-#include "Backend/LLVM/Vars.h"
+#include "Backend/LLVM/JIT.h"
 #include "Lex/Tokenizer.h"
 #include "Parse/Parser.h"
 
-static void PrintResultIfAvailable(llvm::Value *const Value) noexcept {
-    if (const auto BinOp = llvm::dyn_cast<llvm::ConstantInt>(Value)) {
-        printf(" (Result: %llu)\n", BinOp->getSExtValue());
-    } else {
-        printf("\n");
-    }
+static void
+PrintResultIfAvailable(Backend::LLVM::Handler &Handler,
+                       AST::Expr &Expr) noexcept
+{
+    fputs(" (Result: ", stdout);
+    Handler.evalulateAndPrint(Expr);
+    fputs(")\n", stdout);
 }
 
-void PrintAST(AST::Expr *const Expr, const uint8_t Depth) {
+void
+PrintAST(Backend::LLVM::Handler &Handler,
+         AST::Expr *const Expr,
+         const uint8_t Depth) noexcept
+{
     for (auto I = uint8_t(); I != Depth; ++I) {
         printf("\t");
     }
@@ -34,10 +39,10 @@ void PrintAST(AST::Expr *const Expr, const uint8_t Depth) {
                 Parse::BinaryOperatorToLexemeMap[BinaryExpr->getOperator()];
 
             printf("binary-operation<%s>", Lexeme->data());
-            PrintResultIfAvailable(BinaryExpr->codegen());
+            PrintResultIfAvailable(Handler, *Expr);
 
-            PrintAST(BinaryExpr->getLhs(), Depth + 1);
-            PrintAST(BinaryExpr->getRhs(), Depth + 1);
+            PrintAST(Handler, BinaryExpr->getLhs(), Depth + 1);
+            PrintAST(Handler, BinaryExpr->getRhs(), Depth + 1);
 
             break;
         }
@@ -47,9 +52,9 @@ void PrintAST(AST::Expr *const Expr, const uint8_t Depth) {
                 Parse::UnaryOperatorToLexemeMap[UnaryExpr->getOperator()];
 
             printf("unary-operation<%s>", Lexeme->data());
-            PrintResultIfAvailable(UnaryExpr->codegen());
+            PrintResultIfAvailable(Handler, *Expr);
 
-            PrintAST(UnaryExpr->getOperand(), Depth + 1);
+            PrintAST(Handler, UnaryExpr->getOperand(), Depth + 1);
             break;
         }
         case AST::ExprKind::CharLiteral: {
@@ -59,7 +64,7 @@ void PrintAST(AST::Expr *const Expr, const uint8_t Depth) {
             break;
         }
         case AST::ExprKind::IntegerLiteral: {
-            const auto IntLit = static_cast<AST::IntegerLiteral *>(Expr);
+            const auto IntLit = static_cast<AST::NumberLiteral *>(Expr);
             switch (IntLit->getNumber().Kind) {
                 case Parse::NumberKind::UnsignedInteger:
                     printf("integer-literal<%llu>\n", IntLit->getNumber().UInt);
@@ -86,8 +91,8 @@ void PrintAST(AST::Expr *const Expr, const uint8_t Depth) {
             const auto VarDecl = static_cast<AST::VarDecl *>(Expr);
 
             printf("var-decl<\"%s\">", VarDecl->getName().data());
-            PrintResultIfAvailable(VarDecl->codegen());
-            PrintAST(VarDecl->getInitExpr(), Depth + 1);
+            PrintResultIfAvailable(Handler, *Expr);
+            PrintAST(Handler, VarDecl->getInitExpr(), Depth + 1);
 
             break;
         }
@@ -95,15 +100,18 @@ void PrintAST(AST::Expr *const Expr, const uint8_t Depth) {
             const auto ParenExpr = static_cast<AST::ParenExpr *>(Expr);
 
             printf("paren-expr\n");
-            PrintAST(ParenExpr->getChildExpr(), Depth + 1);
+            PrintAST(Handler, ParenExpr->getChildExpr(), Depth + 1);
 
             break;
         }
+        case AST::ExprKind::FunctionDecl:
+        case AST::ExprKind::FunctionPrototype:
+        case AST::ExprKind::Parameter:
+            break;
     }
 }
 
 int main(int argc, const char *const argv[]) {
-    SetupLLVMBackend();
     if (argc != 2) {
         printf("Usage: %s <prompt>\n", argv[0]);
         return 1;
@@ -130,6 +138,12 @@ int main(int argc, const char *const argv[]) {
     auto Parser = Parse::Parser(Prompt, TokenList);
     auto Expr = Parser.startParsing();
 
-    PrintAST(Expr, /*Depth=*/0);
+    auto BackendHandler = Backend::LLVM::JITHandler::Create();
+    if (BackendHandler == nullptr) {
+        printf("Failed to create JITHandler\n");
+        return 1;
+    }
+
+    PrintAST(*BackendHandler, Expr, /*Depth=*/0);
     return 0;
 }

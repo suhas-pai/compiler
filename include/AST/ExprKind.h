@@ -17,5 +17,9 @@ namespace AST {
         VarDecl,
 
         Paren,
+
+        FunctionDecl,
+        FunctionPrototype,
+        Parameter
     };
 }

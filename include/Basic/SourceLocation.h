@@ -7,5 +7,9 @@
 #include <cstdint>
 
 struct SourceLocation {
-    uint32_t Value = 0;
+    int32_t Value = 0;
+
+    [[nodiscard]] static constexpr auto invalid() noexcept {
+        return SourceLocation({ .Value = -1 });
+    }
 };

@@ -5,8 +5,11 @@
 
 #pragma once
 
+#include <cassert>
 #include <string_view>
+
 #include "Basic/SourceLocation.h"
+#include "Keyword.h"
 
 namespace Lex {
     enum class TokenKind : uint8_t {
@@ -332,4 +335,26 @@ namespace Lex {
             return Text.substr(Loc.Value, End.Value - Loc.Value);
         }
     };
+
+    [[nodiscard]] constexpr auto
+    KeywordTokenGetKeyword(const Token &Token,
+                           const std::string_view Text) noexcept
+    {
+        assert(Token.Kind == TokenKind::Keyword &&
+               "KeywordTokenGetKeyword() got non-keyword token");
+
+        const auto KeywordNone = Keyword::Let;
+        switch (KeywordNone) {
+            case Keyword::Let:
+                if (Token.getString(Text) == KeywordToLexemeMap[Keyword::Let]) {
+                    return Keyword::Let;
+                }
+
+                break;
+        }
+
+        assert(false &&
+               "KeywordTokenGetKeyword() got keyword-token with unrecognized "
+               "keyword");
+    }
 }

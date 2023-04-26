@@ -50,6 +50,7 @@ namespace AST {
             return *this;
         }
 
-        [[nodiscard]] llvm::Value *codegen() noexcept override;
+        [[nodiscard]]
+        llvm::Value *codegen(Backend::LLVM::Handler &Handler) noexcept override;
     };
 }

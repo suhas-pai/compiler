@@ -3,15 +3,16 @@
  */
 
 #include "AST/UnaryOperation.h"
-#include "Backend/LLVM/Vars.h"
 
 namespace AST {
-    llvm::Value *UnaryOperation::codegen() noexcept {
-        const auto Operand = this->Operand->codegen();
+    llvm::Value *
+    UnaryOperation::codegen(Backend::LLVM::Handler &Handler) noexcept {
+        const auto Operand = this->Operand->codegen(Handler);
         if (Operand == nullptr) {
             return nullptr;
         }
 
+        auto &Builder = Handler.getBuilder();
         switch (this->Operator) {
             case Parse::UnaryOperator::Negate:
                 return Builder.CreateNeg(Operand);

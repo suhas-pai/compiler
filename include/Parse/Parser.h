@@ -9,7 +9,7 @@
 #include <string_view>
 
 #include "AST/CharLiteral.h"
-#include "AST/IntegerLiteral.h"
+#include "AST/NumberLiteral.h"
 #include "AST/ParenExpr.h"
 #include "AST/StringLiteral.h"
 #include "AST/UnaryOperation.h"
@@ -23,7 +23,7 @@ namespace Parse {
         parseUnaryOper(Lex::Token Token) noexcept -> AST::UnaryOperation *;
 
         [[nodiscard]] auto
-        parseIntegerLiteral(Lex::Token Token) noexcept -> AST::IntegerLiteral *;
+        parseNumberLiteral(Lex::Token Token) noexcept -> AST::NumberLiteral *;
 
         [[nodiscard]]
         auto parseCharLiteral(Lex::Token Token) noexcept -> AST::CharLiteral *;
@@ -41,7 +41,6 @@ namespace Parse {
 
         [[nodiscard]] auto parseStmt() noexcept -> AST::Stmt *;
         [[nodiscard]] auto parseExpression() noexcept -> AST::Expr *;
-
         [[nodiscard]] auto parseVarDecl() noexcept -> AST::VarDecl *;
 
         [[nodiscard]] auto peek() -> std::optional<Lex::Token>;

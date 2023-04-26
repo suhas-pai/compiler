@@ -3,10 +3,11 @@
  */
 
 #include "AST/StringLiteral.h"
-#include "Backend/LLVM/Vars.h"
+#include "Backend/LLVM/Handler.h"
 
 namespace AST {
-    llvm::Value *StringLiteral::codegen() noexcept {
-        return llvm::ConstantDataArray::getString(TheContext, Value);
+    llvm::Value *
+    StringLiteral::codegen(Backend::LLVM::Handler &Handler) noexcept {
+        return llvm::ConstantDataArray::getString(Handler.getContext(), Value);
     }
 }
