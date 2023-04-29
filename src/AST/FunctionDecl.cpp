@@ -3,8 +3,11 @@
  */
 
 #include "AST/FunctionDecl.h"
+#include "AST/ExprKind.h"
+#include "AST/VarDecl.h"
 #include "Backend/LLVM/Handler.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Support/Casting.h"
 
 namespace AST {
     llvm::Value *
@@ -16,26 +19,30 @@ namespace AST {
             llvm::BasicBlock::Create(Handler.getContext(), "entry", Function);
 
         Handler.getBuilder().SetInsertPoint(BB);
-        Handler.getNamedValuesRef().clear();
-
         for (auto &Arg : Function->args()) {
-            Handler.getNamedValuesRef().insert(
-                std::make_pair(Arg.getName(), &Arg));
+            Handler.getNamedValuesRef().insert({
+                std::string(Arg.getName()), nullptr });
         }
 
-        if (const auto RetVal = Body->codegen(Handler)) {
-            // Finish off the function.
-            Handler.getBuilder().CreateRet(RetVal);
-
-            // Validate the generated code, checking for consistency.
-            llvm::verifyFunction(*Function);
-
-            // Run the optimizer on the function.
-            Handler.getFPM().run(*Function);
-
-            return Function;
+        const auto RetVal = Body->codegen(Handler);
+        for (auto &Arg : Function->args()) {
+            Handler.getNamedValuesRef().erase(std::string(Arg.getName()));
         }
 
-        return nullptr;
+        if (RetVal == nullptr) {
+            Function->removeFromParent();
+            return nullptr;
+        }
+
+        // Finish off the function.
+        Handler.getBuilder().CreateRet(RetVal);
+
+        // Validate the generated code, checking for consistency.
+        llvm::verifyFunction(*Function);
+
+        // Run the optimizer on the function.
+        Handler.getFPM().run(*Function);
+
+        return Function;
     }
 }

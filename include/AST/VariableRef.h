@@ -1,31 +1,26 @@
 /*
- * AST/VarDecl.h
+ * AST/VariableRef.h
  */
 
 #pragma once
-#include <string>
-#include <string_view>
 
-#include "AST/Stmt.h"
+#include "Backend/LLVM/Handler.h"
 #include "Basic/SourceLocation.h"
-#include "Lex/Token.h"
+#include "Expr.h"
+#include "llvm/IR/Value.h"
 
 namespace AST {
-    struct VarDecl : public Stmt {
+    struct VariableRef : public Expr {
     public:
-        constexpr static auto ObjKind = ExprKind::VarDecl;
+        constexpr static auto ObjKind = ExprKind::VariableRef;
     protected:
         SourceLocation NameLoc;
         std::string Name;
-
-        Expr *InitExpr;
     public:
         constexpr explicit
-        VarDecl(const Lex::Token NameToken,
-                const std::string_view Name,
-                Expr *const InitExpr = nullptr) noexcept
-        : Stmt(ObjKind), NameLoc(NameToken.Loc), Name(Name),
-          InitExpr(InitExpr) {}
+        VariableRef(const SourceLocation NameLoc,
+                    const std::string_view Name) noexcept
+        : Expr(ObjKind), NameLoc(NameLoc), Name(Name) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
             return (Expr.getKind() == ObjKind);
@@ -45,19 +40,16 @@ namespace AST {
             return Name;
         }
 
-        [[nodiscard]] constexpr auto getInitExpr() const noexcept {
-            return InitExpr;
-        }
-
-        constexpr
-        auto setName(const std::string_view Name) noexcept -> decltype(*this) {
+        constexpr auto setName(const std::string_view Name) noexcept
+            -> decltype(*this)
+        {
             this->Name = Name;
             return *this;
         }
 
-        constexpr
-        auto setInitExpr(Expr *const InitExpr) noexcept -> decltype(*this) {
-            this->InitExpr = InitExpr;
+        constexpr auto
+        setNameLoc(const SourceLocation NameLoc) noexcept -> decltype(*this) {
+            this->NameLoc = NameLoc;
             return *this;
         }
 

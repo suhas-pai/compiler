@@ -7,6 +7,7 @@
 
 #include "AST/Expr.h"
 #include "Backend/LLVM/Handler.h"
+#include "Basic/Macros.h"
 
 #include "llvm/IR/Constants.h"
 #include "llvm/Support/TargetSelect.h"
@@ -47,12 +48,14 @@ namespace Backend::LLVM {
         FPM->doInitialization();
     }
 
-    Handler::Handler(const llvm::StringRef &Name) noexcept
+    Handler::Handler(const llvm::StringRef &Name,
+                     Interface::DiagnosticsEngine &Diag) noexcept : Diag(Diag)
     {
         Initialize("Simple");
     }
 
-    Handler::Handler() noexcept : Handler("Handler") {}
+    Handler::Handler(Interface::DiagnosticsEngine &Diag) noexcept
+    : Handler("Handler", Diag) {}
 
     auto Handler::findFunction(const std::string_view Name) const noexcept
         -> llvm::Function *
@@ -71,14 +74,38 @@ namespace Backend::LLVM {
                                    TheModule.get());
     }
 
-    void Handler::evalulateAndPrint(AST::Expr &Expr) noexcept {
+    auto Handler::getValueForName(const std::string_view Name) noexcept
+        -> llvm::Value *
+    {
+        if (const auto Iter = NamedValues.find(Name);
+            Iter != NamedValues.end())
+        {
+            return Iter->second->codegen(*this);
+        }
+
+        return nullptr;
+    }
+
+    void
+    Handler::evalulateAndPrint(AST::Expr &Expr,
+                               const std::string_view Prefix,
+                               const std::string_view Suffix) noexcept
+    {
         const auto Codegen = Expr.codegen(*this);
         if (const auto Constant = llvm::dyn_cast<llvm::ConstantFP>(Codegen)) {
-            fprintf(stdout, "%f", Constant->getValueAPF().convertToDouble());
+            fprintf(stdout,
+                    SV_FMT "%f" SV_FMT,
+                    SV_FMT_ARG(Prefix),
+                    Constant->getValueAPF().convertToDouble(),
+                    SV_FMT_ARG(Suffix));
         } else if (const auto Constant =
-                        llvm::dyn_cast<llvm::ConstantInt>(Codegen))
+                    llvm::dyn_cast<llvm::ConstantInt>(Codegen))
         {
-            fprintf(stdout, "%" PRId64, Constant->getSExtValue());
+            fprintf(stdout,
+                    SV_FMT "%" PRId64 SV_FMT,
+                    SV_FMT_ARG(Prefix),
+                    Constant->getSExtValue(),
+                    SV_FMT_ARG(Suffix));
         }
     }
 }

@@ -38,7 +38,7 @@ namespace Parse {
 
         constexpr explicit
         OperatorInfo(const enum Precedence Precedence,
-                    const OperatorAssoc Assoc) noexcept
+                     const OperatorAssoc Assoc) noexcept
         : Precedence(Precedence), Assoc(Assoc) {}
     };
 

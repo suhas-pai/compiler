@@ -8,6 +8,9 @@
 #include <string_view>
 
 #include "AST/CharLiteral.h"
+#include "AST/FunctionCall.h"
+#include "AST/FunctionDecl.h"
+#include "AST/FunctionProtoype.h"
 #include "AST/NumberLiteral.h"
 #include "AST/ParenExpr.h"
 #include "AST/StringLiteral.h"
@@ -40,14 +43,28 @@ namespace Parse {
         [[nodiscard]]
         auto parseParenExpr(Lex::Token Token) noexcept -> AST::ParenExpr *;
 
+        [[nodiscard]]
+        auto
+        parseFunctionCall(Lex::Token NameToken, Lex::Token ParenToken) noexcept
+            -> AST::FunctionCall *;
+
+        [[nodiscard]]
+        auto parseIdentifierForLhs(Lex::Token Token) noexcept -> AST::Expr *;
+
         [[nodiscard]] auto parseLHS() noexcept -> AST::Expr *;
+
         [[nodiscard]]
         auto parseBinOpRHS(AST::Expr *LHS, uint64_t MinPrec) noexcept
             -> AST::Expr *;
 
         [[nodiscard]] auto parseStmt() noexcept -> AST::Stmt *;
         [[nodiscard]] auto parseExpression() noexcept -> AST::Expr *;
+
+        [[nodiscard]] auto parseFuncPrototype() noexcept
+            -> AST::FunctionPrototype *;
+
         [[nodiscard]] auto parseVarDecl() noexcept -> AST::VarDecl *;
+        [[nodiscard]] auto parseFuncDecl() noexcept -> AST::VarDecl *;
 
         [[nodiscard]] auto peek() -> std::optional<Lex::Token>;
         [[nodiscard]] auto prev() -> std::optional<Lex::Token>;

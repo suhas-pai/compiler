@@ -5,14 +5,16 @@
 #pragma once
 
 #include "Basic/StringHash.h"
+#include "Interface/DiagnosticsEngine.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/User.h"
+
 #include "llvm/Support/Error.h"
-#include <algorithm>
 
 namespace AST {
     struct Expr;
@@ -32,21 +34,26 @@ namespace Backend::LLVM {
 
         // This map keeps track of which values are defined in the current scope
         std::unordered_map<std::string,
-                           llvm::Value *,
+                           AST::Expr *,
                            StringHash,
                            std::equal_to<>> NamedValues;
 
         std::unique_ptr<llvm::legacy::FunctionPassManager> FPM;
         llvm::ExitOnError ExitOnErr;
 
+        Interface::DiagnosticsEngine &Diag;
+
         static void LLVMInitialize() noexcept;
 
         virtual void AllocCoreFields(const llvm::StringRef &Name) noexcept;
         void Initialize(const llvm::StringRef &Name) noexcept;
 
-        explicit Handler(const llvm::StringRef &ModuleName) noexcept;
+        explicit
+        Handler(const llvm::StringRef &ModuleName,
+                Interface::DiagnosticsEngine &Diag) noexcept;
     public:
-        explicit Handler() noexcept;
+        explicit Handler(Interface::DiagnosticsEngine &Diag) noexcept;
+
         [[nodiscard]] constexpr auto &getContext() noexcept {
             return *TheContext;
         }
@@ -71,23 +78,21 @@ namespace Backend::LLVM {
             return *FPM;
         }
 
-        [[nodiscard]]
-        auto getValueForName(const std::string_view Name) const noexcept
-            -> llvm::Value *
-        {
-            if (const auto Iter = NamedValues.find(Name);
-                Iter != NamedValues.end())
-            {
-                return Iter->second;
-            }
-
-            return nullptr;
+        [[nodiscard]] constexpr auto &getDiag() const noexcept {
+            return Diag;
         }
+
+        [[nodiscard]]
+        auto getValueForName(const std::string_view Name) noexcept
+            -> llvm::Value *;
 
         [[nodiscard]]
         auto findFunction(std::string_view Name) const noexcept
             -> llvm::Function *;
 
-        virtual void evalulateAndPrint(AST::Expr &Expr) noexcept;
+        virtual void
+        evalulateAndPrint(AST::Expr &Expr,
+                          std::string_view Prefix = "",
+                          std::string_view Suffix = "") noexcept;
     };
 }

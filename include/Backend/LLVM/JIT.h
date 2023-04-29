@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "Backend/LLVM/Handler.h"
+#include "Interface/DiagnosticsEngine.h"
 #include "llvm/ADT/StringRef.h"
 
 #include "llvm/ExecutionEngine/JITSymbol.h"
@@ -38,11 +39,14 @@ namespace Backend::LLVM {
         explicit
         JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
                    llvm::orc::JITTargetMachineBuilder JTMB,
-                   llvm::DataLayout DL) noexcept;
+                   llvm::DataLayout DL,
+                   Interface::DiagnosticsEngine &Diag) noexcept;
 
         void AllocCoreFields(const llvm::StringRef &Name) noexcept override;
     public:
-        static auto Create() -> std::unique_ptr<JITHandler>;
+        static auto Create(Interface::DiagnosticsEngine &Diag)
+            -> std::unique_ptr<JITHandler>;
+
         virtual ~JITHandler() noexcept;
 
         [[nodiscard]] constexpr auto &getDataLayout() const noexcept {
@@ -69,6 +73,9 @@ namespace Backend::LLVM {
             return ES->lookup({&MainJD}, Mangle(Name.str()));
         }
 
-        void evalulateAndPrint(AST::Expr &Expr) noexcept override;
+        void
+        evalulateAndPrint(AST::Expr &Expr,
+                          std::string_view Prefix = "",
+                          std::string_view Suffix = "") noexcept override;
     };
 }

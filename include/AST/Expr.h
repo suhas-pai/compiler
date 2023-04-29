@@ -10,6 +10,8 @@
 
 namespace AST {
     struct Expr {
+    public:
+        constexpr static auto ObjKind = ExprKind::Base;
     protected:
         ExprKind Kind = ExprKind::Base;
         constexpr explicit Expr(const ExprKind Kind) noexcept : Kind(Kind) {}
@@ -18,6 +20,15 @@ namespace AST {
 
         [[nodiscard]] constexpr auto getKind() const noexcept {
             return Kind;
+        }
+
+        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
+            return (Expr.getKind() == ObjKind);
+        }
+
+        [[nodiscard]]
+        static inline auto classof(const Expr *const Obj) noexcept {
+            return IsOfKind(*Obj);
         }
 
         virtual

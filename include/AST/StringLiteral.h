@@ -6,10 +6,11 @@
 
 #include "AST/Expr.h"
 #include "Basic/SourceLocation.h"
-#include "Lex/Token.h"
 
 namespace AST {
     struct StringLiteral : Expr {
+    public:
+        constexpr static auto ObjKind = ExprKind::StringLiteral;
     protected:
         SourceLocation Loc;
         std::string Value;
@@ -17,7 +18,16 @@ namespace AST {
         constexpr explicit
         StringLiteral(const SourceLocation Loc,
                       const std::string_view Value) noexcept
-        : Expr(ExprKind::StringLiteral), Loc(Loc), Value(Value) {}
+        : Expr(ObjKind), Loc(Loc), Value(Value) {}
+
+        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
+            return (Expr.getKind() == ObjKind);
+        }
+
+        [[nodiscard]]
+        static inline auto classof(const Expr *const Obj) noexcept {
+            return IsOfKind(*Obj);
+        }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
             return Loc;

@@ -5,13 +5,12 @@
 #pragma once
 
 #include "AST/Expr.h"
-#include "AST/ExprKind.h"
-#include "Basic/SourceLocation.h"
-#include "Lex/Token.h"
 #include "Parse/Operator.h"
 
 namespace AST {
     struct UnaryOperation : Expr {
+    public:
+        constexpr static auto ObjKind = ExprKind::UnaryOperation;
     protected:
         SourceLocation Loc;
         Parse::UnaryOperator Operator;
@@ -21,8 +20,16 @@ namespace AST {
         UnaryOperation(const SourceLocation Loc,
                        const Parse::UnaryOperator Operator,
                        Expr *const Operand = nullptr) noexcept
-        : Expr(ExprKind::UnaryOperation), Loc(Loc), Operator(Operator),
-          Operand(Operand) {}
+        : Expr(ObjKind), Loc(Loc), Operator(Operator), Operand(Operand) {}
+
+        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
+            return (Expr.getKind() == ObjKind);
+        }
+
+        [[nodiscard]]
+        static inline auto classof(const Expr *const Obj) noexcept {
+            return IsOfKind(*Obj);
+        }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
             return Loc;

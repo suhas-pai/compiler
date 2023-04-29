@@ -71,7 +71,7 @@ namespace Lex {
 
         QuestionMark,
 
-        LeftParen,
+        OpenParen,
         RightParen,
         LeftCurlyBrace,
         RightCurlyBrace,
@@ -132,7 +132,7 @@ namespace Lex {
             case TokenKind::TildeEqual:
             case TokenKind::DoubleEqual:
             case TokenKind::QuestionMark:
-            case TokenKind::LeftParen:
+            case TokenKind::OpenParen:
             case TokenKind::RightParen:
             case TokenKind::LeftCurlyBrace:
             case TokenKind::RightCurlyBrace:
@@ -195,7 +195,7 @@ namespace Lex {
             case TokenKind::Exclamation:
             case TokenKind::DoubleEqual:
             case TokenKind::QuestionMark:
-            case TokenKind::LeftParen:
+            case TokenKind::OpenParen:
             case TokenKind::RightParen:
             case TokenKind::LeftCurlyBrace:
             case TokenKind::RightCurlyBrace:
@@ -299,7 +299,7 @@ namespace Lex {
                 return "double-equal";
             case TokenKind::QuestionMark:
                 return "question-mark";
-            case TokenKind::LeftParen:
+            case TokenKind::OpenParen:
                 return "left-paren";
             case TokenKind::RightParen:
                 return "right-paren";

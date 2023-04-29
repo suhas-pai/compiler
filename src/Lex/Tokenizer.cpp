@@ -34,8 +34,8 @@ namespace Lex {
                     break;
                 }
 
-                Diag.emitError("Tokenizer::next(): Unexpected end of file\n");
-                return Result;
+                Diag.emitError("Tokenizer::next(): Unexpected null char\n");
+                return Token::invalid();
             }
 
             switch (State) {
@@ -130,7 +130,7 @@ namespace Lex {
 
                             break;
                         case '(':
-                            Result.Kind = TokenKind::LeftParen;
+                            Result.Kind = TokenKind::OpenParen;
                             goto done;
                         case ')':
                             Result.Kind = TokenKind::RightParen;
@@ -287,7 +287,7 @@ namespace Lex {
                     switch (Char) {
                         case '=':
                             Result.Kind = TokenKind::SlashEqual;
-                            break;
+                            goto done;
                         default:
                             Index--;
                             goto done;
@@ -298,7 +298,7 @@ namespace Lex {
                     switch (Char) {
                         case '=':
                             Result.Kind = TokenKind::CaretEqual;
-                            break;
+                            goto done;
                         default:
                             Index--;
                             goto done;

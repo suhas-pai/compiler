@@ -11,6 +11,8 @@
 
 namespace AST {
     struct BinaryOperation : Expr {
+    public:
+        constexpr static auto ObjKind = ExprKind::BinaryOperation;
     protected:
         SourceLocation Loc;
         Parse::BinaryOperator Operator;
@@ -23,8 +25,17 @@ namespace AST {
                         const Parse::BinaryOperator Operator,
                         Expr *const Lhs,
                         Expr *const Rhs) noexcept
-        : Expr(ExprKind::BinaryOperation), Loc(Loc), Operator(Operator),
-          Lhs(Lhs), Rhs(Rhs) {}
+        : Expr(ObjKind), Loc(Loc), Operator(Operator), Lhs(Lhs), Rhs(Rhs) {}
+
+        [[nodiscard]]
+        static inline auto IsOfKind(const Expr &Expr) noexcept {
+            return (Expr.getKind() == ObjKind);
+        }
+
+        [[nodiscard]]
+        static inline auto classof(const Expr *const Obj) noexcept {
+            return IsOfKind(*Obj);
+        }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
             return Loc;

@@ -12,5 +12,8 @@ namespace Interface {
 
         __printflike(2, 3)
         void emitError(const char *Message, ...) noexcept;
+
+        __printflike(2, 3)
+        void emitWarning(const char *Message, ...) noexcept;
     };
 }

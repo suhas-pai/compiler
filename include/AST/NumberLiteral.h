@@ -13,6 +13,8 @@
 
 namespace AST {
     struct NumberLiteral : public Expr {
+    public:
+        constexpr static auto ObjKind = ExprKind::NumberLiteral;
     protected:
         SourceLocation Loc;
         Parse::ParseNumberResult Number;
@@ -20,7 +22,16 @@ namespace AST {
         constexpr explicit
         NumberLiteral(const SourceLocation Loc,
                       const Parse::ParseNumberResult Number) noexcept
-        : Expr(ExprKind::NumberLiteral), Loc(Loc), Number(Number) {}
+        : Expr(ObjKind), Loc(Loc), Number(Number) {}
+
+        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
+            return (Expr.getKind() == ObjKind);
+        }
+
+        [[nodiscard]]
+        static inline auto classof(const Expr *const Obj) noexcept {
+            return IsOfKind(*Obj);
+        }
 
         [[nodiscard]] constexpr auto getNumber() const noexcept {
             return this->Number;

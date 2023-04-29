@@ -3,9 +3,13 @@
  */
 
 #include "AST/BinaryOperation.h"
+#include "AST/FunctionCall.h"
+#include "AST/FunctionDecl.h"
+#include "AST/FunctionProtoype.h"
 #include "AST/VarDecl.h"
-#include "Basic/SourceLocation.h"
-#include "Lex/Token.h"
+#include "AST/VariableRef.h"
+
+#include "Basic/Macros.h"
 
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
@@ -190,6 +194,62 @@ namespace Parse {
         return new AST::ParenExpr(Token, ChildExpr);
     }
 
+    auto
+    Parser::parseFunctionCall(const Lex::Token NameToken,
+                              const Lex::Token ParenToken) noexcept
+        -> AST::FunctionCall *
+    {
+        auto ArgList = std::vector<AST::Expr *>();
+        do {
+            const auto TokenOpt = this->consume();
+            if (!TokenOpt.has_value()) {
+                Diag.emitError("Unexpected end of file while parsing function "
+                               "parameter list");
+                return nullptr;
+            }
+
+            const auto Expr = this->parseExpression();
+            if (Expr == nullptr) {
+                return nullptr;
+            }
+
+            ArgList.emplace_back(Expr);
+
+            const auto ArgEndTokenOpt = this->consume();
+            if (!ArgEndTokenOpt.has_value()) {
+                Diag.emitError("Expected end of function parameter list");
+                return nullptr;
+            }
+
+            const auto ArgEndToken = ArgEndTokenOpt.value();
+            if (ArgEndToken.Kind == Lex::TokenKind::RightParen) {
+                break;
+            }
+
+            if (ArgEndToken.Kind != Lex::TokenKind::Comma) {
+                Diag.emitError("Expected comma or closing parenthesis");
+                return nullptr;
+            }
+        } while (true);
+
+        return new AST::FunctionCall(NameToken.Loc,
+                                     tokenContent(NameToken),
+                                     std::move(ArgList));
+    }
+
+    auto
+    Parser::parseIdentifierForLhs(const Lex::Token IdentToken) noexcept
+        -> AST::Expr *
+    {
+        if (const auto TokenOpt = this->peek()) {
+            if (TokenOpt.value().Kind == Lex::TokenKind::OpenParen) {
+                return this->parseFunctionCall(IdentToken, TokenOpt.value());
+            }
+        }
+
+        return new AST::VariableRef(IdentToken.Loc, tokenContent(IdentToken));
+    }
+
     auto Parser::parseLHS() noexcept -> AST::Expr * {
         /* Parse Prefixes and then LHS */
         auto Root = static_cast<AST::UnaryOperation *>(nullptr);
@@ -211,12 +271,12 @@ namespace Parse {
             } else {
                 switch (Token.Kind) {
                     case Lex::TokenKind::Identifier:
-                        Diag.emitError("Variable reference not yet supported");
-                        return nullptr;
+                        Expr = this->parseIdentifierForLhs(Token);
+                        break;
                     case Lex::TokenKind::Keyword:
-                        Diag.emitError("Keyword \"%s\" cannot be used in an "
-                                       "expression",
-                                       tokenContent(Token).data());
+                        Diag.emitError("Keyword \"" SV_FMT "\" cannot be used "
+                                       "in an expression",
+                                       SV_FMT_ARG(tokenContent(Token)));
                         return nullptr;
                     case Lex::TokenKind::NumberLiteral:
                         Expr = this->parseNumberLiteral(Token);
@@ -231,12 +291,12 @@ namespace Parse {
                     case Lex::TokenKind::StringLiteral:
                         Expr = this->parseStringLiteral(Token);
                         break;
-                    case Lex::TokenKind::LeftParen:
+                    case Lex::TokenKind::OpenParen:
                         Expr = this->parseParenExpr(Token);
                         break;
                     default:
-                        Diag.emitError("Unexpected token \"%s\"",
-                                       tokenContent(Token).data());
+                        Diag.emitError("Unexpected token \"" SV_FMT "\"",
+                                       SV_FMT_ARG(tokenContent(Token)));
                         return nullptr;
                 }
             }
@@ -354,24 +414,24 @@ namespace Parse {
             case Lex::TokenKind::Identifier:
                 break;
             case Lex::TokenKind::Keyword:
-                Diag.emitError("Keyword \"%s\" cannot be used as a variable "
-                               "name",
-                               tokenContent(NameToken).data());
+                Diag.emitError("Keyword \"" SV_FMT "\" cannot be used as a "
+                               "variable name",
+                               SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
             case Lex::TokenKind::NumberLiteral:
-                Diag.emitError("Integer Literal \"%s\" cannot be used as a "
-                               "variable name",
-                               tokenContent(NameToken).data());
+                Diag.emitError("Integer Literal \"" SV_FMT "\" cannot be used "
+                               "as a variable name",
+                               SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
             default:
-                Diag.emitError("Expected a variable name, got \"%s\" instead",
-                               tokenContent(NameToken).data());
+                Diag.emitError("Expected a variable name, got \"" SV_FMT "\" "
+                               "instead",
+                               SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
         }
 
         if (!this->expect(Lex::TokenKind::Equal)) {
-            Diag.emitError("Expected an equal sign after name for variable "
-                           "declaration");
+            Diag.emitError("Variable declaration must have an initial value");
             return nullptr;
         }
 
@@ -397,6 +457,67 @@ namespace Parse {
         return new AST::VarDecl(NameToken, Name, Expr);
     }
 
+    auto Parser::parseFuncPrototype() noexcept -> AST::FunctionPrototype * {
+        const auto NameTokenOpt = this->consume();
+        if (!NameTokenOpt.has_value()) {
+            Diag.emitError("Expected a name for function declaration");
+            return nullptr;
+        }
+
+        const auto NameToken = NameTokenOpt.value();
+        switch (NameToken.Kind) {
+            case Lex::TokenKind::Identifier:
+                break;
+            case Lex::TokenKind::Keyword:
+                Diag.emitError("Keyword \"" SV_FMT "\" cannot be used as a "
+                               "function name",
+                               SV_FMT_ARG(tokenContent(NameToken)));
+                return nullptr;
+            case Lex::TokenKind::NumberLiteral:
+                Diag.emitError("Integer Literal \"" SV_FMT "\" cannot be used "
+                               "as a function name",
+                               SV_FMT_ARG(tokenContent(NameToken)));
+                return nullptr;
+            default:
+                Diag.emitError("Expected a function name, got \"" SV_FMT "\""
+                               "instead",
+                               SV_FMT_ARG(tokenContent(NameToken)));
+                return nullptr;
+        }
+
+        if (!this->expect(Lex::TokenKind::OpenParen)) {
+            Diag.emitError("Expected a left parenthesis after function name");
+            return nullptr;
+        }
+
+        auto ParamList = std::vector<AST::FunctionPrototype::ParamDecl>();
+        do {
+            const auto TokenOpt = this->consume();
+            if (!TokenOpt.has_value()) {
+                Diag.emitError("Unexpected end of file while parsing function "
+                               "parameter list");
+                return nullptr;
+            }
+
+            const auto Token = TokenOpt.value();
+            if (Token.Kind == Lex::TokenKind::RightParen) {
+                break;
+            }
+
+            if (Token.Kind != Lex::TokenKind::Identifier) {
+                Diag.emitError("Unexpected token \"" SV_FMT "\" while parsing ",
+                               SV_FMT_ARG(tokenContent(Token)));
+                return nullptr;
+            }
+
+            ParamList.emplace_back(Token.Loc, tokenContent(Token));
+        } while (true);
+
+        return new AST::FunctionPrototype(NameToken.Loc,
+                                          tokenContent(NameToken),
+                                          ParamList);
+    }
+
     auto Parser::parseStmt() noexcept -> AST::Stmt * {
         const auto TokenOpt = this->consume();
         if (!TokenOpt.has_value()) {
@@ -411,6 +532,8 @@ namespace Parse {
                 switch (Lex::KeywordTokenGetKeyword(Token, TokenString)) {
                     case Lex::Keyword::Let:
                         return this->parseVarDecl();
+                    case Lex::Keyword::Function:
+                        return this->parseVarDecl();
                 }
 
                 [[fallthrough]];
@@ -421,8 +544,8 @@ namespace Parse {
                     return static_cast<AST::Stmt *>(this->parseExpression());
                 }
 
-                Diag.emitError("Unexpected token \"%s\"",
-                               tokenContent(Token).data());
+                Diag.emitError("Unexpected token \"" SV_FMT "\"",
+                               SV_FMT_ARG(tokenContent(Token)));
                 return nullptr;
         }
 

@@ -7,12 +7,64 @@
 #include <string>
 #include <vector>
 
-#include "AST/Expr.h"
-#include "AST/ParamDecl.h"
+#include "AST/Stmt.h"
 #include "Basic/SourceLocation.h"
 
 namespace AST {
-    struct FunctionPrototype : public Expr {
+    struct FunctionPrototype : public Stmt {
+    public:
+        struct ParamDecl {
+        protected:
+            SourceLocation NameLoc;
+            std::string Name;
+        public:
+            constexpr explicit
+            ParamDecl(const SourceLocation NameLoc,
+                      const std::string_view Name) noexcept
+            : NameLoc(NameLoc), Name(Name) {}
+
+            constexpr explicit
+            ParamDecl(const SourceLocation NameLoc, std::string &&Name) noexcept
+            : NameLoc(NameLoc), Name(Name) {}
+
+            [[nodiscard]] constexpr auto getName() const noexcept {
+                return std::string_view(Name);
+            }
+
+            [[nodiscard]] constexpr auto getNameLoc() const noexcept {
+                return NameLoc;
+            }
+
+            constexpr auto setName(const std::string_view Name) noexcept
+                -> decltype(*this)
+            {
+                this->Name = std::string_view(Name);
+                return *this;
+            }
+
+            constexpr auto setName(std::string &&Name) noexcept
+                -> decltype(*this)
+            {
+                this->Name = std::move(Name);
+                return *this;
+            }
+
+            constexpr auto setNameLoc(const SourceLocation NameLoc) noexcept
+                -> decltype(*this)
+            {
+                this->NameLoc = NameLoc;
+                return *this;
+            }
+
+            [[nodiscard]]
+            constexpr auto getType(Backend::LLVM::Handler &Handler) noexcept
+                -> llvm::Type *
+            {
+                return llvm::Type::getDoubleTy(Handler.getContext());
+            }
+        };
+
+        constexpr static auto ObjKind = ExprKind::FunctionPrototype;
     protected:
         SourceLocation NameLoc;
 
@@ -23,36 +75,40 @@ namespace AST {
         FunctionPrototype(const SourceLocation NameLoc,
                           const std::string_view Name,
                           std::vector<ParamDecl> &&ParamList) noexcept
-        : Expr(ExprKind::FunctionPrototype), NameLoc(NameLoc), Name(Name),
+        : Stmt(ObjKind), NameLoc(NameLoc), Name(Name),
           ParamList(std::move(ParamList)) {}
 
         constexpr explicit
         FunctionPrototype(const SourceLocation NameLoc,
                           const std::string_view Name,
                           const std::vector<ParamDecl> &ParamList) noexcept
-        : Expr(ExprKind::FunctionPrototype), NameLoc(NameLoc), Name(Name),
+        : Stmt(ObjKind), NameLoc(NameLoc), Name(Name),
           ParamList(std::move(ParamList)) {}
 
         constexpr explicit
         FunctionPrototype(const SourceLocation NameLoc,
                           std::string &&Name,
                           const std::vector<ParamDecl> &ParamList) noexcept
-        : Expr(ExprKind::FunctionPrototype), NameLoc(NameLoc), Name(Name),
+        : Stmt(ObjKind), NameLoc(NameLoc), Name(Name),
           ParamList(std::move(ParamList)) {}
+
+        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
+            return (Expr.getKind() == ObjKind);
+        }
+
+        [[nodiscard]]
+        static inline auto classof(const Expr *const Obj) noexcept {
+            return IsOfKind(*Obj);
+        }
 
         [[nodiscard]] constexpr auto getName() const noexcept {
             return std::string_view(Name);
         }
 
-        constexpr auto setName(std::string_view Name) noexcept
+        constexpr auto setName(const std::string_view Name) noexcept
             -> decltype(*this)
         {
             this->Name = std::string_view(Name);
-            return *this;
-        }
-
-        constexpr auto setName(std::string &&Name) noexcept -> decltype(*this) {
-            this->Name = std::move(Name);
             return *this;
         }
 
@@ -64,6 +120,7 @@ namespace AST {
             return ParamList;
         }
 
+        [[nodiscard]]
         llvm::Value *codegen(Backend::LLVM::Handler &Handler) noexcept override;
     };
 }

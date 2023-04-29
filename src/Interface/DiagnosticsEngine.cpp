@@ -24,4 +24,19 @@ namespace Interface {
             exit(0);
         }
     }
+
+    void
+    DiagnosticsEngine::emitWarning(const char *const Message, ...) noexcept {
+        va_list List;
+        fputs(YEL "Warning: " CRESET, stderr);
+
+        va_start(List, Message);
+        vfprintf(stderr, Message, List);
+        va_end(List);
+
+        fputc('\n', stderr);
+        if (GetTerminalKind() != TerminalKind::Repl) {
+            exit(0);
+        }
+    }
 }

@@ -5,16 +5,16 @@
 #include "AST/Expr.h"
 #include "AST/FunctionDecl.h"
 #include "AST/FunctionProtoype.h"
-#include "AST/ParamDecl.h"
 #include "Backend/LLVM/JIT.h"
-#include "Basic/SourceLocation.h"
+#include "Basic/Macros.h"
 #include "llvm/Support/Error.h"
 
 namespace Backend::LLVM {
     JITHandler::JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
                            const llvm::orc::JITTargetMachineBuilder JTMB,
-                           const llvm::DataLayout DL) noexcept
-    : Handler("JIT"), ES(std::move(ES)), DL(std::move(DL)),
+                           const llvm::DataLayout DL,
+                           Interface::DiagnosticsEngine &Diag) noexcept
+    : Handler("JIT", Diag), ES(std::move(ES)), DL(std::move(DL)),
       Mangle(*this->ES, this->DL),
       ObjectLayer(*this->ES,
                   []() noexcept {
@@ -42,7 +42,9 @@ namespace Backend::LLVM {
         // Create a new pass manager attached to it.
     }
 
-    auto JITHandler::Create() -> std::unique_ptr<JITHandler> {
+    auto JITHandler::Create(Interface::DiagnosticsEngine &Diag)
+        -> std::unique_ptr<JITHandler>
+    {
         LLVMInitialize();
 
         auto EPC = llvm::orc::SelfExecutorProcessControl::Create();
@@ -63,7 +65,10 @@ namespace Backend::LLVM {
         }
 
         const auto Result =
-            new JITHandler(std::move(ES), std::move(*JTMB), std::move(*DL));
+            new JITHandler(std::move(ES),
+                           std::move(*JTMB),
+                           std::move(*DL),
+                           Diag);
 
         return std::unique_ptr<JITHandler>(Result);
     }
@@ -79,17 +84,24 @@ namespace Backend::LLVM {
         TheModule->setDataLayout(this->getDataLayout());
     }
 
-    void JITHandler::evalulateAndPrint(AST::Expr &Expr) noexcept {
+    void
+    JITHandler::evalulateAndPrint(AST::Expr &Expr,
+                                  const std::string_view Prefix,
+                                  const std::string_view Suffix) noexcept
+    {
         // JIT the module containing the anonymous expression, keeping a handle
         // so we can free it later.
 
         auto Proto =
-            AST::FunctionPrototype(SourceLocation::invalid(),
-                                   "__anon_expr",
-                                   std::vector<AST::ParamDecl>());
+            AST::FunctionPrototype(
+                SourceLocation::invalid(),
+                /*Name=*/"__anon_expr",
+                std::vector<AST::FunctionPrototype::ParamDecl>());
 
         auto Func = AST::FunctionDecl(&Proto, &Expr);
-        Func.codegen(*this);
+        if (Func.codegen(*this) == nullptr) {
+            return;
+        }
 
         const auto RT = this->getMainJITDylib().createResourceTracker();
         auto TSM =
@@ -106,7 +118,11 @@ namespace Backend::LLVM {
         // Get the symbol's address and cast it to the right type (takes no
         // arguments, returns a double) so we can call it as a native function.
         double (*FP)() = (double (*)())(intptr_t)ExprSymbol.getAddress();
-        fprintf(stdout, "%f", FP());
+        fprintf(stdout,
+                SV_FMT "%f" SV_FMT,
+                SV_FMT_ARG(Prefix),
+                FP(),
+                SV_FMT_ARG(Suffix));
 
         // Delete the anonymous expression module from the JIT.
         ExitOnErr(RT->remove());

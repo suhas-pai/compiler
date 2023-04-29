@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include "AST/BinaryOperation.h"
 
+#include "Backend/LLVM/Handler.h"
 #include "Backend/LLVM/JIT.h"
 #include "Basic/ArgvLexer.h"
 
@@ -114,7 +115,6 @@ PrintAST(Backend::LLVM::Handler &Handler,
         }
         case AST::ExprKind::FunctionDecl:
         case AST::ExprKind::FunctionPrototype:
-        case AST::ExprKind::Parameter:
             break;
     }
 }
@@ -128,10 +128,11 @@ struct ArgumentOptions {
 
 void
 HandlePrompt(const std::string_view &Prompt,
-             Interface::DiagnosticsEngine &Diag,
+             Backend::LLVM::Handler &BackendHandler,
              const Parse::ParserOptions &ParseOptions,
              const ArgumentOptions ArgOptions) noexcept
 {
+    auto &Diag = BackendHandler.getDiag();
     auto Tokenizer = Lex::Tokenizer(Prompt, Diag);
     auto TokenList = std::vector<Lex::Token>();
 
@@ -167,20 +168,12 @@ HandlePrompt(const std::string_view &Prompt,
         return;
     }
 
-    const auto BackendHandler = Backend::LLVM::JITHandler::Create();
-    if (BackendHandler == nullptr) {
-        printf("Failed to create JITHandler\n");
-        exit(1);
-    }
-
     if (ArgOptions.PrintAST) {
-        PrintAST(*BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
+        PrintAST(BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
         fputc('\n', stdout);
     }
 
-    fputs("Evaluated to ", stdout);
-    BackendHandler->evalulateAndPrint(*Expr);
-    fputc('\n', stdout);
+    BackendHandler.evalulateAndPrint(*Expr, "Evaluated to ", "\n");
 }
 
 void PrintUsage(const char *const Name) noexcept {
@@ -190,8 +183,10 @@ void PrintUsage(const char *const Name) noexcept {
             Name);
 }
 
-void HandleReplOption(const ArgumentOptions ArgOptions) noexcept {
-    auto Diag = Interface::DiagnosticsEngine();
+void
+HandleReplOption(const ArgumentOptions ArgOptions,
+                 Backend::LLVM::Handler &BackendHandler) noexcept
+{
     auto ParserOptions = Parse::ParserOptions();
 
     ParserOptions.DontRequireSemicolons = true;
@@ -200,7 +195,7 @@ void HandleReplOption(const ArgumentOptions ArgOptions) noexcept {
     Interface::SetupRepl("Compiler",
                          [&](const std::string_view Input) noexcept {
                             HandlePrompt(Input,
-                                         Diag,
+                                         BackendHandler,
                                          ParserOptions,
                                          ArgOptions);
                             return true;
@@ -244,13 +239,19 @@ int main(const int argc, const char *const argv[]) {
         return 1;
     }
 
+    auto Diag = Interface::DiagnosticsEngine();
+    const auto BackendHandler = Backend::LLVM::JITHandler::Create(Diag);
+
+    if (BackendHandler == nullptr) {
+        printf("Failed to create JITHandler\n");
+        exit(1);
+    }
+
     if (Prompt.empty()) {
-        HandleReplOption(Options);
+        HandleReplOption(Options, *BackendHandler);
         return 0;
     }
 
-    auto Diag = Interface::DiagnosticsEngine();
-    HandlePrompt(Prompt, Diag, Parse::ParserOptions(), Options);
-
+    HandlePrompt(Prompt, *BackendHandler, Parse::ParserOptions(), Options);
     return 0;
 }
