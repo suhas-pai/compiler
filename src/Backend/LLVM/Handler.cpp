@@ -6,10 +6,7 @@
 #include <memory>
 
 #include "AST/Expr.h"
-#include "Backend/LLVM/Handler.h"
-#include "Basic/Macros.h"
 
-#include "llvm/IR/Constants.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar/GVN.h"
@@ -87,11 +84,11 @@ namespace Backend::LLVM {
     }
 
     void
-    Handler::evalulateAndPrint(AST::Expr &Expr,
+    Handler::evalulateAndPrint(AST::Stmt &Stmt,
                                const std::string_view Prefix,
                                const std::string_view Suffix) noexcept
     {
-        const auto Codegen = Expr.codegen(*this);
+        const auto Codegen = Stmt.codegen(*this);
         if (const auto Constant = llvm::dyn_cast<llvm::ConstantFP>(Codegen)) {
             fprintf(stdout,
                     SV_FMT "%f" SV_FMT,

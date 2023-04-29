@@ -10,7 +10,7 @@
 namespace AST {
     struct UnaryOperation : Expr {
     public:
-        constexpr static auto ObjKind = ExprKind::UnaryOperation;
+        constexpr static auto ObjKind = NodeKind::UnaryOperation;
     protected:
         SourceLocation Loc;
         Parse::UnaryOperator Operator;
@@ -22,13 +22,13 @@ namespace AST {
                        Expr *const Operand = nullptr) noexcept
         : Expr(ObjKind), Loc(Loc), Operator(Operator), Operand(Operand) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
-            return (Expr.getKind() == ObjKind);
+        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+            return (Stmt.getKind() == ObjKind);
         }
 
         [[nodiscard]]
-        static inline auto classof(const Expr *const Obj) noexcept {
-            return IsOfKind(*Obj);
+        static inline auto classof(const Stmt *const Node) noexcept {
+            return IsOfKind(*Node);
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {

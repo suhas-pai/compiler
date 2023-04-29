@@ -9,8 +9,6 @@
 #include "AST/VarDecl.h"
 #include "AST/VariableRef.h"
 
-#include "Basic/Macros.h"
-
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
 #include "Parse/String.h"
@@ -311,7 +309,7 @@ namespace Parse {
                 CurrentOper->setOperand(Expr);
             }
 
-            if (Expr->getKind() == AST::ExprKind::UnaryOperation) {
+            if (Expr->getKind() == AST::NodeKind::UnaryOperation) {
                 CurrentOper = static_cast<AST::UnaryOperation *>(Expr);
                 continue;
             }
@@ -533,7 +531,7 @@ namespace Parse {
                     case Lex::Keyword::Let:
                         return this->parseVarDecl();
                     case Lex::Keyword::Function:
-                        return this->parseVarDecl();
+                        return new AST::FunctionDecl(this->parseFuncPrototype());
                 }
 
                 [[fallthrough]];
@@ -552,7 +550,7 @@ namespace Parse {
         return nullptr;
     }
 
-    auto Parser::startParsing() noexcept -> AST::Expr * {
+    auto Parser::startParsing() noexcept -> AST::Stmt * {
         return this->parseStmt();
     }
 }

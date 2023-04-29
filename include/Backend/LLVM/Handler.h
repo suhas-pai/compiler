@@ -17,6 +17,7 @@
 #include "llvm/Support/Error.h"
 
 namespace AST {
+    struct Stmt;
     struct Expr;
 }
 
@@ -91,7 +92,7 @@ namespace Backend::LLVM {
             -> llvm::Function *;
 
         virtual void
-        evalulateAndPrint(AST::Expr &Expr,
+        evalulateAndPrint(AST::Stmt &Stmt,
                           std::string_view Prefix = "",
                           std::string_view Suffix = "") noexcept;
     };

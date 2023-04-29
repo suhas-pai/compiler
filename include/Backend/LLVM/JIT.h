@@ -74,7 +74,7 @@ namespace Backend::LLVM {
         }
 
         void
-        evalulateAndPrint(AST::Expr &Expr,
+        evalulateAndPrint(AST::Stmt &Stmt,
                           std::string_view Prefix = "",
                           std::string_view Suffix = "") noexcept override;
     };

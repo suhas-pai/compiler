@@ -21,16 +21,16 @@
 
 static void
 PrintResultIfAvailable(Backend::LLVM::Handler &Handler,
-                       AST::Expr &Expr) noexcept
+                       AST::Stmt &Stmt) noexcept
 {
     fputs(" (Result: ", stdout);
-    Handler.evalulateAndPrint(Expr);
+    Handler.evalulateAndPrint(Stmt);
     fputs(")\n", stdout);
 }
 
 void
 PrintAST(Backend::LLVM::Handler &Handler,
-         AST::Expr *const Expr,
+         AST::Stmt *const Expr,
          const uint8_t Depth) noexcept
 {
     for (auto I = uint8_t(); I != Depth; ++I) {
@@ -38,9 +38,9 @@ PrintAST(Backend::LLVM::Handler &Handler,
     }
 
     switch (Expr->getKind()) {
-        case AST::ExprKind::Base:
+        case AST::NodeKind::Base:
             assert(false && "Got Expr-Base while printing AST");
-        case AST::ExprKind::BinaryOperation: {
+        case AST::NodeKind::BinaryOperation: {
             const auto BinaryExpr = static_cast<AST::BinaryOperation *>(Expr);
             const auto Lexeme =
                 Parse::BinaryOperatorToLexemeMap[BinaryExpr->getOperator()];
@@ -53,7 +53,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             break;
         }
-        case AST::ExprKind::UnaryOperation: {
+        case AST::NodeKind::UnaryOperation: {
             const auto UnaryExpr = static_cast<AST::UnaryOperation *>(Expr);
             const auto Lexeme =
                 Parse::UnaryOperatorToLexemeMap[UnaryExpr->getOperator()];
@@ -64,13 +64,13 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintAST(Handler, UnaryExpr->getOperand(), Depth + 1);
             break;
         }
-        case AST::ExprKind::CharLiteral: {
+        case AST::NodeKind::CharLiteral: {
             const auto CharLit = static_cast<AST::CharLiteral *>(Expr);
             printf("char-literal<%c>\n", CharLit->getValue());
 
             break;
         }
-        case AST::ExprKind::NumberLiteral: {
+        case AST::NodeKind::NumberLiteral: {
             const auto IntLit = static_cast<AST::NumberLiteral *>(Expr);
             switch (IntLit->getNumber().Kind) {
                 case Parse::NumberKind::UnsignedInteger:
@@ -88,15 +88,15 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             break;
         }
-        case AST::ExprKind::FloatLiteral:
+        case AST::NodeKind::FloatLiteral:
             assert(false && "Got float-literal while printing AST");
-        case AST::ExprKind::StringLiteral: {
+        case AST::NodeKind::StringLiteral: {
             const auto StringLit = static_cast<AST::StringLiteral *>(Expr);
             printf("string-literal<%s>\n", StringLit->getValue().data());
 
             break;
         }
-        case AST::ExprKind::VarDecl: {
+        case AST::NodeKind::VarDecl: {
             const auto VarDecl = static_cast<AST::VarDecl *>(Expr);
 
             printf("var-decl<\"%s\">", VarDecl->getName().data());
@@ -105,7 +105,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             break;
         }
-        case AST::ExprKind::Paren: {
+        case AST::NodeKind::Paren: {
             const auto ParenExpr = static_cast<AST::ParenExpr *>(Expr);
 
             printf("paren-expr\n");
@@ -113,8 +113,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             break;
         }
-        case AST::ExprKind::FunctionDecl:
-        case AST::ExprKind::FunctionPrototype:
+        case AST::NodeKind::FunctionDecl:
+        case AST::NodeKind::FunctionPrototype:
             break;
     }
 }

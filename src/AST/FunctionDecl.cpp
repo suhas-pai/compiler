@@ -3,11 +3,7 @@
  */
 
 #include "AST/FunctionDecl.h"
-#include "AST/ExprKind.h"
-#include "AST/VarDecl.h"
-#include "Backend/LLVM/Handler.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/Support/Casting.h"
 
 namespace AST {
     llvm::Value *

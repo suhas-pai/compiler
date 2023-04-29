@@ -14,7 +14,8 @@ namespace AST {
             return Var->second->codegen(Handler);
         }
 
-        Handler.getDiag().emitError("Variable %s not defined", Name.data());
+        Handler.getDiag().emitError("Variable \"" SV_FMT "\" not defined",
+                                    SV_FMT_ARG(Name));
         return nullptr;
     }
 }

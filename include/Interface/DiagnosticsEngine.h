@@ -3,7 +3,9 @@
  */
 
 #pragma once
+
 #include <sys/cdefs.h>
+#include "Basic/Macros.h"
 
 namespace Interface {
     struct DiagnosticsEngine {

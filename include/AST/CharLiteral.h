@@ -7,12 +7,11 @@
 
 #include "AST/Expr.h"
 #include "Basic/SourceLocation.h"
-#include "Lex/Token.h"
 
 namespace AST {
     struct CharLiteral : public Expr {
     public:
-        constexpr static auto ObjKind = ExprKind::CharLiteral;
+        constexpr static auto ObjKind = NodeKind::CharLiteral;
     protected:
         SourceLocation Loc;
         char Value;
@@ -21,13 +20,13 @@ namespace AST {
         CharLiteral(const SourceLocation Loc, const char Value) noexcept
         : Expr(ObjKind), Loc(Loc), Value(Value) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
-            return (Expr.getKind() == ObjKind);
+        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+            return (Stmt.getKind() == ObjKind);
         }
 
         [[nodiscard]]
-        static inline auto classof(const Expr *const Obj) noexcept {
-            return IsOfKind(*Obj);
+        static inline auto classof(const Stmt *const Node) noexcept {
+            return IsOfKind(*Node);
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {

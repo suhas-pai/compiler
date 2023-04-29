@@ -1,11 +1,11 @@
 /*
- * AST/ExprKind.h
+ * AST/NodeKind.h
  */
 
 #pragma once
 
 namespace AST {
-    enum class ExprKind {
+    enum class NodeKind {
         Base,
 
         BinaryOperation,

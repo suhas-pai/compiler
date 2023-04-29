@@ -3,17 +3,17 @@
  */
 
 #pragma once
+
 #include <string>
 #include <string_view>
 
-#include "AST/Stmt.h"
-#include "Basic/SourceLocation.h"
+#include "AST/Expr.h"
 #include "Lex/Token.h"
 
 namespace AST {
     struct VarDecl : public Stmt {
     public:
-        constexpr static auto ObjKind = ExprKind::VarDecl;
+        constexpr static auto ObjKind = NodeKind::VarDecl;
     protected:
         SourceLocation NameLoc;
         std::string Name;
@@ -27,13 +27,13 @@ namespace AST {
         : Stmt(ObjKind), NameLoc(NameToken.Loc), Name(Name),
           InitExpr(InitExpr) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
-            return (Expr.getKind() == ObjKind);
+        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+            return (Stmt.getKind() == ObjKind);
         }
 
         [[nodiscard]]
-        static inline auto classof(const Expr *const Obj) noexcept {
-            return IsOfKind(*Obj);
+        static inline auto classof(const Stmt *const Node) noexcept {
+            return IsOfKind(*Node);
         }
 
         [[nodiscard]] constexpr auto getNameLoc() const noexcept {

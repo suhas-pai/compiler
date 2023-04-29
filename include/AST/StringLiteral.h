@@ -10,7 +10,7 @@
 namespace AST {
     struct StringLiteral : Expr {
     public:
-        constexpr static auto ObjKind = ExprKind::StringLiteral;
+        constexpr static auto ObjKind = NodeKind::StringLiteral;
     protected:
         SourceLocation Loc;
         std::string Value;
@@ -20,13 +20,13 @@ namespace AST {
                       const std::string_view Value) noexcept
         : Expr(ObjKind), Loc(Loc), Value(Value) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
-            return (Expr.getKind() == ObjKind);
+        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+            return (Stmt.getKind() == ObjKind);
         }
 
         [[nodiscard]]
-        static inline auto classof(const Expr *const Obj) noexcept {
-            return IsOfKind(*Obj);
+        static inline auto classof(const Stmt *const Node) noexcept {
+            return IsOfKind(*Node);
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {

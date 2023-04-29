@@ -4,14 +4,13 @@
 
 #pragma once
 
-#include "Backend/LLVM/Handler.h"
 #include "Basic/SourceLocation.h"
 #include "Expr.h"
 
 namespace AST {
     struct FunctionCall : Expr {
     public:
-        constexpr static auto ObjKind = ExprKind::FunctionCall;
+        constexpr static auto ObjKind = NodeKind::FunctionCall;
     protected:
         SourceLocation NameLoc;
         std::string Name;
@@ -33,13 +32,13 @@ namespace AST {
         constexpr explicit FunctionCall(const std::string_view Name) noexcept
         : Expr(ObjKind), Name(Name) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Expr &Expr) noexcept {
-            return (Expr.getKind() == ObjKind);
+        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+            return (Stmt.getKind() == ObjKind);
         }
 
         [[nodiscard]]
-        static inline auto classof(const Expr *const Obj) noexcept {
-            return IsOfKind(*Obj);
+        static inline auto classof(const Stmt *const Node) noexcept {
+            return IsOfKind(*Node);
         }
 
         [[nodiscard]] constexpr auto getNameLoc() const noexcept {

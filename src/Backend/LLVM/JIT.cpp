@@ -2,12 +2,8 @@
  * Backend/LLVM/JIT.cpp
  */
 
-#include "AST/Expr.h"
 #include "AST/FunctionDecl.h"
-#include "AST/FunctionProtoype.h"
 #include "Backend/LLVM/JIT.h"
-#include "Basic/Macros.h"
-#include "llvm/Support/Error.h"
 
 namespace Backend::LLVM {
     JITHandler::JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
@@ -85,7 +81,7 @@ namespace Backend::LLVM {
     }
 
     void
-    JITHandler::evalulateAndPrint(AST::Expr &Expr,
+    JITHandler::evalulateAndPrint(AST::Stmt &Stmt,
                                   const std::string_view Prefix,
                                   const std::string_view Suffix) noexcept
     {
@@ -98,7 +94,7 @@ namespace Backend::LLVM {
                 /*Name=*/"__anon_expr",
                 std::vector<AST::FunctionPrototype::ParamDecl>());
 
-        auto Func = AST::FunctionDecl(&Proto, &Expr);
+        auto Func = AST::FunctionDecl(&Proto, static_cast<AST::Expr *>(&Stmt));
         if (Func.codegen(*this) == nullptr) {
             return;
         }

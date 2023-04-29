@@ -90,8 +90,7 @@ namespace Parse {
         : SourceMngr(SourceMngr), TokenList(TokenList), Diag(Diag),
           Options(Options) {}
 
-        auto startParsing() noexcept -> AST::Expr *;
-        auto startParsingForRepl() noexcept -> AST::Expr *;
+        auto startParsing() noexcept -> AST::Stmt *;
 
         [[nodiscard]] constexpr const auto &tokenList() const noexcept {
             return TokenList;

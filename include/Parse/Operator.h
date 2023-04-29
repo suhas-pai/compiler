@@ -21,7 +21,7 @@ namespace Parse {
         Equality,
         Inequality,
 
-        Power
+        Power,
     };
 
     enum class UnaryOperator {

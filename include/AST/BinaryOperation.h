@@ -5,14 +5,12 @@
 #pragma once
 
 #include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
-#include "Lex/Token.h"
 #include "Parse/Operator.h"
 
 namespace AST {
     struct BinaryOperation : Expr {
     public:
-        constexpr static auto ObjKind = ExprKind::BinaryOperation;
+        constexpr static auto ObjKind = NodeKind::BinaryOperation;
     protected:
         SourceLocation Loc;
         Parse::BinaryOperator Operator;
@@ -28,13 +26,13 @@ namespace AST {
         : Expr(ObjKind), Loc(Loc), Operator(Operator), Lhs(Lhs), Rhs(Rhs) {}
 
         [[nodiscard]]
-        static inline auto IsOfKind(const Expr &Expr) noexcept {
-            return (Expr.getKind() == ObjKind);
+        static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+            return (Stmt.getKind() == ObjKind);
         }
 
         [[nodiscard]]
-        static inline auto classof(const Expr *const Obj) noexcept {
-            return IsOfKind(*Obj);
+        static inline auto classof(const Stmt *const Node) noexcept {
+            return IsOfKind(*Node);
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
