@@ -355,6 +355,8 @@ namespace Parse {
             auto RHS = this->parseLHS();
 
             if (RHS == nullptr) {
+                Diag.emitError("Expected an expression after \"" SV_FMT "\"",
+                               SV_FMT_ARG(tokenContent(Token)));
                 return nullptr;
             }
 
@@ -550,7 +552,12 @@ namespace Parse {
             return nullptr;
         }
 
-        return new AST::FunctionDecl(Proto, this->parseExpression());
+        const auto Body = this->parseExpression();
+        if (Body == nullptr) {
+            return nullptr;
+        }
+
+        return new AST::FunctionDecl(Proto, Body);
     }
 
     auto Parser::parseStmt() noexcept -> AST::Stmt * {

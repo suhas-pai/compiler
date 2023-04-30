@@ -137,7 +137,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
         }
         case AST::NodeKind::FunctionCall: {
             const auto FuncCall = llvm::cast<AST::FunctionCall>(Expr);
-            printf("function-call<\"%s\">", FuncCall->getName().data());
+            printf("function-call<\"%s\">\n", FuncCall->getName().data());
 
             for (const auto &Arg : FuncCall->getArgs()) {
                 PrintAST(Handler, Arg, Depth + 1);
