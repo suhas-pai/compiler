@@ -4,20 +4,14 @@
 
 #include <cassert>
 #include <cstdio>
-
 #include <inttypes.h>
-#include "AST/BinaryOperation.h"
 
-#include "AST/FunctionCall.h"
-#include "AST/FunctionProtoype.h"
-#include "AST/NodeKind.h"
+#include "AST/BinaryOperation.h"
 #include "AST/VariableRef.h"
-#include "Backend/LLVM/Handler.h"
+
 #include "Backend/LLVM/JIT.h"
 #include "Basic/ArgvLexer.h"
 
-#include "Basic/SourceManager.h"
-#include "Interface/DiagnosticsEngine.h"
 #include "Interface/Repl.h"
 
 #include "Lex/Tokenizer.h"
@@ -151,6 +145,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
 struct ArgumentOptions {
     bool PrintTokens : 1 = false;
     bool PrintAST : 1 = false;
+    bool PrintIR : 1 = false;
 
     uint64_t PrintDepth = 0;
 };
@@ -202,7 +197,10 @@ HandlePrompt(const std::string_view &Prompt,
         fputc('\n', stdout);
     }
 
-    BackendHandler.evalulateAndPrint(*Expr, "Evaluated to ", "\n");
+    BackendHandler.evalulateAndPrint(*Expr,
+                                     ArgOptions.PrintIR,
+                                     "Evaluated to ",
+                                     "\n");
 }
 
 void PrintUsage(const char *const Name) noexcept {
@@ -259,6 +257,13 @@ int main(const int argc, const char *const argv[]) {
 
         if (Option == "--print-ast") {
             Options.PrintAST = true;
+            Lexer.consume();
+
+            continue;
+        }
+
+        if (Option == "--print-ir") {
+            Options.PrintIR = true;
             Lexer.consume();
 
             continue;

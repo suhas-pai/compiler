@@ -3,7 +3,9 @@
  */
 
 #include "AST/BinaryOperation.h"
+#include "AST/FunctionProtoype.h"
 #include "Backend/LLVM/Handler.h"
+#include "Basic/SourceLocation.h"
 #include "Parse/Operator.h"
 
 namespace AST {
@@ -44,7 +46,22 @@ namespace AST {
                     Builder.CreateUIToFP(Right,
                                          llvm::Type::getDoubleTy(Context));
 
-                return Builder.CreateCall(Handler.findFunction("pow"),
+                auto PowFuncProto =
+                    AST::FunctionPrototype(
+                        SourceLocation::invalid(),
+                        "pow",
+                        {
+                            AST::FunctionPrototype::ParamDecl(
+                                SourceLocation::invalid(), /*Name=*/"base"),
+                            AST::FunctionPrototype::ParamDecl(
+                                SourceLocation::invalid(), /*Name=*/"exponent")
+                        });
+
+                const auto PowFunc =
+                    llvm::cast<llvm::Function>(
+                        PowFuncProto.codegen(Handler, ValueMap));
+
+                return Builder.CreateCall(PowFunc,
                                           {LeftDouble, RightDouble},
                                           "powtmp");
             }

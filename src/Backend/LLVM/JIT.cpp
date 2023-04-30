@@ -83,12 +83,14 @@ namespace Backend::LLVM {
 
     bool
     JITHandler::evalulateAndPrint(AST::Stmt &Stmt,
+                                  const bool PrintIR,
                                   const std::string_view Prefix,
                                   const std::string_view Suffix) noexcept
     {
         // JIT the module containing the anonymous expression, keeping a handle
         // so we can free it later.
 
+        auto ValueMap = ::Backend::LLVM::ValueMap();
         if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(&Stmt)) {
             const auto Proto = FuncDecl->getPrototype();
             if (getNameToASTNodeMap().contains(Proto->getName())) {
@@ -101,12 +103,18 @@ namespace Backend::LLVM {
             }
 
             addASTNode(Proto->getName(), *FuncDecl);
+            if (PrintIR) {
+                const auto Func = FuncDecl->codegen(*this, ValueMap);
+
+                getModule().print(llvm::outs(), nullptr);
+                llvm::cast<llvm::Function>(Func)->removeFromParent();
+            }
+
             return true;
         } else if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
             addASTNode(Decl->getName(), *Decl);
         }
 
-        auto ValueMap = ::Backend::LLVM::ValueMap();
         for (const auto Decl : getDeclList()) {
             if (const auto Value = Decl->codegen(*this, ValueMap)) {
                 ValueMap.addValue(Decl->getName(), Value);
@@ -126,6 +134,10 @@ namespace Backend::LLVM {
         auto Func = AST::FunctionDecl(&Proto, static_cast<AST::Expr *>(&Stmt));
         if (Func.codegen(*this, ValueMap) == nullptr) {
             return false;
+        }
+
+        if (PrintIR) {
+            getModule().print(llvm::outs(), nullptr);
         }
 
         const auto RT = this->getMainJITDylib().createResourceTracker();

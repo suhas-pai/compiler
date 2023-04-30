@@ -118,10 +118,6 @@ namespace Backend::LLVM {
             return *this;
         }
 
-        [[nodiscard]]
-        auto findFunction(std::string_view Name) const noexcept
-            -> llvm::Function *;
-
         auto addASTNode(std::string_view Name, AST::Stmt &Node) noexcept
             -> decltype(*this);
 
@@ -130,6 +126,7 @@ namespace Backend::LLVM {
 
         virtual bool
         evalulateAndPrint(AST::Stmt &Stmt,
+                          bool PrintIR,
                           std::string_view Prefix = "",
                           std::string_view Suffix = "") noexcept;
     };

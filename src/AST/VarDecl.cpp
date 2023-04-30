@@ -9,12 +9,11 @@ namespace AST {
     VarDecl::codegen(Backend::LLVM::Handler &Handler,
                      Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        const auto Result = InitExpr->codegen(Handler, ValueMap);
-        if (Result == nullptr) {
-            return nullptr;
+        if (const auto Result = InitExpr->codegen(Handler, ValueMap)) {
+            Result->setName(Name);
+            return Result;
         }
 
-        Result->setName(Name);
-        return Result;
+        return nullptr;
     }
 }

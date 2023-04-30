@@ -27,6 +27,7 @@ namespace AST {
 
         const auto RetVal = Body->codegen(Handler, ValueMap);
         if (RetVal == nullptr) {
+            Function->removeFromParent();
             return nullptr;
         }
 

@@ -23,10 +23,6 @@ namespace AST {
                       const std::string_view Name) noexcept
             : NameLoc(NameLoc), Name(Name) {}
 
-            constexpr explicit
-            ParamDecl(const SourceLocation NameLoc, std::string &&Name) noexcept
-            : NameLoc(NameLoc), Name(Name) {}
-
             [[nodiscard]] constexpr auto getName() const noexcept {
                 return std::string_view(Name);
             }

@@ -169,10 +169,9 @@ namespace Lex {
                     break;
                 case State::CharLiteral:
                     switch (Char) {
-                        case '\\': {
+                        case '\\':
                             Index++;
                             break;
-                        }
                         case '\'':
                             goto done;
                         default:

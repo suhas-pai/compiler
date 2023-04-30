@@ -80,8 +80,7 @@ namespace Backend::LLVM {
         return nullptr;
     }
 
-    auto
-    ValueMap::removeValue(const std::string_view Name) noexcept
+    auto ValueMap::removeValue(const std::string_view Name) noexcept
         -> decltype(*this)
     {
         if (const auto Iter = this->find(Name); Iter != this->end()) {
@@ -92,23 +91,6 @@ namespace Backend::LLVM {
         }
 
         return *this;
-    }
-
-    auto Handler::findFunction(const std::string_view Name) const noexcept
-        -> llvm::Function *
-    {
-        const auto Doubles =
-            std::vector(2, llvm::Type::getDoubleTy(*TheContext));
-        const auto FT =
-            llvm::FunctionType::get(llvm::Type::getDoubleTy(*TheContext),
-                                    Doubles,
-                                    /*isVarArg=*/false);
-
-        return
-            llvm::Function::Create(FT,
-                                   llvm::Function::ExternalLinkage,
-                                   Name,
-                                   TheModule.get());
     }
 
     auto
@@ -148,6 +130,7 @@ namespace Backend::LLVM {
 
     bool
     Handler::evalulateAndPrint(AST::Stmt &Stmt,
+                               const bool PrintIR,
                                const std::string_view Prefix,
                                const std::string_view Suffix) noexcept
     {
