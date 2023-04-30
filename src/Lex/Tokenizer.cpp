@@ -49,10 +49,14 @@ namespace Lex {
                             continue;
                         case '\'':
                             State = State::CharLiteral;
-                            break;
+                            Result.Kind = TokenKind::CharLiteral;
+
+                            continue;
                         case '"':
                             State = State::StringLiteral;
-                            break;
+                            Result.Kind = TokenKind::StringLiteral;
+
+                            continue;
                         case 'a'...'z':
                         case 'A'...'Z':
                         case '_':
