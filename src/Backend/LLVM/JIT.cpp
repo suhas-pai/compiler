@@ -102,6 +102,8 @@ namespace Backend::LLVM {
 
             addASTNode(Proto->getName(), *FuncDecl);
             return true;
+        } else if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
+            addASTNode(Decl->getName(), *Decl);
         }
 
         auto ValueMap = ::Backend::LLVM::ValueMap();

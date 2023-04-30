@@ -121,8 +121,8 @@ namespace Backend::LLVM {
             &Node
         });
 
-        if (Node.isDecl()) {
-            getDeclListRef().emplace_back(static_cast<AST::Decl *>(&Node));
+        if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Node)) {
+            getDeclListRef().emplace_back(Decl);
         }
 
         return *this;

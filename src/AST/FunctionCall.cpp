@@ -12,7 +12,7 @@ namespace AST {
     FunctionCall::codegen(Backend::LLVM::Handler &Handler,
                           Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        const auto FuncValue = ValueMap.getValue(getName());
+        const auto FuncValue = ValueMap.getValue(Name);
         if (FuncValue == nullptr) {
             if (const auto Diag = Handler.getDiag()) {
                 Diag->emitError("Function \"" SV_FMT "\" not defined",
@@ -23,8 +23,7 @@ namespace AST {
         }
 
         const auto FuncDecl =
-            llvm::cast_if_present<AST::FunctionDecl>(
-                Handler.getASTNode(getName()));
+            llvm::cast_if_present<AST::FunctionDecl>(Handler.getASTNode(Name));
 
         assert(FuncDecl != nullptr &&
                "Function not in Handler's NameToASTNodeMap");

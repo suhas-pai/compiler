@@ -21,10 +21,5 @@ namespace AST {
         virtual llvm::Value *
         codegen(Backend::LLVM::Handler &Handler,
                 Backend::LLVM::ValueMap &ValueMap) noexcept = 0;
-
-        [[nodiscard]] constexpr auto isDecl() const noexcept {
-            const auto Kind = getKind();
-            return (Kind >= NodeKind::DeclBase && Kind <= NodeKind::DeclLast);
-        }
     };
 }

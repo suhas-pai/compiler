@@ -15,6 +15,8 @@ namespace Interface {
     SetupRepl(const std::string_view Prompt,
               const std::function<bool(std::string_view)> &Callback) noexcept
     {
+        SetTerminalKind(TerminalKind::Repl);
+
         /*
         rl_bind_key('\t', rl_complete);
         rl_bind_key('\n', rl_insert);
@@ -44,9 +46,7 @@ namespace Interface {
         }
         */
 
-        SetTerminalKind(TerminalKind::Repl);
         rl_set_keymap(rl_make_bare_keymap());
-
         using_history();
 
         auto FullPrompt = std::string(Prompt) + "> " + CRESET;

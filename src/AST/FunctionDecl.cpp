@@ -18,7 +18,7 @@ namespace AST {
                                      "entry",
                                      Function);
 
-        auto InsertPoint = Handler.getBuilder().GetInsertBlock();
+        const auto InsertPoint = Handler.getBuilder().GetInsertBlock();
         Handler.getBuilder().SetInsertPoint(BB);
 
         for (auto &Arg : Function->args()) {
