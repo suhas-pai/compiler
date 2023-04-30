@@ -34,6 +34,9 @@ namespace Backend::LLVM {
         auto addValue(std::string_view Name, llvm::Value *Val) noexcept
             -> decltype(*this);
 
+        auto setValue(std::string_view Name, llvm::Value *Val) noexcept
+            -> decltype(*this);
+
         auto getValue(std::string_view Name) const noexcept -> llvm::Value *;
         auto removeValue(std::string_view Name) noexcept
             -> decltype(*this);

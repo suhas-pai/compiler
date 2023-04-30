@@ -81,6 +81,39 @@ namespace Backend::LLVM {
         TheModule->setDataLayout(this->getDataLayout());
     }
 
+    auto
+    SetupDecls(JITHandler &Handler,
+               ::Backend::LLVM::ValueMap &ValueMap) noexcept -> bool
+    {
+        for (const auto Decl : Handler.getDeclList()) {
+            // We need to be able to reference a function within its body,
+            // so this case must be handled differently.
+
+            if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
+                const auto Proto = FuncDecl->getPrototype();
+                const auto ProtoCodegen = Proto->codegen(Handler, ValueMap);
+
+                ValueMap.addValue(Proto->getName(), ProtoCodegen);
+                const auto FinishedValue =
+                    FuncDecl->finishPrototypeCodegen(Handler,
+                                                     ValueMap,
+                                                     ProtoCodegen);
+
+                ValueMap.setValue(Proto->getName(), FinishedValue);
+                continue;
+            }
+
+            if (const auto Value = Decl->codegen(Handler, ValueMap)) {
+                ValueMap.addValue(Decl->getName(), Value);
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
     bool
     JITHandler::evalulateAndPrint(AST::Stmt &Stmt,
                                   const bool PrintIR,
@@ -104,10 +137,14 @@ namespace Backend::LLVM {
 
             addASTNode(Proto->getName(), *FuncDecl);
             if (PrintIR) {
-                const auto Func = FuncDecl->codegen(*this, ValueMap);
+                if (!SetupDecls(*this, ValueMap)) {
+                    return false;
+                }
 
                 getModule().print(llvm::outs(), nullptr);
-                llvm::cast<llvm::Function>(Func)->removeFromParent();
+
+                const auto FuncValue = ValueMap.getValue(Proto->getName());
+                llvm::cast<llvm::Function>(FuncValue)->removeFromParent();
             }
 
             return true;
@@ -115,12 +152,7 @@ namespace Backend::LLVM {
             addASTNode(Decl->getName(), *Decl);
         }
 
-        for (const auto Decl : getDeclList()) {
-            if (const auto Value = Decl->codegen(*this, ValueMap)) {
-                ValueMap.addValue(Decl->getName(), Value);
-                continue;
-            }
-
+        if (!SetupDecls(*this, ValueMap)) {
             return false;
         }
 

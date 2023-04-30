@@ -14,9 +14,12 @@ namespace AST {
                              Backend::LLVM::ValueMap &ValueMap) noexcept
     {
         const auto Left = getLhs()->codegen(Handler, ValueMap);
-        const auto Right = getRhs()->codegen(Handler, ValueMap);
+        if (Left == nullptr) {
+            return nullptr;
+        }
 
-        if (Left == nullptr || Right == nullptr) {
+        const auto Right = getRhs()->codegen(Handler, ValueMap);
+        if (Right == nullptr) {
             return nullptr;
         }
 

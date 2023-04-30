@@ -15,7 +15,7 @@ namespace AST {
         const auto FuncValue = ValueMap.getValue(Name);
         if (FuncValue == nullptr) {
             if (const auto Diag = Handler.getDiag()) {
-                Diag->emitError("Function \"" SV_FMT "\" not defined",
+                Diag->emitError("Function \"" SV_FMT "\" is not defined",
                                 SV_FMT_ARG(getName()));
             }
 

@@ -64,6 +64,23 @@ namespace Backend::LLVM {
     {
         if (const auto Iter = this->find(Name); Iter != this->end()) {
             Iter->second.push_back(Value);
+        } else {
+            this->insert({ std::string(Name), std::vector({Value}) });
+        }
+
+        return *this;
+    }
+
+    auto
+    ValueMap::setValue(const std::string_view Name,
+                       llvm::Value *const Value) noexcept
+        -> decltype(*this)
+    {
+        if (const auto Iter = this->find(Name); Iter != this->end()) {
+            Iter->second.pop_back();
+            Iter->second.push_back(Value);
+
+            return *this;
         }
 
         this->insert({ std::string(Name), std::vector({Value}) });

@@ -14,14 +14,8 @@ namespace AST {
             return Value;
         }
 
-        if (const auto Var = Handler.getNameToASTNodeMap().find(Name);
-            Var != Handler.getNameToASTNodeMap().end())
-        {
-            return Var->second->codegen(Handler, ValueMap);
-        }
-
         if (const auto Diag = Handler.getDiag()) {
-            Diag->emitError("Variable \"" SV_FMT "\" not defined",
+            Diag->emitError("Variable \"" SV_FMT "\" is not defined",
                             SV_FMT_ARG(Name));
         }
 

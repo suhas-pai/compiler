@@ -70,6 +70,12 @@ namespace AST {
         }
 
         [[nodiscard]] llvm::Value *
+        finishPrototypeCodegen(
+            Backend::LLVM::Handler &Handler,
+            Backend::LLVM::ValueMap &ValueMap,
+            llvm::Value *ProtoCodegen) noexcept;
+
+        [[nodiscard]] llvm::Value *
         codegen(Backend::LLVM::Handler &Handler,
                 Backend::LLVM::ValueMap &ValueMap) noexcept override;
     };

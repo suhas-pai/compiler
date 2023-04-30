@@ -7,12 +7,12 @@
 
 namespace AST {
     llvm::Value *
-    FunctionDecl::codegen(Backend::LLVM::Handler &Handler,
-                          Backend::LLVM::ValueMap &ValueMap) noexcept
+    FunctionDecl::finishPrototypeCodegen(
+        Backend::LLVM::Handler &Handler,
+        Backend::LLVM::ValueMap &ValueMap,
+        llvm::Value *ProtoCodegen) noexcept
     {
-        const auto Proto = getPrototype();
-        const auto Function =
-            llvm::cast<llvm::Function>(Proto->codegen(Handler, ValueMap));
+        const auto Function = llvm::cast<llvm::Function>(ProtoCodegen);
         const auto BB =
             llvm::BasicBlock::Create(Handler.getContext(),
                                      "entry",
@@ -45,5 +45,13 @@ namespace AST {
         // Run the optimizer on the function.
         Handler.getFPM().run(*Function);
         return Function;
+    }
+
+    llvm::Value *
+    FunctionDecl::codegen(Backend::LLVM::Handler &Handler,
+                          Backend::LLVM::ValueMap &ValueMap) noexcept
+    {
+        const auto ProtoCodegen = getPrototype()->codegen(Handler, ValueMap);
+        return finishPrototypeCodegen(Handler, ValueMap, ProtoCodegen);
     }
 }
