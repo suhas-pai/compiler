@@ -5,13 +5,15 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <vector>
 
+#include "AST/Decl.h"
 #include "AST/FunctionProtoype.h"
 #include "AST/Expr.h"
 
 namespace AST {
-    struct FunctionDecl : public Stmt {
+    struct FunctionDecl : public Decl {
     public:
         constexpr static auto ObjKind = NodeKind::FunctionDecl;
     protected:
@@ -22,7 +24,7 @@ namespace AST {
         constexpr explicit
         FunctionDecl(FunctionPrototype *const Protoype,
                      Expr *const Body = nullptr) noexcept
-        : Stmt(ObjKind), Prototype(Protoype), Body(Body) {}
+        : Decl(ObjKind), Prototype(Protoype), Body(Body) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return (Stmt.getKind() == ObjKind);
@@ -45,6 +47,11 @@ namespace AST {
             return Loc;
         }
 
+        [[nodiscard]]
+        constexpr std::string_view getName() const noexcept override {
+            return getPrototype()->getName();
+        }
+
         constexpr auto setPrototype(FunctionPrototype *const Protoype) noexcept
             -> decltype(*this)
         {
@@ -62,6 +69,8 @@ namespace AST {
             return *this;
         }
 
-        llvm::Value *codegen(Backend::LLVM::Handler &Handler) noexcept override;
+        [[nodiscard]] llvm::Value *
+        codegen(Backend::LLVM::Handler &Handler,
+                Backend::LLVM::ValueMap &ValueMap) noexcept override;
     };
 }

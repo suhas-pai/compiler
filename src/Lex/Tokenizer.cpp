@@ -133,7 +133,7 @@ namespace Lex {
                             Result.Kind = TokenKind::OpenParen;
                             goto done;
                         case ')':
-                            Result.Kind = TokenKind::RightParen;
+                            Result.Kind = TokenKind::CloseParen;
                             goto done;
                         case '{':
                             Result.Kind = TokenKind::LeftCurlyBrace;

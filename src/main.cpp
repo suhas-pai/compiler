@@ -8,6 +8,10 @@
 #include <inttypes.h>
 #include "AST/BinaryOperation.h"
 
+#include "AST/FunctionCall.h"
+#include "AST/FunctionProtoype.h"
+#include "AST/NodeKind.h"
+#include "AST/VariableRef.h"
 #include "Backend/LLVM/Handler.h"
 #include "Backend/LLVM/JIT.h"
 #include "Basic/ArgvLexer.h"
@@ -18,15 +22,6 @@
 
 #include "Lex/Tokenizer.h"
 #include "Parse/Parser.h"
-
-static void
-PrintResultIfAvailable(Backend::LLVM::Handler &Handler,
-                       AST::Stmt &Stmt) noexcept
-{
-    fputs(" (Result: ", stdout);
-    Handler.evalulateAndPrint(Stmt);
-    fputs(")\n", stdout);
-}
 
 void
 PrintAST(Backend::LLVM::Handler &Handler,
@@ -41,12 +36,11 @@ PrintAST(Backend::LLVM::Handler &Handler,
         case AST::NodeKind::Base:
             assert(false && "Got Expr-Base while printing AST");
         case AST::NodeKind::BinaryOperation: {
-            const auto BinaryExpr = static_cast<AST::BinaryOperation *>(Expr);
+            const auto BinaryExpr = llvm::cast<AST::BinaryOperation>(Expr);
             const auto Lexeme =
                 Parse::BinaryOperatorToLexemeMap[BinaryExpr->getOperator()];
 
-            printf("binary-operation<%s>", Lexeme->data());
-            PrintResultIfAvailable(Handler, *Expr);
+            printf("binary-operation<%s>\n", Lexeme->data());
 
             PrintAST(Handler, BinaryExpr->getLhs(), Depth + 1);
             PrintAST(Handler, BinaryExpr->getRhs(), Depth + 1);
@@ -54,24 +48,23 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::UnaryOperation: {
-            const auto UnaryExpr = static_cast<AST::UnaryOperation *>(Expr);
+            const auto UnaryExpr = llvm::cast<AST::UnaryOperation>(Expr);
             const auto Lexeme =
                 Parse::UnaryOperatorToLexemeMap[UnaryExpr->getOperator()];
 
-            printf("unary-operation<%s>", Lexeme->data());
-            PrintResultIfAvailable(Handler, *Expr);
-
+            printf("unary-operation<%s>\n", Lexeme->data());
             PrintAST(Handler, UnaryExpr->getOperand(), Depth + 1);
+
             break;
         }
         case AST::NodeKind::CharLiteral: {
-            const auto CharLit = static_cast<AST::CharLiteral *>(Expr);
+            const auto CharLit = llvm::cast<AST::CharLiteral>(Expr);
             printf("char-literal<%c>\n", CharLit->getValue());
 
             break;
         }
         case AST::NodeKind::NumberLiteral: {
-            const auto IntLit = static_cast<AST::NumberLiteral *>(Expr);
+            const auto IntLit = llvm::cast<AST::NumberLiteral>(Expr);
             switch (IntLit->getNumber().Kind) {
                 case Parse::NumberKind::UnsignedInteger:
                     printf("number-literal<%llu, unsigned>\n",
@@ -91,31 +84,67 @@ PrintAST(Backend::LLVM::Handler &Handler,
         case AST::NodeKind::FloatLiteral:
             assert(false && "Got float-literal while printing AST");
         case AST::NodeKind::StringLiteral: {
-            const auto StringLit = static_cast<AST::StringLiteral *>(Expr);
+            const auto StringLit = llvm::cast<AST::StringLiteral>(Expr);
             printf("string-literal<%s>\n", StringLit->getValue().data());
 
             break;
         }
         case AST::NodeKind::VarDecl: {
-            const auto VarDecl = static_cast<AST::VarDecl *>(Expr);
+            const auto VarDecl = llvm::cast<AST::VarDecl>(Expr);
 
-            printf("var-decl<\"%s\">", VarDecl->getName().data());
-            PrintResultIfAvailable(Handler, *Expr);
+            printf("var-decl<\"%s\">\n", VarDecl->getName().data());
             PrintAST(Handler, VarDecl->getInitExpr(), Depth + 1);
 
             break;
         }
         case AST::NodeKind::Paren: {
-            const auto ParenExpr = static_cast<AST::ParenExpr *>(Expr);
+            const auto ParenExpr = llvm::cast<AST::ParenExpr>(Expr);
 
             printf("paren-expr\n");
             PrintAST(Handler, ParenExpr->getChildExpr(), Depth + 1);
 
             break;
         }
-        case AST::NodeKind::FunctionDecl:
-        case AST::NodeKind::FunctionPrototype:
+        case AST::NodeKind::FunctionDecl: {
+            const auto FuncDecl = llvm::cast<AST::FunctionDecl>(Expr);
+            printf("function-decl\n");
+
+            PrintAST(Handler, FuncDecl->getPrototype(), Depth + 1);
+            PrintAST(Handler, FuncDecl->getBody(), Depth + 2);
+
             break;
+        }
+        case AST::NodeKind::FunctionPrototype: {
+            const auto FuncProt = llvm::cast<AST::FunctionPrototype>(Expr);
+            printf("function-prototype<\"%s\", Args=[",
+                   FuncProt->getName().data());
+
+            for (const auto &Param : FuncProt->getParamList()) {
+                printf("\"%s\"", Param.getName().data());
+                if (&Param != &FuncProt->getParamList().back()) {
+                    printf(", ");
+                }
+            }
+
+            printf("]>\n");
+            break;
+        }
+        case AST::NodeKind::VariableRef: {
+            const auto VarRef = llvm::cast<AST::VariableRef>(Expr);
+            printf("var-ref<\"%s\">\n", VarRef->getName().data());
+
+            break;
+        }
+        case AST::NodeKind::FunctionCall: {
+            const auto FuncCall = llvm::cast<AST::FunctionCall>(Expr);
+            printf("function-call<\"%s\">", FuncCall->getName().data());
+
+            for (const auto &Arg : FuncCall->getArgs()) {
+                PrintAST(Handler, Arg, Depth + 1);
+            }
+
+            break;
+        }
     }
 }
 
@@ -132,8 +161,8 @@ HandlePrompt(const std::string_view &Prompt,
              const Parse::ParserOptions &ParseOptions,
              const ArgumentOptions ArgOptions) noexcept
 {
-    auto &Diag = BackendHandler.getDiag();
-    auto Tokenizer = Lex::Tokenizer(Prompt, Diag);
+    auto Diag = BackendHandler.getDiag();
+    auto Tokenizer = Lex::Tokenizer(Prompt, *Diag);
     auto TokenList = std::vector<Lex::Token>();
 
     while (true) {
@@ -159,7 +188,7 @@ HandlePrompt(const std::string_view &Prompt,
     }
 
     auto SourceMngr = SourceManager(Prompt);
-    auto Parser = Parse::Parser(SourceMngr, TokenList, Diag, ParseOptions);
+    auto Parser = Parse::Parser(SourceMngr, TokenList, *Diag, ParseOptions);
 
     auto Expr = Parser.startParsing();
 
@@ -240,7 +269,7 @@ int main(const int argc, const char *const argv[]) {
     }
 
     auto Diag = Interface::DiagnosticsEngine();
-    const auto BackendHandler = Backend::LLVM::JITHandler::Create(Diag);
+    const auto BackendHandler = Backend::LLVM::JITHandler::Create(&Diag);
 
     if (BackendHandler == nullptr) {
         printf("Failed to create JITHandler\n");

@@ -14,12 +14,15 @@ namespace AST {
         NumberLiteral,
         FloatLiteral,
         StringLiteral,
-        VarDecl,
         VariableRef,
 
         Paren,
 
+        VarDecl,
+        DeclBase = VarDecl,
         FunctionDecl,
+        DeclLast = FunctionDecl,
+
         FunctionPrototype,
         FunctionCall,
     };

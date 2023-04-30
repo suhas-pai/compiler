@@ -184,7 +184,7 @@ namespace Parse {
         -> AST::ParenExpr *
     {
         const auto ChildExpr = this->parseExpression();
-        if (!this->expect(Lex::TokenKind::RightParen)) {
+        if (!this->expect(Lex::TokenKind::CloseParen)) {
             Diag.emitError("Expected closing parenthesis");
             return nullptr;
         }
@@ -199,11 +199,17 @@ namespace Parse {
     {
         auto ArgList = std::vector<AST::Expr *>();
         do {
-            const auto TokenOpt = this->consume();
+            const auto TokenOpt = this->peek();
             if (!TokenOpt.has_value()) {
                 Diag.emitError("Unexpected end of file while parsing function "
                                "parameter list");
                 return nullptr;
+            }
+
+            const auto Token = TokenOpt.value();
+            if (Token.Kind == Lex::TokenKind::CloseParen) {
+                this->consume();
+                break;
             }
 
             const auto Expr = this->parseExpression();
@@ -220,7 +226,7 @@ namespace Parse {
             }
 
             const auto ArgEndToken = ArgEndTokenOpt.value();
-            if (ArgEndToken.Kind == Lex::TokenKind::RightParen) {
+            if (ArgEndToken.Kind == Lex::TokenKind::CloseParen) {
                 break;
             }
 
@@ -241,6 +247,7 @@ namespace Parse {
     {
         if (const auto TokenOpt = this->peek()) {
             if (TokenOpt.value().Kind == Lex::TokenKind::OpenParen) {
+                this->consume();
                 return this->parseFunctionCall(IdentToken, TokenOpt.value());
             }
         }
@@ -484,11 +491,20 @@ namespace Parse {
         }
 
         if (!this->expect(Lex::TokenKind::OpenParen)) {
-            Diag.emitError("Expected a left parenthesis after function name");
+            Diag.emitError("Expected an parenthesis after function name");
             return nullptr;
         }
 
         auto ParamList = std::vector<AST::FunctionPrototype::ParamDecl>();
+        if (const auto CloseParenOpt = this->peek()) {
+            if (CloseParenOpt.value().Kind == Lex::TokenKind::CloseParen) {
+                this->consume();
+                return new AST::FunctionPrototype(NameToken.Loc,
+                                                  tokenContent(NameToken),
+                                                  ParamList);
+            }
+        }
+
         do {
             const auto TokenOpt = this->consume();
             if (!TokenOpt.has_value()) {
@@ -498,10 +514,6 @@ namespace Parse {
             }
 
             const auto Token = TokenOpt.value();
-            if (Token.Kind == Lex::TokenKind::RightParen) {
-                break;
-            }
-
             if (Token.Kind != Lex::TokenKind::Identifier) {
                 Diag.emitError("Unexpected token \"" SV_FMT "\" while parsing ",
                                SV_FMT_ARG(tokenContent(Token)));
@@ -509,11 +521,36 @@ namespace Parse {
             }
 
             ParamList.emplace_back(Token.Loc, tokenContent(Token));
+
+            const auto CommaOrCloseParenOpt = this->consume();
+            if (!CommaOrCloseParenOpt.has_value()) {
+                Diag.emitError("Expected a comma or closing parenthesis");
+                return nullptr;
+            }
+
+            const auto CommaOrCloseParen = CommaOrCloseParenOpt.value();
+            if (CommaOrCloseParen.Kind == Lex::TokenKind::CloseParen) {
+                break;
+            }
+
+            if (CommaOrCloseParen.Kind != Lex::TokenKind::Comma) {
+                Diag.emitError("Expected a comma or closing parenthesis");
+                return nullptr;
+            }
         } while (true);
 
         return new AST::FunctionPrototype(NameToken.Loc,
                                           tokenContent(NameToken),
                                           ParamList);
+    }
+
+    auto Parser::parseFuncDecl() noexcept -> AST::FunctionDecl * {
+        const auto Proto = this->parseFuncPrototype();
+        if (Proto == nullptr) {
+            return nullptr;
+        }
+
+        return new AST::FunctionDecl(Proto, this->parseExpression());
     }
 
     auto Parser::parseStmt() noexcept -> AST::Stmt * {
@@ -531,7 +568,7 @@ namespace Parse {
                     case Lex::Keyword::Let:
                         return this->parseVarDecl();
                     case Lex::Keyword::Function:
-                        return new AST::FunctionDecl(this->parseFuncPrototype());
+                        return this->parseFuncDecl();
                 }
 
                 [[fallthrough]];

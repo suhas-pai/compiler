@@ -6,7 +6,9 @@
 
 namespace AST {
     llvm::Value *
-    NumberLiteral::codegen(Backend::LLVM::Handler &Handler) noexcept {
+    NumberLiteral::codegen(Backend::LLVM::Handler &Handler,
+                           Backend::LLVM::ValueMap &ValueMap) noexcept
+    {
         auto &Context = Handler.getContext();
         #if 0
         return llvm::ConstantInt::get(llvm::Type::getInt64Ty(Context),

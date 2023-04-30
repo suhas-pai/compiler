@@ -3,13 +3,14 @@
  */
 
 #include "AST/FunctionDecl.h"
+#include "Backend/LLVM/Handler.h"
 #include "Backend/LLVM/JIT.h"
 
 namespace Backend::LLVM {
     JITHandler::JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
                            const llvm::orc::JITTargetMachineBuilder JTMB,
                            const llvm::DataLayout DL,
-                           Interface::DiagnosticsEngine &Diag) noexcept
+                           Interface::DiagnosticsEngine *Diag) noexcept
     : Handler("JIT", Diag), ES(std::move(ES)), DL(std::move(DL)),
       Mangle(*this->ES, this->DL),
       ObjectLayer(*this->ES,
@@ -38,7 +39,7 @@ namespace Backend::LLVM {
         // Create a new pass manager attached to it.
     }
 
-    auto JITHandler::Create(Interface::DiagnosticsEngine &Diag)
+    auto JITHandler::Create(Interface::DiagnosticsEngine *Diag)
         -> std::unique_ptr<JITHandler>
     {
         LLVMInitialize();
@@ -80,7 +81,7 @@ namespace Backend::LLVM {
         TheModule->setDataLayout(this->getDataLayout());
     }
 
-    void
+    bool
     JITHandler::evalulateAndPrint(AST::Stmt &Stmt,
                                   const std::string_view Prefix,
                                   const std::string_view Suffix) noexcept
@@ -88,15 +89,41 @@ namespace Backend::LLVM {
         // JIT the module containing the anonymous expression, keeping a handle
         // so we can free it later.
 
+        if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(&Stmt)) {
+            const auto Proto = FuncDecl->getPrototype();
+            if (getNameToASTNodeMap().contains(Proto->getName())) {
+                if (const auto Diag = getDiag()) {
+                    Diag->emitError("\"" SV_FMT "\" is already defined",
+                                    SV_FMT_ARG(Proto->getName()));
+                }
+
+                return false;
+            }
+
+            addASTNode(Proto->getName(), *FuncDecl);
+            return true;
+        }
+
+        auto ValueMap = ::Backend::LLVM::ValueMap();
+        for (const auto Decl : getDeclList()) {
+            if (const auto Value = Decl->codegen(*this, ValueMap)) {
+                ValueMap.addValue(Decl->getName(), Value);
+                continue;
+            }
+
+            return false;
+        }
+
+        const auto Name = llvm::StringRef("__anon_expr");
         auto Proto =
             AST::FunctionPrototype(
                 SourceLocation::invalid(),
-                /*Name=*/"__anon_expr",
+                /*Name=*/Name,
                 std::vector<AST::FunctionPrototype::ParamDecl>());
 
         auto Func = AST::FunctionDecl(&Proto, static_cast<AST::Expr *>(&Stmt));
-        if (Func.codegen(*this) == nullptr) {
-            return;
+        if (Func.codegen(*this, ValueMap) == nullptr) {
+            return false;
         }
 
         const auto RT = this->getMainJITDylib().createResourceTracker();
@@ -108,7 +135,7 @@ namespace Backend::LLVM {
         Initialize("JIT");
 
         // Search the JIT for the __anon_expr symbol.
-        const auto ExprSymbol = ExitOnErr(this->lookup("__anon_expr"));
+        const auto ExprSymbol = ExitOnErr(this->lookup(Name));
         assert(ExprSymbol && "Function not found");
 
         // Get the symbol's address and cast it to the right type (takes no
@@ -122,5 +149,6 @@ namespace Backend::LLVM {
 
         // Delete the anonymous expression module from the JIT.
         ExitOnErr(RT->remove());
+        return true;
     }
 }

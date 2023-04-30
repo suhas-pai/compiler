@@ -1,6 +1,5 @@
 /*
  * Basic/SourceLocation.h
- * © suhas pai
  */
 
 #pragma once

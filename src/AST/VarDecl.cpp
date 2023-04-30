@@ -5,21 +5,26 @@
 #include "AST/VarDecl.h"
 
 namespace AST {
-    llvm::Value *VarDecl::codegen(Backend::LLVM::Handler &Handler) noexcept {
-        if (Handler.getNamedValues().contains(Name)) {
-            Handler.getDiag().emitError("Variable \"" SV_FMT "\" already "
-                                        "defined",
-                                        SV_FMT_ARG(Name));
+    llvm::Value *
+    VarDecl::codegen(Backend::LLVM::Handler &Handler,
+                     Backend::LLVM::ValueMap &ValueMap) noexcept
+    {
+        if (Handler.getNameToASTNodeMap().contains(Name)) {
+            if (const auto Diag = Handler.getDiag()) {
+                Diag->emitError("Variable \"" SV_FMT "\" already defined",
+                                SV_FMT_ARG(Name));
+            }
+
             return nullptr;
         }
 
-        const auto Result = InitExpr->codegen(Handler);
+        const auto Result = InitExpr->codegen(Handler, ValueMap);
         if (Result == nullptr) {
             return nullptr;
         }
 
-        Result->setName(this->getName());
-        Handler.getNamedValuesRef().insert({Name, InitExpr});
+        Result->setName(Name);
+        Handler.addASTNode(Name, *this);
 
         return Result;
     }

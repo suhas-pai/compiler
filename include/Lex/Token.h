@@ -72,7 +72,7 @@ namespace Lex {
         QuestionMark,
 
         OpenParen,
-        RightParen,
+        CloseParen,
         LeftCurlyBrace,
         RightCurlyBrace,
         LeftSquareBracket,
@@ -133,7 +133,7 @@ namespace Lex {
             case TokenKind::DoubleEqual:
             case TokenKind::QuestionMark:
             case TokenKind::OpenParen:
-            case TokenKind::RightParen:
+            case TokenKind::CloseParen:
             case TokenKind::LeftCurlyBrace:
             case TokenKind::RightCurlyBrace:
             case TokenKind::LeftSquareBracket:
@@ -196,7 +196,7 @@ namespace Lex {
             case TokenKind::DoubleEqual:
             case TokenKind::QuestionMark:
             case TokenKind::OpenParen:
-            case TokenKind::RightParen:
+            case TokenKind::CloseParen:
             case TokenKind::LeftCurlyBrace:
             case TokenKind::RightCurlyBrace:
             case TokenKind::LeftSquareBracket:
@@ -301,7 +301,7 @@ namespace Lex {
                 return "question-mark";
             case TokenKind::OpenParen:
                 return "left-paren";
-            case TokenKind::RightParen:
+            case TokenKind::CloseParen:
                 return "right-paren";
             case TokenKind::LeftCurlyBrace:
                 return "left-curly-brace";
@@ -356,12 +356,19 @@ namespace Lex {
 
         const auto KeywordNone = Keyword::Let;
         switch (KeywordNone) {
-            case Keyword::Let:
-                if (Token.getString(Text) == KeywordToLexemeMap[Keyword::Let]) {
-                    return Keyword::Let;
+        #define CHECK_KW(KW)                                                   \
+            case Keyword::KW:                                                  \
+                if (Token.getString(Text) == KeywordToLexemeMap[Keyword::KW]) {\
+                    return Keyword::KW;                                        \
                 }
 
-                break;
+            CHECK_KW(Let)
+            [[fallthrough]];
+
+            CHECK_KW(Function);
+            break;
+
+        #undef CHECK_KW
         }
 
         assert(false &&

@@ -59,12 +59,11 @@ namespace Parse {
 
         [[nodiscard]] auto parseStmt() noexcept -> AST::Stmt *;
         [[nodiscard]] auto parseExpression() noexcept -> AST::Expr *;
-
         [[nodiscard]] auto parseFuncPrototype() noexcept
             -> AST::FunctionPrototype *;
 
         [[nodiscard]] auto parseVarDecl() noexcept -> AST::VarDecl *;
-        [[nodiscard]] auto parseFuncDecl() noexcept -> AST::VarDecl *;
+        [[nodiscard]] auto parseFuncDecl() noexcept -> AST::FunctionDecl *;
 
         [[nodiscard]] auto peek() -> std::optional<Lex::Token>;
         [[nodiscard]] auto prev() -> std::optional<Lex::Token>;

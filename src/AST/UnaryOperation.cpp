@@ -6,8 +6,10 @@
 
 namespace AST {
     llvm::Value *
-    UnaryOperation::codegen(Backend::LLVM::Handler &Handler) noexcept {
-        const auto Operand = this->Operand->codegen(Handler);
+    UnaryOperation::codegen(Backend::LLVM::Handler &Handler,
+                            Backend::LLVM::ValueMap &ValueMap) noexcept
+    {
+        const auto Operand = this->Operand->codegen(Handler, ValueMap);
         if (Operand == nullptr) {
             return nullptr;
         }

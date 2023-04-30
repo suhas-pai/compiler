@@ -12,6 +12,10 @@
 
 namespace Interface {
     void DiagnosticsEngine::emitError(const char *const Message, ...) noexcept {
+        if (ErrorStream == nullptr) {
+            return;
+        }
+
         va_list List;
         fputs(RED "Error: " CRESET, stderr);
 
@@ -27,6 +31,10 @@ namespace Interface {
 
     void
     DiagnosticsEngine::emitWarning(const char *const Message, ...) noexcept {
+        if (ErrorStream == nullptr) {
+            return;
+        }
+
         va_list List;
         fputs(YEL "Warning: " CRESET, stderr);
 

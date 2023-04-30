@@ -40,11 +40,11 @@ namespace Backend::LLVM {
         JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
                    llvm::orc::JITTargetMachineBuilder JTMB,
                    llvm::DataLayout DL,
-                   Interface::DiagnosticsEngine &Diag) noexcept;
+                   Interface::DiagnosticsEngine *Diag) noexcept;
 
         void AllocCoreFields(const llvm::StringRef &Name) noexcept override;
     public:
-        static auto Create(Interface::DiagnosticsEngine &Diag)
+        static auto Create(Interface::DiagnosticsEngine *Diag)
             -> std::unique_ptr<JITHandler>;
 
         virtual ~JITHandler() noexcept;
@@ -73,7 +73,7 @@ namespace Backend::LLVM {
             return ES->lookup({&MainJD}, Mangle(Name.str()));
         }
 
-        void
+        bool
         evalulateAndPrint(AST::Stmt &Stmt,
                           std::string_view Prefix = "",
                           std::string_view Suffix = "") noexcept override;

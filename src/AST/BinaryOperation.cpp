@@ -8,9 +8,11 @@
 
 namespace AST {
     llvm::Value *
-    BinaryOperation::codegen(Backend::LLVM::Handler &Handler) noexcept {
-        const auto Left = getLhs()->codegen(Handler);
-        const auto Right = getRhs()->codegen(Handler);
+    BinaryOperation::codegen(Backend::LLVM::Handler &Handler,
+                             Backend::LLVM::ValueMap &ValueMap) noexcept
+    {
+        const auto Left = getLhs()->codegen(Handler, ValueMap);
+        const auto Right = getRhs()->codegen(Handler, ValueMap);
 
         if (Left == nullptr || Right == nullptr) {
             return nullptr;
@@ -44,7 +46,7 @@ namespace AST {
 
                 return Builder.CreateCall(Handler.findFunction("pow"),
                                           {LeftDouble, RightDouble},
-                                          "calltmp");
+                                          "powtmp");
             }
         }
 

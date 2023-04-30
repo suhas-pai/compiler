@@ -6,6 +6,8 @@
 #include <memory>
 
 #include "AST/Expr.h"
+#include "AST/FunctionDecl.h"
+#include "Backend/LLVM/Handler.h"
 
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
@@ -46,13 +48,51 @@ namespace Backend::LLVM {
     }
 
     Handler::Handler(const llvm::StringRef &Name,
-                     Interface::DiagnosticsEngine &Diag) noexcept : Diag(Diag)
+                     Interface::DiagnosticsEngine *const Diag) noexcept
+    : Diag(Diag)
     {
         Initialize("Simple");
     }
 
-    Handler::Handler(Interface::DiagnosticsEngine &Diag) noexcept
+    Handler::Handler(Interface::DiagnosticsEngine *Diag) noexcept
     : Handler("Handler", Diag) {}
+
+    auto
+    ValueMap::addValue(const std::string_view Name,
+                       llvm::Value *const Value) noexcept
+        -> decltype(*this)
+    {
+        if (const auto Iter = this->find(Name); Iter != this->end()) {
+            Iter->second.push_back(Value);
+        }
+
+        this->insert({ std::string(Name), std::vector({Value}) });
+        return *this;
+    }
+
+    auto ValueMap::getValue(const std::string_view Name) const noexcept
+        -> llvm::Value *
+    {
+        if (const auto Iter = this->find(Name); Iter != this->end()) {
+            return Iter->second.back();
+        }
+
+        return nullptr;
+    }
+
+    auto
+    ValueMap::removeValue(const std::string_view Name) noexcept
+        -> decltype(*this)
+    {
+        if (const auto Iter = this->find(Name); Iter != this->end()) {
+            Iter->second.pop_back();
+            if (Iter->second.empty()) {
+                this->erase(Iter);
+            }
+        }
+
+        return *this;
+    }
 
     auto Handler::findFunction(const std::string_view Name) const noexcept
         -> llvm::Function *
@@ -67,28 +107,53 @@ namespace Backend::LLVM {
         return
             llvm::Function::Create(FT,
                                    llvm::Function::ExternalLinkage,
-                                   "pow",
+                                   Name,
                                    TheModule.get());
     }
 
-    auto Handler::getValueForName(const std::string_view Name) noexcept
-        -> llvm::Value *
+    auto
+    Handler::addASTNode(const std::string_view Name,
+                        AST::Stmt &Node) noexcept
+        -> decltype(*this)
     {
-        if (const auto Iter = NamedValues.find(Name);
-            Iter != NamedValues.end())
-        {
-            return Iter->second->codegen(*this);
+        getNameToASTNodeMapRef().insert({
+            std::string(Name),
+            &Node
+        });
+
+        if (Node.isDecl()) {
+            getDeclListRef().emplace_back(static_cast<AST::Decl *>(&Node));
         }
 
-        return nullptr;
+        return *this;
     }
 
-    void
+    auto Handler::getASTNode(const std::string_view Name) noexcept
+        -> AST::Stmt *
+    {
+        const auto Iter = getNameToASTNodeMap().find(std::string(Name));
+        if (Iter == getNameToASTNodeMap().end()) {
+            return nullptr;
+        }
+
+        return Iter->second;
+    }
+
+    auto Handler::removeASTNode(const std::string_view Name) noexcept
+        -> decltype(*this)
+    {
+        this->NameToASTNode.erase(std::string(Name));
+        return *this;
+    }
+
+    bool
     Handler::evalulateAndPrint(AST::Stmt &Stmt,
                                const std::string_view Prefix,
                                const std::string_view Suffix) noexcept
     {
-        const auto Codegen = Stmt.codegen(*this);
+        auto ValueMap = ::Backend::LLVM::ValueMap();
+        const auto Codegen = Stmt.codegen(*this, ValueMap);
+
         if (const auto Constant = llvm::dyn_cast<llvm::ConstantFP>(Codegen)) {
             fprintf(stdout,
                     SV_FMT "%f" SV_FMT,
@@ -96,7 +161,7 @@ namespace Backend::LLVM {
                     Constant->getValueAPF().convertToDouble(),
                     SV_FMT_ARG(Suffix));
         } else if (const auto Constant =
-                    llvm::dyn_cast<llvm::ConstantInt>(Codegen))
+                        llvm::dyn_cast<llvm::ConstantInt>(Codegen))
         {
             fprintf(stdout,
                     SV_FMT "%" PRId64 SV_FMT,
@@ -104,5 +169,7 @@ namespace Backend::LLVM {
                     Constant->getSExtValue(),
                     SV_FMT_ARG(Suffix));
         }
+
+        return true;
     }
 }

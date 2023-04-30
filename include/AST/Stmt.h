@@ -9,8 +9,6 @@
 
 namespace AST {
     struct Stmt {
-    public:
-
     private:
         NodeKind Kind;
     protected:
@@ -20,7 +18,13 @@ namespace AST {
             return Kind;
         }
 
-        virtual
-        llvm::Value *codegen(Backend::LLVM::Handler &Handler) noexcept = 0;
+        virtual llvm::Value *
+        codegen(Backend::LLVM::Handler &Handler,
+                Backend::LLVM::ValueMap &ValueMap) noexcept = 0;
+
+        [[nodiscard]] constexpr auto isDecl() const noexcept {
+            const auto Kind = getKind();
+            return (Kind >= NodeKind::DeclBase && Kind <= NodeKind::DeclLast);
+        }
     };
 }

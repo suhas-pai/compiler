@@ -7,11 +7,9 @@
 
 namespace AST {
     llvm::Value *
-    FunctionPrototype::codegen(Backend::LLVM::Handler &Handler) noexcept {
-        if (const auto Value = Handler.getValueForName(Name)) {
-            return Value;
-        }
-
+    FunctionPrototype::codegen(Backend::LLVM::Handler &Handler,
+                               Backend::LLVM::ValueMap &ValueMap) noexcept
+    {
         auto &Context = Handler.getContext();
         auto &Module = Handler.getModule();
 
@@ -27,8 +25,9 @@ namespace AST {
 
         // Set names for all arguments.
         auto Idx = unsigned();
-        for (auto &Arg : F->args())
+        for (auto &Arg : F->args()) {
             Arg.setName(this->ParamList[Idx++].getName());
+        }
 
         return F;
     }

@@ -7,7 +7,9 @@
 
 namespace AST {
     llvm::Value *
-    StringLiteral::codegen(Backend::LLVM::Handler &Handler) noexcept {
+    StringLiteral::codegen(Backend::LLVM::Handler &Handler,
+                           Backend::LLVM::ValueMap &ValueMap) noexcept
+    {
         return llvm::ConstantDataArray::getString(Handler.getContext(), Value);
     }
 }
