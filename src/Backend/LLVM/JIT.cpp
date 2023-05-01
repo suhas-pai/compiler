@@ -3,7 +3,6 @@
  */
 
 #include "AST/FunctionDecl.h"
-#include "Backend/LLVM/Handler.h"
 #include "Backend/LLVM/JIT.h"
 
 namespace Backend::LLVM {
@@ -148,8 +147,6 @@ namespace Backend::LLVM {
             }
 
             return true;
-        } else if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
-            addASTNode(Decl->getName(), *Decl);
         }
 
         if (!SetupDecls(*this, ValueMap)) {
@@ -166,6 +163,10 @@ namespace Backend::LLVM {
         auto Func = AST::FunctionDecl(&Proto, static_cast<AST::Expr *>(&Stmt));
         if (Func.codegen(*this, ValueMap) == nullptr) {
             return false;
+        }
+
+        if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
+            addASTNode(Decl->getName(), *Decl);
         }
 
         if (PrintIR) {

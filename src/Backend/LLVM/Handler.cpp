@@ -111,8 +111,7 @@ namespace Backend::LLVM {
     }
 
     auto
-    Handler::addASTNode(const std::string_view Name,
-                        AST::Stmt &Node) noexcept
+    Handler::addASTNode(const std::string_view Name, AST::Stmt &Node) noexcept
         -> decltype(*this)
     {
         getNameToASTNodeMapRef().insert({
