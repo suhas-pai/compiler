@@ -6,6 +6,7 @@
 
 #include "Basic/StringHash.h"
 #include "Interface/DiagnosticsEngine.h"
+
 #include "llvm/ExecutionEngine/JITSymbol.h"
 
 #include "llvm/IR/IRBuilder.h"
@@ -15,7 +16,6 @@
 #include "llvm/IR/User.h"
 
 #include "llvm/Support/Error.h"
-#include <unordered_map>
 
 namespace AST {
     struct Stmt;
@@ -25,12 +25,13 @@ namespace AST {
 }
 
 namespace Backend::LLVM {
-    struct ValueMap : public
+    struct ValueMap {
+    protected:
         std::unordered_map<std::string,
                            std::vector<llvm::Value *>,
                            StringHash,
-                           std::equal_to<>>
-    {
+                           std::equal_to<>> Map;
+    public:
         auto addValue(std::string_view Name, llvm::Value *Val) noexcept
             -> decltype(*this);
 

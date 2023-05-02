@@ -9,7 +9,7 @@ namespace Backend::LLVM {
     JITHandler::JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
                            const llvm::orc::JITTargetMachineBuilder JTMB,
                            const llvm::DataLayout DL,
-                           Interface::DiagnosticsEngine *Diag) noexcept
+                           Interface::DiagnosticsEngine *const Diag) noexcept
     : Handler("JIT", Diag), ES(std::move(ES)), DL(std::move(DL)),
       Mangle(*this->ES, this->DL),
       ObjectLayer(*this->ES,
@@ -36,6 +36,24 @@ namespace Backend::LLVM {
 
         // Create a new builder for the module.
         // Create a new pass manager attached to it.
+
+        auto PowFuncProto =
+            new AST::FunctionPrototype(
+                SourceLocation::invalid(),
+                "pow",
+                {
+                    AST::FunctionPrototype::ParamDecl(
+                        SourceLocation::invalid(), /*Name=*/"base"),
+                    AST::FunctionPrototype::ParamDecl(
+                        SourceLocation::invalid(), /*Name=*/"exponent")
+                });
+
+        auto PowFunc =
+            new AST::FunctionDecl(PowFuncProto,
+                                  /*Body=*/nullptr,
+                                  /*IsExternal=*/true);
+
+        addASTNode(PowFuncProto->getName(), *PowFunc);
     }
 
     auto JITHandler::Create(Interface::DiagnosticsEngine *Diag)

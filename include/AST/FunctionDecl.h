@@ -20,11 +20,14 @@ namespace AST {
         SourceLocation Loc;
         FunctionPrototype *Prototype;
         Expr *Body;
+        bool IsExternal : 1;
     public:
         constexpr explicit
         FunctionDecl(FunctionPrototype *const Protoype,
-                     Expr *const Body = nullptr) noexcept
-        : Decl(ObjKind), Prototype(Protoype), Body(Body) {}
+                     Expr *const Body = nullptr,
+                     bool IsExternal = false) noexcept
+        : Decl(ObjKind), Prototype(Protoype), Body(Body),
+          IsExternal(IsExternal) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return (Stmt.getKind() == ObjKind);

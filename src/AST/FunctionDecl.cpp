@@ -10,8 +10,14 @@ namespace AST {
     FunctionDecl::finishPrototypeCodegen(
         Backend::LLVM::Handler &Handler,
         Backend::LLVM::ValueMap &ValueMap,
-        llvm::Value *ProtoCodegen) noexcept
+        llvm::Value *const ProtoCodegen) noexcept
     {
+        if (IsExternal) {
+            return ProtoCodegen;
+        }
+
+        assert(Body != nullptr && "FunctionDecl's body is null");
+
         const auto Function = llvm::cast<llvm::Function>(ProtoCodegen);
         const auto BB =
             llvm::BasicBlock::Create(Handler.getContext(),

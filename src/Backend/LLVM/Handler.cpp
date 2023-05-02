@@ -62,10 +62,10 @@ namespace Backend::LLVM {
                        llvm::Value *const Value) noexcept
         -> decltype(*this)
     {
-        if (const auto Iter = this->find(Name); Iter != this->end()) {
+        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
             Iter->second.push_back(Value);
         } else {
-            this->insert({ std::string(Name), std::vector({Value}) });
+            Map.insert({ std::string(Name), std::vector({Value}) });
         }
 
         return *this;
@@ -76,21 +76,21 @@ namespace Backend::LLVM {
                        llvm::Value *const Value) noexcept
         -> decltype(*this)
     {
-        if (const auto Iter = this->find(Name); Iter != this->end()) {
+        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
             Iter->second.pop_back();
             Iter->second.push_back(Value);
 
             return *this;
         }
 
-        this->insert({ std::string(Name), std::vector({Value}) });
+        Map.insert({ std::string(Name), std::vector({Value}) });
         return *this;
     }
 
     auto ValueMap::getValue(const std::string_view Name) const noexcept
         -> llvm::Value *
     {
-        if (const auto Iter = this->find(Name); Iter != this->end()) {
+        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
             return Iter->second.back();
         }
 
@@ -100,10 +100,10 @@ namespace Backend::LLVM {
     auto ValueMap::removeValue(const std::string_view Name) noexcept
         -> decltype(*this)
     {
-        if (const auto Iter = this->find(Name); Iter != this->end()) {
+        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
             Iter->second.pop_back();
             if (Iter->second.empty()) {
-                this->erase(Iter);
+                Map.erase(Iter);
             }
         }
 
@@ -129,7 +129,7 @@ namespace Backend::LLVM {
     auto Handler::getASTNode(const std::string_view Name) noexcept
         -> AST::Stmt *
     {
-        const auto Iter = getNameToASTNodeMap().find(std::string(Name));
+        const auto Iter = getNameToASTNodeMap().find(Name);
         if (Iter == getNameToASTNodeMap().end()) {
             return nullptr;
         }
@@ -140,7 +140,7 @@ namespace Backend::LLVM {
     auto Handler::removeASTNode(const std::string_view Name) noexcept
         -> decltype(*this)
     {
-        this->NameToASTNode.erase(std::string(Name));
+        this->getNameToASTNodeMapRef().erase(std::string(Name));
         return *this;
     }
 

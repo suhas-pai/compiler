@@ -46,20 +46,16 @@ namespace AST {
                     Builder.CreateUIToFP(Right,
                                          llvm::Type::getDoubleTy(Context));
 
-                auto PowFuncProto =
-                    AST::FunctionPrototype(
-                        SourceLocation::invalid(),
-                        "pow",
-                        {
-                            AST::FunctionPrototype::ParamDecl(
-                                SourceLocation::invalid(), /*Name=*/"base"),
-                            AST::FunctionPrototype::ParamDecl(
-                                SourceLocation::invalid(), /*Name=*/"exponent")
-                        });
-
                 const auto PowFunc =
-                    llvm::cast<llvm::Function>(
-                        PowFuncProto.codegen(Handler, ValueMap));
+                    llvm::cast<llvm::Function>(ValueMap.getValue("pow"));
+
+                if (PowFunc == nullptr) {
+                    if (const auto Diag = Handler.getDiag()) {
+                        Diag->emitError("** operator only supprted on JIT");
+                    }
+
+                    return nullptr;
+                }
 
                 return Builder.CreateCall(PowFunc,
                                           {LeftDouble, RightDouble},
