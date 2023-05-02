@@ -43,8 +43,5 @@ namespace Interface {
         va_end(List);
 
         fputc('\n', stderr);
-        if (GetTerminalKind() != TerminalKind::Repl) {
-            exit(0);
-        }
     }
 }

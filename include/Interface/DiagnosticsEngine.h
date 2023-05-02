@@ -8,10 +8,12 @@
 #include <sys/cdefs.h>
 #include "Basic/Macros.h"
 
+struct SourceManager;
 namespace Interface {
     struct DiagnosticsEngine {
     protected:
-        FILE *ErrorStream = NULL;
+        SourceManager *SrcMngr = nullptr;
+        FILE *ErrorStream = nullptr;
     public:
         explicit DiagnosticsEngine() noexcept : ErrorStream(stderr) {}
         explicit DiagnosticsEngine(FILE *Stream) noexcept
@@ -20,6 +22,16 @@ namespace Interface {
         static auto null() noexcept {
             return DiagnosticsEngine(NULL);
         }
+
+        constexpr auto setSourceManager(SourceManager *const SrcMngr) noexcept
+            -> decltype(*this)
+        {
+            this->SrcMngr = SrcMngr;
+            return *this;
+        }
+
+        __printflike(2, 3)
+        void reportError(const char *Message, ...) noexcept;
 
         __printflike(2, 3)
         void emitError(const char *Message, ...) noexcept;

@@ -182,9 +182,10 @@ HandlePrompt(const std::string_view &Prompt,
         fputc('\n', stdout);
     }
 
-    auto SourceMngr = SourceManager(Prompt);
-    auto Parser = Parse::Parser(SourceMngr, TokenList, *Diag, ParseOptions);
+    auto SourceMngr = SourceManager::fromString(Prompt);
+    Diag->setSourceManager(SourceMngr);
 
+    auto Parser = Parse::Parser(*SourceMngr, TokenList, *Diag, ParseOptions);
     auto Expr = Parser.startParsing();
 
     // We got an error while parsing.

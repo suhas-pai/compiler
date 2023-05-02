@@ -426,7 +426,7 @@ namespace Parse {
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
             case Lex::TokenKind::NumberLiteral:
-                Diag.emitError("Integer Literal \"" SV_FMT "\" cannot be used "
+                Diag.emitError("Number Literal \"" SV_FMT "\" cannot be used "
                                "as a variable name",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
@@ -481,7 +481,7 @@ namespace Parse {
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
             case Lex::TokenKind::NumberLiteral:
-                Diag.emitError("Integer Literal \"" SV_FMT "\" cannot be used "
+                Diag.emitError("Number Literal \"" SV_FMT "\" cannot be used "
                                "as a function name",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
