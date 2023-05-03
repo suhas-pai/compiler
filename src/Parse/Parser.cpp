@@ -9,9 +9,11 @@
 #include "AST/VarDecl.h"
 #include "AST/VariableRef.h"
 
+#include "Basic/Macros.h"
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
 #include "Parse/String.h"
+#include "llvm/Support/Casting.h"
 
 namespace Parse {
     auto Parser::peek() -> std::optional<Lex::Token> {
@@ -456,11 +458,6 @@ namespace Parse {
             return nullptr;
         }
 
-        if (!this->expect(Lex::TokenKind::EOFToken)) {
-            Diag.emitError("Unexpected token past end of statement");
-            return nullptr;
-        }
-
         return new AST::VarDecl(NameToken, Name, Expr);
     }
 
@@ -560,7 +557,8 @@ namespace Parse {
         return new AST::FunctionDecl(Proto, Body);
     }
 
-    auto Parser::parseStmt() noexcept -> AST::Stmt * {
+    auto
+    Parser::parseStmt(const bool ParseTopLevelExpr) noexcept -> AST::Stmt * {
         const auto TokenOpt = this->consume();
         if (!TokenOpt.has_value()) {
             Diag.emitError("Unexpected end of file");
@@ -571,7 +569,7 @@ namespace Parse {
         switch (Token.Kind) {
             case Lex::TokenKind::Keyword: {
                 const auto TokenString = tokenContent(Token);
-                switch (Lex::KeywordTokenGetKeyword(Token, TokenString)) {
+                switch (Lex::KeywordTokenGetKeyword(TokenString)) {
                     case Lex::Keyword::Let:
                         return this->parseVarDecl();
                     case Lex::Keyword::Function:
@@ -581,7 +579,7 @@ namespace Parse {
                 [[fallthrough]];
             }
             default:
-                if (Options.ParseTopLevelExpressionsAsStmts) {
+                if (ParseTopLevelExpr) {
                     Index--;
                     return static_cast<AST::Stmt *>(this->parseExpression());
                 }
@@ -594,7 +592,36 @@ namespace Parse {
         return nullptr;
     }
 
-    auto Parser::startParsing() noexcept -> AST::Stmt * {
-        return this->parseStmt();
+    auto Parser::startParsing() noexcept -> bool {
+        while (const auto Token = this->peek()) {
+            if (const auto Stmt = this->parseStmt()) {
+                if (const auto DeclStmt = llvm::dyn_cast<AST::Decl>(Stmt)) {
+                    this->Context.addDecl(DeclStmt);
+                    continue;
+                }
+
+                Diag.emitError("Unexpected non-declaration statement");
+                return false;
+            }
+
+            Diag.emitError("Unexpected non-statement");
+            return false;
+        }
+
+        return true;
+    }
+
+    auto Parser::parseTopLevelExpressionOrStmt() noexcept -> AST::Expr * {
+        if (const auto Result = this->parseStmt(/*ParseTopLevelExpr=*/true)) {
+            if (const auto Token = this->peek()) {
+                Diag.emitError("Unexpected token \"" SV_FMT "\"",
+                               SV_FMT_ARG(tokenContent(*Token)));
+                return nullptr;
+            }
+
+            return static_cast<AST::Expr *>(Result);
+        }
+
+        return nullptr;
     }
 }

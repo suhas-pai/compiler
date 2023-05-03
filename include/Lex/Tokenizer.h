@@ -66,5 +66,25 @@ namespace Lex {
         }
 
         [[nodiscard]] auto next() noexcept -> Lex::Token;
+
+        [[nodiscard]] constexpr auto createList() noexcept
+            -> std::optional<std::vector<Lex::Token>>
+        {
+            auto Result = std::vector<Lex::Token>();
+            while (true) {
+                const auto Token = this->next();
+                if (Token.Kind == TokenKind::EOFToken) {
+                    return Result;
+                }
+
+                if (Token.Kind == TokenKind::Invalid) {
+                    return std::nullopt;
+                }
+
+                Result.push_back(Token);
+            }
+
+            return std::nullopt;
+        }
     };
 }

@@ -347,18 +347,13 @@ namespace Lex {
         }
     };
 
-    [[nodiscard]] constexpr auto
-    KeywordTokenGetKeyword(const Token &Token,
-                           const std::string_view Text) noexcept
-    {
-        assert(Token.Kind == TokenKind::Keyword &&
-               "KeywordTokenGetKeyword() got non-keyword token");
-
+    [[nodiscard]] constexpr
+    auto KeywordTokenGetKeyword(const std::string_view TokenString) noexcept {
         const auto KeywordNone = Keyword::Let;
         switch (KeywordNone) {
         #define CHECK_KW(KW)                                                   \
             case Keyword::KW:                                                  \
-                if (Token.getString(Text) == KeywordToLexemeMap[Keyword::KW]) {\
+                if (TokenString == KeywordToLexemeMap[Keyword::KW]) {          \
                     return Keyword::KW;                                        \
                 }
 

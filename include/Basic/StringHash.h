@@ -2,8 +2,10 @@
  * Basic/StringHash.h
  */
 
-#include "llvm/ADT/StringRef.h"
+#pragma once
+
 #include <string>
+#include "llvm/ADT/StringRef.h"
 
 struct StringHash {
     using hash_type = std::hash<std::string_view>;

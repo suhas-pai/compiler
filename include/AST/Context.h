@@ -4,14 +4,31 @@
 
 #pragma once
 
-#include <unordered_map>
-#include "Expr.h"
+#include "ADT/UnorderedStringMap.h"
+#include "Decl.h"
+#include "Interface/DiagnosticsEngine.h"
 
 namespace AST {
     struct Context {
     protected:
-        std::unordered_map<std::string, AST::Expr *> Symbols;
+        ADT::UnorderedStringMap<AST::Decl *> DeclList;
+        Interface::DiagnosticsEngine &Diag;
     public:
-        explicit Context() noexcept = default;
+        explicit Context(Interface::DiagnosticsEngine &Diag) noexcept
+        : Diag(Diag) {}
+
+        auto addDecl(AST::Decl *const Decl) noexcept -> bool;
+
+        [[nodiscard]] constexpr auto &getDeclMap() const noexcept {
+            return DeclList;
+        }
+
+        [[nodiscard]] constexpr auto &getDeclMapRef() noexcept {
+            return DeclList;
+        }
+
+        [[nodiscard]] constexpr auto &getDiag() const noexcept {
+            return Diag;
+        }
     };
 }

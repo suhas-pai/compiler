@@ -182,13 +182,17 @@ HandlePrompt(const std::string_view &Prompt,
         fputc('\n', stdout);
     }
 
+    auto Context = AST::Context(*Diag);
     auto SourceMngr = SourceManager::fromString(Prompt);
+
     Diag->setSourceManager(SourceMngr);
 
-    auto Parser = Parse::Parser(*SourceMngr, TokenList, *Diag, ParseOptions);
-    auto Expr = Parser.startParsing();
+    auto Parser =
+        Parse::Parser(*SourceMngr, Context, TokenList, *Diag, ParseOptions);
+
 
     // We got an error while parsing.
+    auto Expr = Parser.parseTopLevelExpressionOrStmt();
     if (Expr == nullptr) {
         return;
     }
@@ -212,81 +216,142 @@ void PrintUsage(const char *const Name) noexcept {
 }
 
 void
-HandleReplOption(const ArgumentOptions ArgOptions,
-                 Backend::LLVM::Handler &BackendHandler) noexcept
-{
+HandleReplOption(const ArgumentOptions ArgOptions) {
+    auto Diag = Interface::DiagnosticsEngine();
+    auto BackendHandler = Backend::LLVM::JITHandler::Create(&Diag);
     auto ParserOptions = Parse::ParserOptions();
 
     ParserOptions.DontRequireSemicolons = true;
-    ParserOptions.ParseTopLevelExpressionsAsStmts = true;
-
     Interface::SetupRepl("Compiler",
                          [&](const std::string_view Input) noexcept {
                             HandlePrompt(Input,
-                                         BackendHandler,
+                                         *BackendHandler,
                                          ParserOptions,
                                          ArgOptions);
                             return true;
                          });
 }
 
+void
+HandleFileOptions(const ArgumentOptions ArgOptions,
+                  const std::vector<std::string_view> &FilePaths) noexcept
+{
+    auto Diag = Interface::DiagnosticsEngine();
+    auto BackendHandler = Backend::LLVM::JITHandler::Create(&Diag);
+
+    for (const auto Path : FilePaths) {
+        const auto SrcMngrOpt = SourceManager::fromFile(Path);
+        if (const auto SrcMngrError = SrcMngrOpt.getError()) {
+            switch (SrcMngrError->Kind) {
+                case SourceManager::Error::ErrorKind::FailedToOpenFile: {
+                    fprintf(stderr,
+                            "Failed to open file: %s, reason: %s\n",
+                            Path.data(),
+                            SrcMngrError->OpenError->Reason.c_str());
+                    exit(1);
+                }
+                case SourceManager::Error::ErrorKind::FailedToStatFile:
+                    fprintf(stderr,
+                            "Failed to stat file: %s, reason: %s\n",
+                            Path.data(),
+                            SrcMngrError->OpenError->Reason.c_str());
+                    exit(1);
+                case SourceManager::Error::ErrorKind::FailedToMapFile:
+                    fprintf(stderr,
+                            "Failed to map file: %s, reason: %s\n",
+                            Path.data(),
+                            SrcMngrError->OpenError->Reason.c_str());
+                    exit(1);
+            }
+        }
+
+        const auto SrcMngr = SrcMngrOpt.getResult();
+        const auto TokensOpt =
+            Lex::Tokenizer(SrcMngr->getText(), Diag).createList();
+
+        if (!TokensOpt.has_value()) {
+            exit(1);
+        }
+
+        const auto TokenList = TokensOpt.value();
+
+        auto Context = AST::Context(Diag);
+        auto Parser = Parse::Parser(*SrcMngr, Context, TokenList, Diag);
+
+        if (!Parser.startParsing()) {
+            exit(1);
+        }
+
+        if (ArgOptions.PrintAST || ArgOptions.PrintIR) {
+            for (const auto &[Name, Decl] : Context.getDeclMap()) {
+                if (ArgOptions.PrintAST) {
+                    PrintAST(*BackendHandler, Decl, ArgOptions.PrintDepth);
+                }
+
+                if (ArgOptions.PrintIR) {
+                    BackendHandler->evalulateAndPrint(*Decl, /*PrintIR=*/true);
+                    fputc('\n', stdout);
+                }
+            }
+        }
+    }
+}
+
 int main(const int argc, const char *const argv[]) {
     auto Options = ArgumentOptions();
-    auto Prompt = std::string_view();
+    auto FilePaths = std::vector<std::string_view>();
     auto Lexer = ArgvLexer(argc, argv);
 
-    while (const auto OptionOpt = Lexer.peek()) {
-        const auto Option = std::string_view(OptionOpt);
-        if (!Option.starts_with("-")) {
-            Prompt = Option.data();
+    while (const auto ArgOpt = Lexer.peek()) {
+        const auto Arg = std::string_view(ArgOpt);
+        if (!Arg.starts_with("-")) {
+            FilePaths.push_back(Arg);
+            Lexer.consume();
+
             break;
         }
 
-        if (Option == "-h" || Option == "--help" ||
-            Option == "-u" || Option == "--usage")
+        if (Arg == "-h" || Arg == "--help" ||
+            Arg == "-u" || Arg == "--usage")
         {
             PrintUsage(argv[0]);
             return 0;
         }
 
-        if (Option == "--print-tokens") {
+        if (Arg == "--print-tokens") {
             Options.PrintTokens = true;
             Lexer.consume();
 
             continue;
         }
 
-        if (Option == "--print-ast") {
+        if (Arg == "--print-ast") {
             Options.PrintAST = true;
             Lexer.consume();
 
             continue;
         }
 
-        if (Option == "--print-ir") {
+        if (Arg == "--print-ir") {
             Options.PrintIR = true;
             Lexer.consume();
 
             continue;
         }
 
-        fprintf(stderr, "Unrecognized option: %s\n", Option.data());
+        fprintf(stderr, "Unrecognized option: %s\n", Arg.data());
         return 1;
     }
 
-    auto Diag = Interface::DiagnosticsEngine();
-    const auto BackendHandler = Backend::LLVM::JITHandler::Create(&Diag);
-
-    if (BackendHandler == nullptr) {
-        printf("Failed to create JITHandler\n");
-        exit(1);
+    while (const auto Path = Lexer.consume()) {
+        FilePaths.push_back(Path);
     }
 
-    if (Prompt.empty()) {
-        HandleReplOption(Options, *BackendHandler);
+    if (FilePaths.empty()) {
+        HandleReplOption(Options);
         return 0;
     }
 
-    HandlePrompt(Prompt, *BackendHandler, Parse::ParserOptions(), Options);
+    HandleFileOptions(Options, FilePaths);
     return 0;
 }

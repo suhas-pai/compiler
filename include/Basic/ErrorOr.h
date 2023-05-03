@@ -25,7 +25,16 @@ public:
         return std::holds_alternative<E>(Value);
     }
 
-    [[nodiscard]] constexpr auto getError() const noexcept {
-        return hasError() ? std::get<E>(Value) : nullptr;
+    [[nodiscard]] constexpr auto getError() const noexcept -> std::optional<E> {
+        if (hasError()) {
+            return std::optional(std::get<E>(Value));
+        }
+
+        return std::nullopt;
+    }
+
+    [[nodiscard]] constexpr auto getResult() const noexcept {
+        assert(!hasError());
+        return std::get<T>(Value);
     }
 };

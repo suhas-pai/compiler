@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Basic/StringHash.h"
+#include "ADT/UnorderedStringMap.h"
 #include "Interface/DiagnosticsEngine.h"
 
 #include "llvm/ExecutionEngine/JITSymbol.h"
@@ -27,10 +27,7 @@ namespace AST {
 namespace Backend::LLVM {
     struct ValueMap {
     protected:
-        std::unordered_map<std::string,
-                           std::vector<llvm::Value *>,
-                           StringHash,
-                           std::equal_to<>> Map;
+        ADT::UnorderedStringMap<std::vector<llvm::Value *>> Map;
     public:
         auto addValue(std::string_view Name, llvm::Value *Val) noexcept
             -> decltype(*this);
@@ -55,11 +52,8 @@ namespace Backend::LLVM {
         std::unique_ptr<llvm::Module> TheModule;
 
         // This map keeps track of which values are defined in the current scope
-        std::unordered_map<std::string,
-                           AST::Stmt *,
-                           StringHash,
-                           std::equal_to<>> NameToASTNode;
 
+        ADT::UnorderedStringMap<AST::Stmt *> NameToASTNode;
         std::vector<AST::Decl *> DeclList;
 
         std::unique_ptr<llvm::legacy::FunctionPassManager> FPM;

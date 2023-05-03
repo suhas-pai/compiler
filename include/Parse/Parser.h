@@ -8,6 +8,7 @@
 #include <string_view>
 
 #include "AST/CharLiteral.h"
+#include "AST/Context.h"
 #include "AST/FunctionCall.h"
 #include "AST/FunctionDecl.h"
 #include "AST/FunctionProtoype.h"
@@ -23,7 +24,6 @@
 namespace Parse {
     struct ParserOptions {
         bool DontRequireSemicolons : 1 = false;
-        bool ParseTopLevelExpressionsAsStmts : 1 = false;
     };
 
     struct Parser {
@@ -57,7 +57,10 @@ namespace Parse {
         auto parseBinOpRHS(AST::Expr *LHS, uint64_t MinPrec) noexcept
             -> AST::Expr *;
 
-        [[nodiscard]] auto parseStmt() noexcept -> AST::Stmt *;
+        [[nodiscard]]
+        auto parseStmt(const bool ParseTopLevelExpr = false) noexcept
+            -> AST::Stmt *;
+
         [[nodiscard]] auto parseExpression() noexcept -> AST::Expr *;
         [[nodiscard]] auto parseFuncPrototype() noexcept
             -> AST::FunctionPrototype *;
@@ -75,6 +78,8 @@ namespace Parse {
         auto expect(Lex::TokenKind Kind, bool Optional = false) -> bool;
 
         const SourceManager &SourceMngr;
+        AST::Context &Context;
+
         const std::vector<Lex::Token> &TokenList;
         Interface::DiagnosticsEngine &Diag;
 
@@ -83,13 +88,15 @@ namespace Parse {
     public:
         constexpr explicit
         Parser(const SourceManager &SourceMngr,
+               AST::Context &Context,
                const std::vector<Lex::Token> &TokenList,
                Interface::DiagnosticsEngine &Diag,
                ParserOptions Options = {}) noexcept
-        : SourceMngr(SourceMngr), TokenList(TokenList), Diag(Diag),
-          Options(Options) {}
+        : SourceMngr(SourceMngr), Context(Context), TokenList(TokenList),
+          Diag(Diag), Options(Options) {}
 
-        auto startParsing() noexcept -> AST::Stmt *;
+        auto startParsing() noexcept -> bool;
+        auto parseTopLevelExpressionOrStmt() noexcept -> AST::Expr *;
 
         [[nodiscard]] constexpr const auto &tokenList() const noexcept {
             return TokenList;
