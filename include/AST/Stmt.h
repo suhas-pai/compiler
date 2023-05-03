@@ -20,6 +20,7 @@ namespace AST {
 
         virtual llvm::Value *
         codegen(Backend::LLVM::Handler &Handler,
+                llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept = 0;
     };
 }

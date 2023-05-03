@@ -7,6 +7,7 @@
 namespace AST {
     llvm::Value *
     VarDecl::codegen(Backend::LLVM::Handler &Handler,
+                     llvm::IRBuilder<> &Builder,
                      Backend::LLVM::ValueMap &ValueMap) noexcept
     {
         if (ValueMap.getValue(getName()) != nullptr) {
@@ -18,7 +19,7 @@ namespace AST {
             return nullptr;
         }
 
-        if (const auto Result = InitExpr->codegen(Handler, ValueMap)) {
+        if (const auto Result = InitExpr->codegen(Handler, Builder, ValueMap)) {
             Result->setName(Name);
             return Result;
         }

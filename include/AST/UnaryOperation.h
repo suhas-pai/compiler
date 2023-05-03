@@ -59,6 +59,7 @@ namespace AST {
 
         [[nodiscard]] llvm::Value *
         codegen(Backend::LLVM::Handler &Handler,
+                llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept;
     };
 }

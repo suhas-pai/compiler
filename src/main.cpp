@@ -22,6 +22,10 @@ PrintAST(Backend::LLVM::Handler &Handler,
          AST::Stmt *const Expr,
          const uint8_t Depth) noexcept
 {
+    if (Expr == nullptr) {
+        return;
+    }
+
     for (auto I = uint8_t(); I != Depth; ++I) {
         printf("\t");
     }
@@ -139,6 +143,24 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             break;
         }
+        case AST::NodeKind::IfStmt: {
+            const auto IfStmt = llvm::cast<AST::IfStmt>(Expr);
+            printf("if-stmt\n");
+
+            PrintAST(Handler, IfStmt->getCond(), Depth + 1);
+            PrintAST(Handler, IfStmt->getThen(), Depth + 2);
+            PrintAST(Handler, IfStmt->getElse(), Depth + 1);
+
+            break;
+        }
+        case AST::NodeKind::ReturnStmt: {
+            const auto ReturnStmt = llvm::cast<AST::ReturnStmt>(Expr);
+
+            printf("return-stmt\n");
+            PrintAST(Handler, ReturnStmt->getExpr(), Depth + 1);
+
+            break;
+        }
     }
 }
 
@@ -189,7 +211,6 @@ HandlePrompt(const std::string_view &Prompt,
 
     auto Parser =
         Parse::Parser(*SourceMngr, Context, TokenList, *Diag, ParseOptions);
-
 
     // We got an error while parsing.
     auto Expr = Parser.parseTopLevelExpressionOrStmt();

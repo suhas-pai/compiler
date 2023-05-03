@@ -6,14 +6,15 @@
 #include "AST/FunctionCall.h"
 #include "AST/FunctionDecl.h"
 #include "AST/FunctionProtoype.h"
+#include "AST/ReturnStmt.h"
 #include "AST/VarDecl.h"
 #include "AST/VariableRef.h"
 
-#include "Basic/Macros.h"
+#include "Lex/Keyword.h"
+#include "Lex/Token.h"
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
 #include "Parse/String.h"
-#include "llvm/Support/Casting.h"
 
 namespace Parse {
     auto Parser::peek() -> std::optional<Lex::Token> {
@@ -39,6 +40,21 @@ namespace Parse {
 
         this->Index += Skip + 1;
         return tokenList().at(position() - 1);
+    }
+
+    [[nodiscard]]
+    auto Parser::consumeIf(const Lex::TokenKind Kind)
+        -> std::optional<Lex::Token>
+    {
+        if (const auto TokenOpt = this->peek()) {
+            const auto Token = TokenOpt.value();
+            if (Token.Kind == Kind) {
+                Index++;
+                return Token;
+            }
+        }
+
+        return std::nullopt;
     }
 
     auto
@@ -214,12 +230,12 @@ namespace Parse {
                 break;
             }
 
-            const auto Expr = this->parseExpression();
-            if (Expr == nullptr) {
+            if (const auto Expr = this->parseExpression()) {
+                ArgList.emplace_back(Expr);
+            } else {
                 return nullptr;
             }
 
-            ArgList.emplace_back(Expr);
 
             const auto ArgEndTokenOpt = this->consume();
             if (!ArgEndTokenOpt.has_value()) {
@@ -247,11 +263,8 @@ namespace Parse {
     Parser::parseIdentifierForLhs(const Lex::Token IdentToken) noexcept
         -> AST::Expr *
     {
-        if (const auto TokenOpt = this->peek()) {
-            if (TokenOpt.value().Kind == Lex::TokenKind::OpenParen) {
-                this->consume();
-                return this->parseFunctionCall(IdentToken, TokenOpt.value());
-            }
+        if (const auto TokenOpt = this->consumeIf(Lex::TokenKind::OpenParen)) {
+            return this->parseFunctionCall(IdentToken, TokenOpt.value());
         }
 
         return new AST::VariableRef(IdentToken.Loc, tokenContent(IdentToken));
@@ -329,8 +342,7 @@ namespace Parse {
         assert(false && "unreachable");
     }
 
-    auto
-    Parser::parseBinOpRHS(AST::Expr *LHS, const uint64_t MinPrec) noexcept
+    auto Parser::parseBinOpRHS(AST::Expr *LHS, const uint64_t MinPrec) noexcept
         -> AST::Expr *
     {
         do {
@@ -411,6 +423,21 @@ namespace Parse {
         return this->parseBinOpRHS(this->parseLHS(), /*MinPrec=*/0);
     }
 
+    auto Parser::parseExpressionAndEnd() noexcept -> AST::Expr * {
+        if (const auto Expr = this->parseExpression()) {
+            if (!this->expect(Lex::TokenKind::Semicolon,
+                              /*Optional=*/Options.DontRequireSemicolons))
+            {
+                Diag.emitError("Expected a semicolon after expression");
+                return nullptr;
+            }
+
+            return Expr;
+        }
+
+        return nullptr;
+    }
+
     auto Parser::parseVarDecl() noexcept -> AST::VarDecl * {
         const auto NameTokenOpt = this->consume();
         if (!NameTokenOpt.has_value()) {
@@ -445,16 +472,9 @@ namespace Parse {
         }
 
         const auto Name = tokenContent(NameToken);
-        const auto Expr = this->parseExpression();
+        const auto Expr = this->parseExpressionAndEnd();
 
         if (Expr == nullptr) {
-            return nullptr;
-        }
-
-        if (!this->expect(Lex::TokenKind::Semicolon,
-                          /*Optional=*/Options.DontRequireSemicolons))
-        {
-            Diag.emitError("Expected a semicolon after variable declaration");
             return nullptr;
         }
 
@@ -495,13 +515,12 @@ namespace Parse {
         }
 
         auto ParamList = std::vector<AST::FunctionPrototype::ParamDecl>();
-        if (const auto CloseParenOpt = this->peek()) {
-            if (CloseParenOpt.value().Kind == Lex::TokenKind::CloseParen) {
-                this->consume();
-                return new AST::FunctionPrototype(NameToken.Loc,
-                                                  tokenContent(NameToken),
-                                                  ParamList);
-            }
+        if (const auto CloseParenOpt =
+                this->consumeIf(Lex::TokenKind::CloseParen))
+        {
+            return new AST::FunctionPrototype(NameToken.Loc,
+                                                tokenContent(NameToken),
+                                                ParamList);
         }
 
         do {
@@ -544,17 +563,62 @@ namespace Parse {
     }
 
     auto Parser::parseFuncDecl() noexcept -> AST::FunctionDecl * {
-        const auto Proto = this->parseFuncPrototype();
-        if (Proto == nullptr) {
+        if (const auto Proto = this->parseFuncPrototype()) {
+            if (const auto Body = this->parseStmt()) {
+                return new AST::FunctionDecl(Proto, Body);
+            }
+        }
+
+        return nullptr;
+    }
+
+    auto Parser::parseIfStmt(const Lex::Token IfToken) noexcept -> AST::IfStmt *
+    {
+        if (!this->expect(Lex::TokenKind::OpenParen)) {
+            Diag.emitError("Expected an opening parenthesis after if");
             return nullptr;
         }
 
-        const auto Body = this->parseExpression();
-        if (Body == nullptr) {
+        const auto Condition = this->parseExpression();
+        if (Condition == nullptr) {
             return nullptr;
         }
 
-        return new AST::FunctionDecl(Proto, Body);
+        if (!this->expect(Lex::TokenKind::CloseParen)) {
+            Diag.emitError("Expected a closing parenthesis after if condition");
+            return nullptr;
+        }
+
+        const auto Then = this->parseStmt();
+        if (Then == nullptr) {
+            return nullptr;
+        }
+
+        auto ElseStmt = static_cast<AST::Stmt *>(nullptr);
+        if (const auto ElseTokenOpt =
+                this->consumeIf(Lex::TokenKind::Keyword))
+        {
+            const auto TokenString = tokenContent(ElseTokenOpt.value());
+            if (Lex::TokenStringIsKeyword(TokenString, Lex::Keyword::Else)) {
+                ElseStmt = this->parseStmt();
+                if (ElseStmt == nullptr) {
+                    return nullptr;
+                }
+            }
+        }
+
+        return new AST::IfStmt(IfToken.Loc, Condition, Then, ElseStmt);
+    }
+
+    auto
+    Parser::parseReturnStmt(const Lex::Token ReturnToken) noexcept
+        -> AST::ReturnStmt *
+    {
+        if (const auto Expr = this->parseExpressionAndEnd()) {
+            return new AST::ReturnStmt(ReturnToken.Loc, Expr);
+        }
+
+        return nullptr;
     }
 
     auto
@@ -574,19 +638,31 @@ namespace Parse {
                         return this->parseVarDecl();
                     case Lex::Keyword::Function:
                         return this->parseFuncDecl();
+                    case Lex::Keyword::If:
+                        return this->parseIfStmt(Token);
+                    case Lex::Keyword::Else:
+                        return this->parseExpressionAndEnd();
+                    case Lex::Keyword::Return:
+                        return this->parseReturnStmt(Token);
                 }
 
                 [[fallthrough]];
             }
-            default:
-                if (ParseTopLevelExpr) {
-                    Index--;
-                    return static_cast<AST::Stmt *>(this->parseExpression());
+            default: {
+                Index--;
+                if (const auto Expr = this->parseExpressionAndEnd()) {
+                    if (ParseTopLevelExpr) {
+                        return static_cast<AST::Expr *>(Expr);
+                    }
+
+                    Diag.emitError("Expression result unused");
+                    return nullptr;
                 }
 
                 Diag.emitError("Unexpected token \"" SV_FMT "\"",
                                SV_FMT_ARG(tokenContent(Token)));
                 return nullptr;
+            }
         }
 
         return nullptr;

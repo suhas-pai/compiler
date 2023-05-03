@@ -8,6 +8,7 @@
 #include <cassert>
 #include <string_view>
 
+#include "ADT/SmallMap.h"
 #include "Basic/SourceLocation.h"
 #include "Keyword.h"
 
@@ -347,6 +348,13 @@ namespace Lex {
         }
     };
 
+    [[nodiscard]] constexpr auto
+    TokenStringIsKeyword(const std::string_view TokenString,
+                         const Keyword Keyword) noexcept
+    {
+        return (TokenString == KeywordToLexemeMap[Keyword]);
+    }
+
     [[nodiscard]] constexpr
     auto KeywordTokenGetKeyword(const std::string_view TokenString) noexcept {
         const auto KeywordNone = Keyword::Let;
@@ -361,6 +369,15 @@ namespace Lex {
             [[fallthrough]];
 
             CHECK_KW(Function);
+            [[fallthrough]];
+
+            CHECK_KW(If);
+            [[fallthrough]];
+
+            CHECK_KW(Else);
+            [[fallthrough]];
+
+            CHECK_KW(Return);
             break;
 
         #undef CHECK_KW

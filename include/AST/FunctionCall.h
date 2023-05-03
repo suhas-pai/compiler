@@ -15,18 +15,18 @@ namespace AST {
         SourceLocation NameLoc;
         std::string Name;
 
-        std::vector<AST::Expr *> Args;
+        std::vector<Expr *> Args;
     public:
         constexpr explicit
         FunctionCall(const SourceLocation NameLoc,
                      const std::string_view Name,
-                     const std::vector<AST::Expr *> &Args) noexcept
+                     const std::vector<Expr *> &Args) noexcept
         : Expr(ObjKind), NameLoc(NameLoc), Name(Name), Args(Args) {}
 
         constexpr explicit
         FunctionCall(const SourceLocation NameLoc,
                      const std::string_view Name,
-                     std::vector<AST::Expr *> &&Args) noexcept
+                     std::vector<Expr *> &&Args) noexcept
         : Expr(ObjKind), NameLoc(NameLoc), Name(Name), Args(Args) {}
 
         constexpr explicit FunctionCall(const std::string_view Name) noexcept
@@ -60,6 +60,7 @@ namespace AST {
 
         [[nodiscard]] llvm::Value *
         codegen(Backend::LLVM::Handler &Handler,
+                llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept;
     };
 }

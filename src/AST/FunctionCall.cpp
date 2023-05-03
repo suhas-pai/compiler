@@ -10,6 +10,7 @@
 namespace AST {
     llvm::Value *
     FunctionCall::codegen(Backend::LLVM::Handler &Handler,
+                          llvm::IRBuilder<> &Builder,
                           Backend::LLVM::ValueMap &ValueMap) noexcept
     {
         const auto FuncValue = ValueMap.getValue(Name);
@@ -45,7 +46,7 @@ namespace AST {
 
         auto ArgsV = std::vector<llvm::Value *>();
         for (auto I = unsigned(); I != getArgs().size(); ++I) {
-            ArgsV.push_back(Args[I]->codegen(Handler, ValueMap));
+            ArgsV.push_back(Args[I]->codegen(Handler, Builder, ValueMap));
             if (ArgsV.back() == nullptr) {
                 return nullptr;
             }

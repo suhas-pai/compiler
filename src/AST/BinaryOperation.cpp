@@ -8,21 +8,20 @@
 namespace AST {
     llvm::Value *
     BinaryOperation::codegen(Backend::LLVM::Handler &Handler,
+                             llvm::IRBuilder<> &Builder,
                              Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        const auto Left = getLhs()->codegen(Handler, ValueMap);
+        const auto Left = getLhs()->codegen(Handler, Builder, ValueMap);
         if (Left == nullptr) {
             return nullptr;
         }
 
-        const auto Right = getRhs()->codegen(Handler, ValueMap);
+        const auto Right = getRhs()->codegen(Handler, Builder, ValueMap);
         if (Right == nullptr) {
             return nullptr;
         }
 
-        auto &Builder = Handler.getBuilder();
         auto &Context = Handler.getContext();
-
         switch (getOperator()) {
             case Parse::BinaryOperator::Add:
                 return Builder.CreateFAdd(Left, Right, /*Name=*/"addtmp");

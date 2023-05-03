@@ -25,5 +25,8 @@ namespace AST {
 
         FunctionPrototype,
         FunctionCall,
+
+        IfStmt,
+        ReturnStmt
     };
 }

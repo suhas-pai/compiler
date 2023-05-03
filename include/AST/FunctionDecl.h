@@ -19,12 +19,12 @@ namespace AST {
     protected:
         SourceLocation Loc;
         FunctionPrototype *Prototype;
-        Expr *Body;
+        Stmt *Body;
         bool IsExternal : 1;
     public:
         constexpr explicit
         FunctionDecl(FunctionPrototype *const Protoype,
-                     Expr *const Body = nullptr,
+                     Stmt *const Body = nullptr,
                      bool IsExternal = false) noexcept
         : Decl(ObjKind), Prototype(Protoype), Body(Body),
           IsExternal(IsExternal) {}
@@ -50,6 +50,10 @@ namespace AST {
             return Loc;
         }
 
+        [[nodiscard]] constexpr auto isExternal() const noexcept {
+            return IsExternal;
+        }
+
         [[nodiscard]]
         constexpr std::string_view getName() const noexcept override {
             return getPrototype()->getName();
@@ -62,24 +66,35 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto setBody(Expr *const Body) noexcept -> decltype(*this) {
+        constexpr auto setBody(Stmt *const Body) noexcept -> decltype(*this) {
             this->Body = Body;
             return *this;
         }
 
-        constexpr auto setLoc(SourceLocation Loc) noexcept -> decltype(*this) {
+        constexpr auto setLoc(const SourceLocation Loc) noexcept
+            -> decltype(*this)
+        {
             this->Loc = Loc;
+            return *this;
+        }
+
+        constexpr auto setIsExternal(const bool IsExternal) noexcept
+            -> decltype(*this)
+        {
+            this->IsExternal = IsExternal;
             return *this;
         }
 
         [[nodiscard]] llvm::Value *
         finishPrototypeCodegen(
             Backend::LLVM::Handler &Handler,
+            llvm::IRBuilder<> &Builder,
             Backend::LLVM::ValueMap &ValueMap,
             llvm::Value *ProtoCodegen) noexcept;
 
         [[nodiscard]] llvm::Value *
         codegen(Backend::LLVM::Handler &Handler,
+                llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept override;
     };
 }

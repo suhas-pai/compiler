@@ -3,6 +3,7 @@
  */
 
 #include "Lex/Tokenizer.h"
+#include "Lex/Keyword.h"
 #include "Parse/String.h"
 
 namespace Lex {
@@ -15,10 +16,10 @@ namespace Lex {
         {
             if (Char == '\0') {
                 if (State == State::Identifier) {
-                    const auto KeywordOpt =
+                    const auto TokenKindOpt =
                         KeywordToLexemeMap.keyFor(Result.getString(Text));
 
-                    if (KeywordOpt.has_value()) {
+                    if (TokenKindOpt.has_value()) {
                         Result.Kind = TokenKind::Keyword;
                     }
 

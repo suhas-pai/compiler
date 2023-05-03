@@ -8,8 +8,9 @@
 namespace AST {
     llvm::Value *
     ParenExpr::codegen(Backend::LLVM::Handler &Handler,
+                       llvm::IRBuilder<> &Builder,
                        Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        return ChildExpr->codegen(Handler, ValueMap);
+        return ChildExpr->codegen(Handler, Builder, ValueMap);
     }
 }

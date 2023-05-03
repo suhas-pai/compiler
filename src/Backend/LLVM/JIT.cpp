@@ -108,19 +108,31 @@ namespace Backend::LLVM {
 
             if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
                 const auto Proto = FuncDecl->getPrototype();
-                const auto ProtoCodegen = Proto->codegen(Handler, ValueMap);
+                const auto ProtoCodegen =
+                    Proto->codegen(Handler, Handler.getBuilder(), ValueMap);
+
+                if (ProtoCodegen == nullptr) {
+                    return false;
+                }
 
                 ValueMap.addValue(Proto->getName(), ProtoCodegen);
                 const auto FinishedValue =
                     FuncDecl->finishPrototypeCodegen(Handler,
+                                                     Handler.getBuilder(),
                                                      ValueMap,
                                                      ProtoCodegen);
+
+                if (FinishedValue == nullptr) {
+                    return false;
+                }
 
                 ValueMap.setValue(Proto->getName(), FinishedValue);
                 continue;
             }
 
-            if (const auto Value = Decl->codegen(Handler, ValueMap)) {
+            if (const auto Value =
+                    Decl->codegen(Handler, Handler.getBuilder(), ValueMap))
+            {
                 ValueMap.addValue(Decl->getName(), Value);
                 continue;
             }
@@ -129,6 +141,22 @@ namespace Backend::LLVM {
         }
 
         return true;
+    }
+
+    auto
+    UnsetupDecls(JITHandler &Handler,
+                 ::Backend::LLVM::ValueMap &ValueMap) noexcept -> void
+    {
+        for (const auto Decl : Handler.getDeclList()) {
+            if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
+                const auto Func = llvm::cast<llvm::Function>(
+                    ValueMap.getValue(Decl->getName()));
+
+                if (Func->getParent() != nullptr) {
+                    Func->eraseFromParent();
+                }
+            }
+        }
     }
 
     bool
@@ -162,6 +190,8 @@ namespace Backend::LLVM {
 
                 const auto FuncValue = ValueMap.getValue(Proto->getName());
                 llvm::cast<llvm::Function>(FuncValue)->removeFromParent();
+
+                UnsetupDecls(*this, ValueMap);
             }
 
             return true;
@@ -179,7 +209,7 @@ namespace Backend::LLVM {
                 std::vector<AST::FunctionPrototype::ParamDecl>());
 
         auto Func = AST::FunctionDecl(&Proto, static_cast<AST::Expr *>(&Stmt));
-        if (Func.codegen(*this, ValueMap) == nullptr) {
+        if (Func.codegen(*this, getBuilder(), ValueMap) == nullptr) {
             return false;
         }
 
@@ -214,6 +244,8 @@ namespace Backend::LLVM {
 
         // Delete the anonymous expression module from the JIT.
         ExitOnErr(RT->remove());
+        UnsetupDecls(*this, ValueMap);
+
         return true;
     }
 }

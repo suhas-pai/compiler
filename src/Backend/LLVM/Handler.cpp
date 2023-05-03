@@ -7,6 +7,7 @@
 
 #include "AST/Expr.h"
 #include "AST/FunctionDecl.h"
+
 #include "Backend/LLVM/Handler.h"
 
 #include "llvm/Support/TargetSelect.h"
@@ -151,7 +152,7 @@ namespace Backend::LLVM {
                                const std::string_view Suffix) noexcept
     {
         auto ValueMap = ::Backend::LLVM::ValueMap();
-        const auto Codegen = Stmt.codegen(*this, ValueMap);
+        const auto Codegen = Stmt.codegen(*this, getBuilder(), ValueMap);
 
         if (const auto Constant = llvm::dyn_cast<llvm::ConstantFP>(Codegen)) {
             fprintf(stdout,

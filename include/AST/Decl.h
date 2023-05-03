@@ -17,8 +17,8 @@ namespace AST {
 
         [[nodiscard]]
         static inline auto classof(const Stmt *const Node) noexcept {
-            return (Node->getKind() >= AST::NodeKind::DeclBase &&
-                    Node->getKind() <= AST::NodeKind::DeclLast);
+            return (Node->getKind() >= NodeKind::DeclBase &&
+                    Node->getKind() <= NodeKind::DeclLast);
         }
     };
 }

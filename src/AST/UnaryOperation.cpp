@@ -7,14 +7,14 @@
 namespace AST {
     llvm::Value *
     UnaryOperation::codegen(Backend::LLVM::Handler &Handler,
+                            llvm::IRBuilder<> &Builder,
                             Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        const auto Operand = this->Operand->codegen(Handler, ValueMap);
+        const auto Operand = this->Operand->codegen(Handler, Builder, ValueMap);
         if (Operand == nullptr) {
             return nullptr;
         }
 
-        auto &Builder = Handler.getBuilder();
         switch (this->Operator) {
             case Parse::UnaryOperator::Negate:
                 return Builder.CreateNeg(Operand);

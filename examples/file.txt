@@ -1,2 +1,2 @@
 let a = 2 + 3;
-func b(c) c + 1
+func b(c) return c + 1;

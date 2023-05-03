@@ -8,6 +8,7 @@
 namespace AST {
     llvm::Value *
     VariableRef::codegen(Backend::LLVM::Handler &Handler,
+                         llvm::IRBuilder<> &Builder,
                          Backend::LLVM::ValueMap &ValueMap) noexcept
     {
         if (const auto Value = ValueMap.getValue(Name)) {

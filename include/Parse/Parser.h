@@ -12,8 +12,10 @@
 #include "AST/FunctionCall.h"
 #include "AST/FunctionDecl.h"
 #include "AST/FunctionProtoype.h"
+#include "AST/IfStmt.h"
 #include "AST/NumberLiteral.h"
 #include "AST/ParenExpr.h"
+#include "AST/ReturnStmt.h"
 #include "AST/StringLiteral.h"
 #include "AST/UnaryOperation.h"
 #include "AST/VarDecl.h"
@@ -58,10 +60,18 @@ namespace Parse {
             -> AST::Expr *;
 
         [[nodiscard]]
+        auto parseIfStmt(Lex::Token IfToken) noexcept -> AST::IfStmt *;
+
+        [[nodiscard]]
+        auto parseReturnStmt(Lex::Token ReturnToken) noexcept
+            -> AST::ReturnStmt *;
+
+        [[nodiscard]]
         auto parseStmt(const bool ParseTopLevelExpr = false) noexcept
             -> AST::Stmt *;
 
         [[nodiscard]] auto parseExpression() noexcept -> AST::Expr *;
+        [[nodiscard]] auto parseExpressionAndEnd() noexcept -> AST::Expr *;
         [[nodiscard]] auto parseFuncPrototype() noexcept
             -> AST::FunctionPrototype *;
 
@@ -70,6 +80,9 @@ namespace Parse {
 
         [[nodiscard]] auto peek() -> std::optional<Lex::Token>;
         [[nodiscard]] auto prev() -> std::optional<Lex::Token>;
+
+        [[nodiscard]]
+        auto consumeIf(Lex::TokenKind Kind) -> std::optional<Lex::Token>;
 
         [[nodiscard]]
         auto tokenContent(Lex::Token Token) const noexcept -> std::string_view;

@@ -3,12 +3,14 @@
  */
 
 #include "AST/FunctionDecl.h"
+#include "AST/NodeKind.h"
 #include "llvm/IR/Verifier.h"
 
 namespace AST {
     llvm::Value *
     FunctionDecl::finishPrototypeCodegen(
         Backend::LLVM::Handler &Handler,
+        llvm::IRBuilder<> &Builder,
         Backend::LLVM::ValueMap &ValueMap,
         llvm::Value *const ProtoCodegen) noexcept
     {
@@ -24,14 +26,13 @@ namespace AST {
                                      "entry",
                                      Function);
 
-        const auto InsertPoint = Handler.getBuilder().GetInsertBlock();
-        Handler.getBuilder().SetInsertPoint(BB);
-
         for (auto &Arg : Function->args()) {
             ValueMap.addValue(Arg.getName(), &Arg);
         }
 
-        const auto RetVal = Body->codegen(Handler, ValueMap);
+        auto BodyIRBuilder = llvm::IRBuilder(BB);
+        const auto RetVal = Body->codegen(Handler, BodyIRBuilder, ValueMap);
+
         if (RetVal == nullptr) {
             Function->removeFromParent();
             return nullptr;
@@ -42,11 +43,15 @@ namespace AST {
         }
 
         // Finish off the function.
-        Handler.getBuilder().CreateRet(RetVal);
-        Handler.getBuilder().SetInsertPoint(InsertPoint);
+        if (Body->getKind() != AST::NodeKind::IfStmt &&
+            Body->getKind() != AST::NodeKind::ReturnStmt)
+        {
+            BodyIRBuilder.CreateRet(RetVal);
+        }
 
         // Validate the generated code, checking for consistency.
         llvm::verifyFunction(*Function);
+        Handler.getModule().print(llvm::outs(), nullptr);
 
         // Run the optimizer on the function.
         Handler.getFPM().run(*Function);
@@ -55,9 +60,12 @@ namespace AST {
 
     llvm::Value *
     FunctionDecl::codegen(Backend::LLVM::Handler &Handler,
+                          llvm::IRBuilder<> &Builder,
                           Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        const auto ProtoCodegen = getPrototype()->codegen(Handler, ValueMap);
-        return finishPrototypeCodegen(Handler, ValueMap, ProtoCodegen);
+        const auto ProtoCodegen =
+            getPrototype()->codegen(Handler, Builder, ValueMap);
+
+        return finishPrototypeCodegen(Handler, Builder, ValueMap, ProtoCodegen);
     }
 }

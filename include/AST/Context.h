@@ -11,13 +11,13 @@
 namespace AST {
     struct Context {
     protected:
-        ADT::UnorderedStringMap<AST::Decl *> DeclList;
+        ADT::UnorderedStringMap<Decl *> DeclList;
         Interface::DiagnosticsEngine &Diag;
     public:
         explicit Context(Interface::DiagnosticsEngine &Diag) noexcept
         : Diag(Diag) {}
 
-        auto addDecl(AST::Decl *const Decl) noexcept -> bool;
+        auto addDecl(Decl *const Decl) noexcept -> bool;
 
         [[nodiscard]] constexpr auto &getDeclMap() const noexcept {
             return DeclList;

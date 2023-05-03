@@ -8,6 +8,7 @@
 namespace AST {
     llvm::Value *
     CharLiteral::codegen(Backend::LLVM::Handler &Handler,
+                         llvm::IRBuilder<> &Builder,
                          Backend::LLVM::ValueMap &ValueMap) noexcept
     {
         auto &Context = Handler.getContext();
