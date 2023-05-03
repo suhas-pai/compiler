@@ -366,11 +366,14 @@ namespace Parse {
             }
 
             this->consume();
-            auto RHS = this->parseLHS();
-
-            if (RHS == nullptr) {
+            if (!this->peek().has_value()) {
                 Diag.emitError("Expected an expression after \"" SV_FMT "\"",
                                SV_FMT_ARG(tokenContent(Token)));
+                return nullptr;
+            }
+
+            auto RHS = this->parseLHS();
+            if (RHS == nullptr) {
                 return nullptr;
             }
 
@@ -659,8 +662,6 @@ namespace Parse {
                     return nullptr;
                 }
 
-                Diag.emitError("Unexpected token \"" SV_FMT "\"",
-                               SV_FMT_ARG(tokenContent(Token)));
                 return nullptr;
             }
         }
