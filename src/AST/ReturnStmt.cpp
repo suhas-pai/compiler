@@ -6,11 +6,19 @@
 #include "Backend/LLVM/Handler.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     ReturnStmt::codegen(Backend::LLVM::Handler &Handler,
                         llvm::IRBuilder<> &Builder,
                         Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        return Builder.CreateRet(Value->codegen(Handler, Builder, ValueMap));
+        if (Value == nullptr) {
+            return Builder.CreateRetVoid();
+        }
+
+        if (const auto ResultOpt = Value->codegen(Handler, Builder, ValueMap)) {
+            return Builder.CreateRet(ResultOpt.value());
+        }
+
+        return std::nullopt;
     }
 }

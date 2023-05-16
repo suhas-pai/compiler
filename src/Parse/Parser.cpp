@@ -3,15 +3,10 @@
  */
 
 #include "AST/BinaryOperation.h"
-#include "AST/FunctionCall.h"
-#include "AST/FunctionDecl.h"
-#include "AST/FunctionProtoype.h"
-#include "AST/ReturnStmt.h"
-#include "AST/VarDecl.h"
 #include "AST/VariableRef.h"
 
-#include "Lex/Keyword.h"
 #include "Lex/Token.h"
+
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
 #include "Parse/String.h"
@@ -236,7 +231,6 @@ namespace Parse {
                 return nullptr;
             }
 
-
             const auto ArgEndTokenOpt = this->consume();
             if (!ArgEndTokenOpt.has_value()) {
                 Diag.emitError("Expected end of function parameter list");
@@ -301,10 +295,6 @@ namespace Parse {
                     case Lex::TokenKind::NumberLiteral:
                         Expr = this->parseNumberLiteral(Token);
                         break;
-                    case Lex::TokenKind::FloatLiteral:
-                        Diag.emitError("Floating point literals not yet "
-                                       "supported");
-                        return nullptr;
                     case Lex::TokenKind::CharLiteral:
                         Expr = this->parseCharLiteral(Token);
                         break;
@@ -474,14 +464,12 @@ namespace Parse {
             return nullptr;
         }
 
-        const auto Name = tokenContent(NameToken);
         const auto Expr = this->parseExpressionAndEnd();
-
         if (Expr == nullptr) {
             return nullptr;
         }
 
-        return new AST::VarDecl(NameToken, Name, Expr);
+        return new AST::VarDecl(NameToken, tokenContent(NameToken), Expr);
     }
 
     auto Parser::parseFuncPrototype() noexcept -> AST::FunctionPrototype * {
@@ -624,6 +612,32 @@ namespace Parse {
         return nullptr;
     }
 
+    auto Parser::parseCompoundStmt(const Lex::Token CurlyToken) noexcept
+        -> AST::CompoundStmt *
+    {
+        auto StmtList = std::vector<AST::Stmt *>();
+        while (true) {
+            const auto TokenOpt = this->peek();
+            if (!TokenOpt.has_value()) {
+                Diag.emitError("Unexpected end of file");
+                return nullptr;
+            }
+
+            if (this->consumeIf(Lex::TokenKind::CloseCurlyBrace)) {
+                break;
+            }
+
+            if (const auto Stmt = this->parseStmt()) {
+                StmtList.emplace_back(Stmt);
+                continue;
+            }
+
+            return nullptr;
+        }
+
+        return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
+    }
+
     auto
     Parser::parseStmt(const bool ParseTopLevelExpr) noexcept -> AST::Stmt * {
         const auto TokenOpt = this->consume();
@@ -651,19 +665,11 @@ namespace Parse {
 
                 [[fallthrough]];
             }
-            default: {
+            case Lex::TokenKind::OpenCurlyBrace:
+                return this->parseCompoundStmt(Token);
+            default:
                 Index--;
-                if (const auto Expr = this->parseExpressionAndEnd()) {
-                    if (ParseTopLevelExpr) {
-                        return static_cast<AST::Expr *>(Expr);
-                    }
-
-                    Diag.emitError("Expression result unused");
-                    return nullptr;
-                }
-
-                return nullptr;
-            }
+                return this->parseExpressionAndEnd();
         }
 
         return nullptr;
@@ -694,6 +700,10 @@ namespace Parse {
                 Diag.emitError("Unexpected token \"" SV_FMT "\"",
                                SV_FMT_ARG(tokenContent(*Token)));
                 return nullptr;
+            }
+
+            if (const auto Decl = llvm::dyn_cast<AST::Decl>(Result)) {
+                Context.addDecl(Decl);
             }
 
             return static_cast<AST::Expr *>(Result);

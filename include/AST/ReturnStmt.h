@@ -16,8 +16,12 @@ namespace AST {
         Expr *Value;
     public:
         constexpr explicit
-        ReturnStmt(const SourceLocation ReturnLoc, Expr *const Value)
+        ReturnStmt(const SourceLocation ReturnLoc, Expr *const Value) noexcept
         : Stmt(ObjKind), ReturnLoc(ReturnLoc), Value(Value) {}
+
+        constexpr static auto none() noexcept {
+            return ReturnStmt(SourceLocation::invalid(), /*Value=*/nullptr);
+        }
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return (Stmt.getKind() == ObjKind);
@@ -48,7 +52,7 @@ namespace AST {
             return *this;
         }
 
-        [[nodiscard]] llvm::Value *
+        [[nodiscard]] std::optional<llvm::Value *>
         codegen(Backend::LLVM::Handler &Handler,
                 llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept override;

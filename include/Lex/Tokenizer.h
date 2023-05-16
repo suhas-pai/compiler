@@ -57,7 +57,7 @@ namespace Lex {
         }
     public:
         constexpr explicit
-        Tokenizer(std::string_view Text,
+        Tokenizer(const std::string_view Text,
                   Interface::DiagnosticsEngine &Diag) noexcept
         : Text(Text), Diag(Diag) {}
 
@@ -66,7 +66,6 @@ namespace Lex {
         }
 
         [[nodiscard]] auto next() noexcept -> Lex::Token;
-
         [[nodiscard]] constexpr auto createList() noexcept
             -> std::optional<std::vector<Lex::Token>>
         {

@@ -7,6 +7,8 @@
 #include <inttypes.h>
 
 #include "AST/BinaryOperation.h"
+#include "AST/CompoundStmt.h"
+#include "AST/NodeKind.h"
 #include "AST/VariableRef.h"
 
 #include "Backend/LLVM/JIT.h"
@@ -161,6 +163,16 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             break;
         }
+        case AST::NodeKind::CompountStmt: {
+            const auto CompoundStmt = llvm::cast<AST::CompoundStmt>(Expr);
+
+            printf("compound-stmt\n");
+            for (const auto &Stmt : CompoundStmt->getStmtList()) {
+                PrintAST(Handler, Stmt, Depth + 1);
+            }
+
+            break;
+        }
     }
 }
 
@@ -174,12 +186,13 @@ struct ArgumentOptions {
 
 void
 HandlePrompt(const std::string_view &Prompt,
-             Backend::LLVM::Handler &BackendHandler,
+             AST::Context &Context,
              const Parse::ParserOptions &ParseOptions,
              const ArgumentOptions ArgOptions) noexcept
 {
-    auto Diag = BackendHandler.getDiag();
-    auto Tokenizer = Lex::Tokenizer(Prompt, *Diag);
+    auto Diag = Interface::DiagnosticsEngine();
+    auto BackendHandler = Backend::LLVM::JITHandler::Create(&Diag, Context);
+    auto Tokenizer = Lex::Tokenizer(Prompt, Diag);
     auto TokenList = std::vector<Lex::Token>();
 
     while (true) {
@@ -204,13 +217,11 @@ HandlePrompt(const std::string_view &Prompt,
         fputc('\n', stdout);
     }
 
-    auto Context = AST::Context(*Diag);
     auto SourceMngr = SourceManager::fromString(Prompt);
-
-    Diag->setSourceManager(SourceMngr);
+    Diag.setSourceManager(SourceMngr);
 
     auto Parser =
-        Parse::Parser(*SourceMngr, Context, TokenList, *Diag, ParseOptions);
+        Parse::Parser(*SourceMngr, Context, TokenList, Diag, ParseOptions);
 
     // We got an error while parsing.
     auto Expr = Parser.parseTopLevelExpressionOrStmt();
@@ -219,14 +230,14 @@ HandlePrompt(const std::string_view &Prompt,
     }
 
     if (ArgOptions.PrintAST) {
-        PrintAST(BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
+        PrintAST(*BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
         fputc('\n', stdout);
     }
 
-    BackendHandler.evalulateAndPrint(*Expr,
-                                     ArgOptions.PrintIR,
-                                     "Evaluated to ",
-                                     "\n");
+    BackendHandler->evalulateAndPrint(*Expr,
+                                      ArgOptions.PrintIR,
+                                      "Evaluated to ",
+                                      "\n");
 }
 
 void PrintUsage(const char *const Name) noexcept {
@@ -238,15 +249,15 @@ void PrintUsage(const char *const Name) noexcept {
 
 void
 HandleReplOption(const ArgumentOptions ArgOptions) {
+    auto Context = AST::Context();
     auto Diag = Interface::DiagnosticsEngine();
-    auto BackendHandler = Backend::LLVM::JITHandler::Create(&Diag);
     auto ParserOptions = Parse::ParserOptions();
 
     ParserOptions.DontRequireSemicolons = true;
     Interface::SetupRepl("Compiler",
                          [&](const std::string_view Input) noexcept {
                             HandlePrompt(Input,
-                                         *BackendHandler,
+                                         Context,
                                          ParserOptions,
                                          ArgOptions);
                             return true;
@@ -258,8 +269,6 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
                   const std::vector<std::string_view> &FilePaths) noexcept
 {
     auto Diag = Interface::DiagnosticsEngine();
-    auto BackendHandler = Backend::LLVM::JITHandler::Create(&Diag);
-
     for (const auto Path : FilePaths) {
         const auto SrcMngrOpt = SourceManager::fromFile(Path);
         if (const auto SrcMngrError = SrcMngrOpt.getError()) {
@@ -296,24 +305,25 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
 
         const auto TokenList = TokensOpt.value();
 
-        auto Context = AST::Context(Diag);
+        auto Context = AST::Context();
+        auto BackendHandler = Backend::LLVM::Handler(&Diag);
         auto Parser = Parse::Parser(*SrcMngr, Context, TokenList, Diag);
 
         if (!Parser.startParsing()) {
             exit(1);
         }
 
-        if (ArgOptions.PrintAST || ArgOptions.PrintIR) {
-            for (const auto &[Name, Decl] : Context.getDeclMap()) {
-                if (ArgOptions.PrintAST) {
-                    PrintAST(*BackendHandler, Decl, ArgOptions.PrintDepth);
-                }
+        Context.visitDecls(Diag, AST::Context::VisitOptions());
+        BackendHandler.evalulate(Context);
 
-                if (ArgOptions.PrintIR) {
-                    BackendHandler->evalulateAndPrint(*Decl, /*PrintIR=*/true);
-                    fputc('\n', stdout);
-                }
+        if (ArgOptions.PrintAST) {
+            for (const auto &[Name, Decl] : Context.getDeclMap()) {
+                PrintAST(BackendHandler, Decl, /*Depth=*/ArgOptions.PrintDepth);
             }
+        }
+
+        if (ArgOptions.PrintIR) {
+            BackendHandler.getModule().print(llvm::outs(), nullptr);
         }
     }
 }

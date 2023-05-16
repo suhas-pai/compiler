@@ -22,7 +22,7 @@ auto SourceManager::fromFile(const std::string_view Path) noexcept ->
         return Error::createStatError(strerror(errno));
     }
 
-    const auto Map = mmap(NULL, Stat.st_size, PROT_READ, MAP_PRIVATE, Fd, 0);
+    const auto Map = mmap(nullptr, Stat.st_size, PROT_READ, MAP_PRIVATE, Fd, 0);
     if (Map == MAP_FAILED) {
         return Error::createMapError(strerror(errno));
     }

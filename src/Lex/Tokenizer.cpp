@@ -141,10 +141,10 @@ namespace Lex {
                             Result.Kind = TokenKind::CloseParen;
                             goto done;
                         case '{':
-                            Result.Kind = TokenKind::LeftCurlyBrace;
+                            Result.Kind = TokenKind::OpenCurlyBrace;
                             goto done;
                         case '}':
-                            Result.Kind = TokenKind::RightCurlyBrace;
+                            Result.Kind = TokenKind::CloseCurlyBrace;
                             goto done;
                         case '[':
                             Result.Kind = TokenKind::LeftSquareBracket;
@@ -360,9 +360,7 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            State = State::Start;
-
-                            continue;
+                            goto done;
                     }
 
                     break;
@@ -378,9 +376,7 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
-                            State = State::Start;
-
-                            continue;
+                            goto done;
                     }
 
                     break;

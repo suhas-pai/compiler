@@ -11,7 +11,7 @@ namespace Interface {
         return gTermKind;
     }
 
-    auto SetTerminalKind(TerminalKind TermKind) noexcept -> void {
+    auto SetTerminalKind(const TerminalKind TermKind) noexcept -> void {
         gTermKind = TermKind;
     }
 }

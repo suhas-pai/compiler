@@ -44,4 +44,5 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_options(compiler PRIVATE "-fsanitize=undefined")
 endif()
 
+install_files(. FILES compile_commands.json)
 install(TARGETS compiler DESTINATION ${CMAKE_INSTALL_PREFIX})

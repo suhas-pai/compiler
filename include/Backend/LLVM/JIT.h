@@ -5,6 +5,7 @@
 #pragma once
 #include <memory>
 
+#include "AST/Context.h"
 #include "Backend/LLVM/Handler.h"
 #include "Interface/DiagnosticsEngine.h"
 #include "llvm/ADT/StringRef.h"
@@ -35,17 +36,20 @@ namespace Backend::LLVM {
         llvm::orc::IRCompileLayer CompileLayer;
 
         llvm::orc::JITDylib &MainJD;
+        AST::Context Context;
 
         explicit
         JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
                    llvm::orc::JITTargetMachineBuilder JTMB,
                    llvm::DataLayout DL,
+                   AST::Context &Context,
                    Interface::DiagnosticsEngine *Diag) noexcept;
 
         void AllocCoreFields(const llvm::StringRef &Name) noexcept override;
     public:
-        static auto Create(Interface::DiagnosticsEngine *Diag)
-            -> std::unique_ptr<JITHandler>;
+        static auto
+        Create(Interface::DiagnosticsEngine *Diag,
+               AST::Context &Context) noexcept -> std::unique_ptr<JITHandler>;
 
         virtual ~JITHandler() noexcept;
 
@@ -55,6 +59,10 @@ namespace Backend::LLVM {
 
         [[nodiscard]] constexpr auto &getMainJITDylib() const noexcept {
             return MainJD;
+        }
+
+        [[nodiscard]] constexpr auto &getASTContext() noexcept {
+            return Context;
         }
 
         [[nodiscard]] auto
@@ -77,6 +85,6 @@ namespace Backend::LLVM {
         evalulateAndPrint(AST::Stmt &Stmt,
                           bool PrintIR,
                           std::string_view Prefix = "",
-                          std::string_view Suffix = "") noexcept override;
+                          std::string_view Suffix = "") noexcept;
     };
 }

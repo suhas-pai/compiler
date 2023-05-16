@@ -27,6 +27,8 @@ namespace AST {
         FunctionCall,
 
         IfStmt,
-        ReturnStmt
+        ReturnStmt,
+
+        CompountStmt
     };
 }

@@ -8,6 +8,7 @@
 #include <string_view>
 
 #include "AST/CharLiteral.h"
+#include "AST/CompoundStmt.h"
 #include "AST/Context.h"
 #include "AST/FunctionCall.h"
 #include "AST/FunctionDecl.h"
@@ -65,6 +66,10 @@ namespace Parse {
         [[nodiscard]]
         auto parseReturnStmt(Lex::Token ReturnToken) noexcept
             -> AST::ReturnStmt *;
+
+        [[nodiscard]]
+        auto parseCompoundStmt(Lex::Token CurlyToken) noexcept
+            -> AST::CompoundStmt *;
 
         [[nodiscard]]
         auto parseStmt(const bool ParseTopLevelExpr = false) noexcept

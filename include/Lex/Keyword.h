@@ -6,6 +6,7 @@
 
 #include <string>
 #include <utility>
+
 #include "ADT/SmallMap.h"
 
 namespace Lex {

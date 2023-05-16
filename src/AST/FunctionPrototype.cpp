@@ -6,7 +6,7 @@
 #include "Backend/LLVM/Handler.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     FunctionPrototype::codegen(Backend::LLVM::Handler &Handler,
                                llvm::IRBuilder<> &Builder,
                                Backend::LLVM::ValueMap &ValueMap) noexcept

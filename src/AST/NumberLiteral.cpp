@@ -5,7 +5,7 @@
 #include "AST/NumberLiteral.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     NumberLiteral::codegen(Backend::LLVM::Handler &Handler,
                            llvm::IRBuilder<> &Builder,
                            Backend::LLVM::ValueMap &ValueMap) noexcept

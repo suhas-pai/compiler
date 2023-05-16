@@ -6,22 +6,26 @@
 #include "AST/FunctionProtoype.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     BinaryOperation::codegen(Backend::LLVM::Handler &Handler,
                              llvm::IRBuilder<> &Builder,
                              Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        const auto Left = getLhs()->codegen(Handler, Builder, ValueMap);
-        if (Left == nullptr) {
-            return nullptr;
+        const auto LeftOpt = getLhs()->codegen(Handler, Builder, ValueMap);
+        if (!LeftOpt.has_value()) {
+            return std::nullopt;
         }
 
-        const auto Right = getRhs()->codegen(Handler, Builder, ValueMap);
-        if (Right == nullptr) {
-            return nullptr;
+        const auto RightOpt = getRhs()->codegen(Handler, Builder, ValueMap);
+        if (!RightOpt.has_value()) {
+            return std::nullopt;
         }
 
         auto &Context = Handler.getContext();
+
+        const auto Left = LeftOpt.value();
+        const auto Right = RightOpt.value();
+
         switch (getOperator()) {
             case Parse::BinaryOperator::Add:
                 return Builder.CreateFAdd(Left, Right, /*Name=*/"addtmp");
@@ -53,7 +57,7 @@ namespace AST {
                         Diag->emitError("** operator only supprted on JIT");
                     }
 
-                    return nullptr;
+                    return std::nullopt;
                 }
 
                 return Builder.CreateCall(PowFunc,

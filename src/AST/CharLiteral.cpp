@@ -1,12 +1,12 @@
 /*
- * AST/CharacterLiteral.cpp
+ * AST/CharLiteral.cpp
  */
 
 #include "AST/CharLiteral.h"
 #include "Backend/LLVM/Handler.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     CharLiteral::codegen(Backend::LLVM::Handler &Handler,
                          llvm::IRBuilder<> &Builder,
                          Backend::LLVM::ValueMap &ValueMap) noexcept

@@ -1,8 +1,10 @@
 /*
- * ADT/UnorderedStringMap.h
+ * ADT/StringMap.h
  */
 
+#include <map>
 #include <unordered_map>
+
 #include "Basic/StringHash.h"
 
 namespace ADT {

@@ -5,16 +5,17 @@
 #include "AST/IfStmt.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     IfStmt::codegen(Backend::LLVM::Handler &Handler,
                     llvm::IRBuilder<> &Builder,
                     Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        auto CondValue = Cond->codegen(Handler, Builder, ValueMap);
-        if (CondValue == nullptr) {
-            return nullptr;
+        auto CondValueOpt = Cond->codegen(Handler, Builder, ValueMap);
+        if (!CondValueOpt.has_value()) {
+            return std::nullopt;
         }
 
+        auto CondValue = CondValueOpt.value();
         auto &Context = Handler.getContext();
 
         // Convert condition to a bool by comparing non-equal to 0.0.
@@ -34,32 +35,31 @@ namespace AST {
             Builder.CreateCondBr(CondValue, ThenBB, ElseBB);
 
         auto ThenIRBuilder = llvm::IRBuilder<>(ThenBB);
-        if (Then->codegen(Handler, ThenIRBuilder, ValueMap) == nullptr) {
+        if (!Then->codegen(Handler, ThenIRBuilder, ValueMap).has_value()) {
             ThenBB->eraseFromParent();
             ElseBB->eraseFromParent();
 
             CondBrValue->eraseFromParent();
             CondValue->deleteValue();
 
-            return nullptr;
+            return std::nullopt;
         }
 
         // Emit else block.
         TheFunction->insert(TheFunction->end(), ElseBB);
-
-        auto ElseValue = static_cast<llvm::Value *>(nullptr);
         if (Else != nullptr) {
             auto ElseIRBuilder = llvm::IRBuilder<>(ElseBB);
-            ElseValue = Else->codegen(Handler, ElseIRBuilder, ValueMap);
+            const auto ElseValueOpt =
+                Else->codegen(Handler, ElseIRBuilder, ValueMap);
 
-            if (ElseValue == nullptr) {
+            if (!ElseValueOpt.has_value()) {
                 ThenBB->eraseFromParent();
                 ElseBB->eraseFromParent();
 
                 CondBrValue->eraseFromParent();
                 CondValue->deleteValue();
 
-                return nullptr;
+                return std::nullopt;
             }
         }
 

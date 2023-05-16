@@ -5,16 +5,19 @@
 #include "AST/UnaryOperation.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     UnaryOperation::codegen(Backend::LLVM::Handler &Handler,
                             llvm::IRBuilder<> &Builder,
                             Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        const auto Operand = this->Operand->codegen(Handler, Builder, ValueMap);
-        if (Operand == nullptr) {
-            return nullptr;
+        const auto OperandOpt =
+            this->Operand->codegen(Handler, Builder, ValueMap);
+
+        if (!OperandOpt.has_value()) {
+            return std::nullopt;
         }
 
+        const auto Operand = OperandOpt.value();
         switch (this->Operator) {
             case Parse::UnaryOperator::Negate:
                 return Builder.CreateNeg(Operand);

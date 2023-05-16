@@ -15,7 +15,6 @@
 namespace Lex {
     enum class TokenKind : uint8_t {
         NumberLiteral,
-        FloatLiteral,
 
         CharLiteral,
         StringLiteral,
@@ -74,8 +73,8 @@ namespace Lex {
 
         OpenParen,
         CloseParen,
-        LeftCurlyBrace,
-        RightCurlyBrace,
+        OpenCurlyBrace,
+        CloseCurlyBrace,
         LeftSquareBracket,
 
         RightSquareBracket,
@@ -113,7 +112,6 @@ namespace Lex {
             case TokenKind::Equal:
             case TokenKind::NotEqual:
             case TokenKind::NumberLiteral:
-            case TokenKind::FloatLiteral:
             case TokenKind::CharLiteral:
             case TokenKind::StringLiteral:
             case TokenKind::Identifier:
@@ -135,8 +133,8 @@ namespace Lex {
             case TokenKind::QuestionMark:
             case TokenKind::OpenParen:
             case TokenKind::CloseParen:
-            case TokenKind::LeftCurlyBrace:
-            case TokenKind::RightCurlyBrace:
+            case TokenKind::OpenCurlyBrace:
+            case TokenKind::CloseCurlyBrace:
             case TokenKind::LeftSquareBracket:
             case TokenKind::RightSquareBracket:
             case TokenKind::Comma:
@@ -170,11 +168,10 @@ namespace Lex {
             case TokenKind::GreaterThan:
             case TokenKind::LessThanOrEqual:
             case TokenKind::GreaterThanOrEqual:
-            case TokenKind::Equal:
+            case TokenKind::DoubleEqual:
             case TokenKind::NotEqual:
                 return true;
             case TokenKind::NumberLiteral:
-            case TokenKind::FloatLiteral:
             case TokenKind::CharLiteral:
             case TokenKind::StringLiteral:
             case TokenKind::Identifier:
@@ -193,13 +190,13 @@ namespace Lex {
             case TokenKind::DoublePipe:
             case TokenKind::Tilde:
             case TokenKind::TildeEqual:
+            case TokenKind::Equal:
             case TokenKind::Exclamation:
-            case TokenKind::DoubleEqual:
             case TokenKind::QuestionMark:
             case TokenKind::OpenParen:
             case TokenKind::CloseParen:
-            case TokenKind::LeftCurlyBrace:
-            case TokenKind::RightCurlyBrace:
+            case TokenKind::OpenCurlyBrace:
+            case TokenKind::CloseCurlyBrace:
             case TokenKind::LeftSquareBracket:
             case TokenKind::RightSquareBracket:
             case TokenKind::Comma:
@@ -222,8 +219,6 @@ namespace Lex {
         switch (Kind) {
             case TokenKind::NumberLiteral:
                 return "number-literal";
-            case TokenKind::FloatLiteral:
-                return "float-literal";
             case TokenKind::CharLiteral:
                 return "char-literal";
             case TokenKind::StringLiteral:
@@ -304,9 +299,9 @@ namespace Lex {
                 return "left-paren";
             case TokenKind::CloseParen:
                 return "right-paren";
-            case TokenKind::LeftCurlyBrace:
+            case TokenKind::OpenCurlyBrace:
                 return "left-curly-brace";
-            case TokenKind::RightCurlyBrace:
+            case TokenKind::CloseCurlyBrace:
                 return "right-curly-brace";
             case TokenKind::LeftSquareBracket:
                 return "left-square-bracket";

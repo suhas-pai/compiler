@@ -85,14 +85,15 @@ namespace AST {
             return *this;
         }
 
-        [[nodiscard]] llvm::Value *
+        [[nodiscard]] auto
         finishPrototypeCodegen(
             Backend::LLVM::Handler &Handler,
             llvm::IRBuilder<> &Builder,
             Backend::LLVM::ValueMap &ValueMap,
-            llvm::Value *ProtoCodegen) noexcept;
+            llvm::Value *ProtoCodegen) noexcept
+                -> std::optional<llvm::Value *>;
 
-        [[nodiscard]] llvm::Value *
+        [[nodiscard]] std::optional<llvm::Value *>
         codegen(Backend::LLVM::Handler &Handler,
                 llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept override;

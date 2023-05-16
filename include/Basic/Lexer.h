@@ -30,6 +30,16 @@ public:
         return Text.at(Index);
     }
 
+    [[nodiscard]] constexpr auto consumeIf(const char C) noexcept -> bool {
+        if (peek() == C) {
+            consume();
+            return true;
+        }
+
+        return false;
+    }
+
+
     [[nodiscard]] constexpr auto prev() const noexcept -> char {
         const auto Index = getIndex();
         if (Index >= Text.size()) {

@@ -65,7 +65,7 @@ namespace AST {
             return *this;
         }
 
-        [[nodiscard]] llvm::Value *
+        [[nodiscard]] std::optional<llvm::Value *>
         codegen(Backend::LLVM::Handler &Handler,
                 llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept override;

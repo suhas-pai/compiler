@@ -19,8 +19,8 @@ namespace Interface {
         explicit DiagnosticsEngine(FILE *Stream) noexcept
         : ErrorStream(Stream) {}
 
-        static auto null() noexcept {
-            return DiagnosticsEngine(NULL);
+        [[nodiscard]] static auto null() noexcept {
+            return DiagnosticsEngine(nullptr);
         }
 
         constexpr auto setSourceManager(SourceManager *const SrcMngr) noexcept

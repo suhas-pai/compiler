@@ -3,11 +3,10 @@
  */
 
 #pragma once
-
 #include "Stmt.h"
 
 namespace AST {
-    struct Expr : Stmt {
+    struct Expr : public Stmt {
     public:
         constexpr static auto ObjKind = NodeKind::Base;
     protected:

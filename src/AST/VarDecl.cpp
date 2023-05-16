@@ -4,8 +4,12 @@
 
 #include "AST/VarDecl.h"
 
+#include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Support/Alignment.h"
+
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     VarDecl::codegen(Backend::LLVM::Handler &Handler,
                      llvm::IRBuilder<> &Builder,
                      Backend::LLVM::ValueMap &ValueMap) noexcept
@@ -16,14 +20,27 @@ namespace AST {
                                 SV_FMT_ARG(getName()));
             }
 
-            return nullptr;
+            return std::nullopt;
         }
 
-        if (const auto Result = InitExpr->codegen(Handler, Builder, ValueMap)) {
-            Result->setName(Name);
-            return Result;
+        const auto ResultOpt = InitExpr->codegen(Handler, Builder, ValueMap);
+        if (!ResultOpt.has_value()) {
+            return std::nullopt;
         }
 
-        return nullptr;
+        if (getLinkage() == Linkage::External) {
+            const auto Type = llvm::Type::getDoubleTy(Handler.getContext());
+            const auto gVar =
+                new llvm::GlobalVariable(
+                    Type,
+                    /*isConstant=*/false,
+                    llvm::GlobalVariable::LinkageTypes::ExternalLinkage,
+                    /*Initializer=*/nullptr,
+                    /*Name=*/getName());
+
+            return gVar;
+        }
+
+        return ResultOpt.value();
     }
 }

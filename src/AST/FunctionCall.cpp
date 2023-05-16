@@ -8,7 +8,7 @@
 #include "llvm/Support/Casting.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     FunctionCall::codegen(Backend::LLVM::Handler &Handler,
                           llvm::IRBuilder<> &Builder,
                           Backend::LLVM::ValueMap &ValueMap) noexcept
@@ -20,7 +20,7 @@ namespace AST {
                                 SV_FMT_ARG(getName()));
             }
 
-            return nullptr;
+            return std::nullopt;
         }
 
         const auto FuncDecl =
@@ -41,17 +41,23 @@ namespace AST {
                                 FuncProto->getParamList().size());
             }
 
-            return nullptr;
+            return std::nullopt;
         }
 
         auto ArgsV = std::vector<llvm::Value *>();
+        ArgsV.reserve(getArgs().size());
+
         for (auto I = unsigned(); I != getArgs().size(); ++I) {
-            ArgsV.push_back(Args[I]->codegen(Handler, Builder, ValueMap));
-            if (ArgsV.back() == nullptr) {
-                return nullptr;
+            if (const auto ResultOpt =
+                    Args[I]->codegen(Handler, Builder, ValueMap))
+            {
+                ArgsV.push_back(ResultOpt.value());
+                continue;
             }
+
+            return std::nullopt;
         }
 
-        return Handler.getBuilder().CreateCall(FuncLLVM, ArgsV, "calltmp");
+        return Builder.CreateCall(FuncLLVM, ArgsV, "calltmp");
     }
 }

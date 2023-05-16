@@ -4,10 +4,13 @@
 
 #include "AST/FunctionDecl.h"
 #include "AST/NodeKind.h"
+#include "AST/ReturnStmt.h"
+#include "llvm/IR/Constant.h"
+#include "llvm/IR/Instruction.h"
 #include "llvm/IR/Verifier.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     FunctionDecl::finishPrototypeCodegen(
         Backend::LLVM::Handler &Handler,
         llvm::IRBuilder<> &Builder,
@@ -31,11 +34,11 @@ namespace AST {
         }
 
         auto BodyIRBuilder = llvm::IRBuilder(BB);
-        const auto RetVal = Body->codegen(Handler, BodyIRBuilder, ValueMap);
+        const auto BodyValOpt = Body->codegen(Handler, BodyIRBuilder, ValueMap);
 
-        if (RetVal == nullptr) {
+        if (!BodyValOpt.has_value()) {
             Function->removeFromParent();
-            return nullptr;
+            return std::nullopt;
         }
 
         for (auto &Arg : Function->args()) {
@@ -43,12 +46,6 @@ namespace AST {
         }
 
         // Finish off the function.
-        if (Body->getKind() != AST::NodeKind::IfStmt &&
-            Body->getKind() != AST::NodeKind::ReturnStmt)
-        {
-            BodyIRBuilder.CreateRet(RetVal);
-        }
-
         // Validate the generated code, checking for consistency.
         llvm::verifyFunction(*Function);
         Handler.getModule().print(llvm::outs(), nullptr);
@@ -58,14 +55,19 @@ namespace AST {
         return Function;
     }
 
-    llvm::Value *
+    std::optional<llvm::Value *>
     FunctionDecl::codegen(Backend::LLVM::Handler &Handler,
                           llvm::IRBuilder<> &Builder,
                           Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        const auto ProtoCodegen =
+        const auto ProtoCodegenOpt =
             getPrototype()->codegen(Handler, Builder, ValueMap);
 
+        if (!ProtoCodegenOpt.has_value()) {
+            return std::nullopt;
+        }
+
+        const auto ProtoCodegen = ProtoCodegenOpt.value();
         return finishPrototypeCodegen(Handler, Builder, ValueMap, ProtoCodegen);
     }
 }

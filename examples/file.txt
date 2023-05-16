@@ -1,2 +1,15 @@
-let a = 2 + 3;
-func b(c) return c + 1;
+func b(c) {
+    if (2*3 != 0) {
+        return c+1;
+    } else {
+        let result = c+2;
+        return result;
+    }
+    return 0;
+}
+
+let d = 3;
+func main(argc, argv) {
+    let c = b(4);
+    return c;
+}

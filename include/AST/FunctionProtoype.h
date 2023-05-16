@@ -38,13 +38,6 @@ namespace AST {
                 return *this;
             }
 
-            constexpr auto setName(std::string &&Name) noexcept
-                -> decltype(*this)
-            {
-                this->Name = std::move(Name);
-                return *this;
-            }
-
             constexpr auto setNameLoc(const SourceLocation NameLoc) noexcept
                 -> decltype(*this)
             {
@@ -104,7 +97,7 @@ namespace AST {
         constexpr auto setName(const std::string_view Name) noexcept
             -> decltype(*this)
         {
-            this->Name = std::string_view(Name);
+            this->Name = Name;
             return *this;
         }
 
@@ -116,7 +109,7 @@ namespace AST {
             return ParamList;
         }
 
-        [[nodiscard]] llvm::Value *
+        [[nodiscard]] std::optional<llvm::Value *>
         codegen(Backend::LLVM::Handler &Handler,
                 llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept;

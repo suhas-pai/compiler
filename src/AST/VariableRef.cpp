@@ -6,7 +6,7 @@
 #include "Backend/LLVM/Handler.h"
 
 namespace AST {
-    llvm::Value *
+    std::optional<llvm::Value *>
     VariableRef::codegen(Backend::LLVM::Handler &Handler,
                          llvm::IRBuilder<> &Builder,
                          Backend::LLVM::ValueMap &ValueMap) noexcept
@@ -20,6 +20,6 @@ namespace AST {
                             SV_FMT_ARG(Name));
         }
 
-        return nullptr;
+        return std::nullopt;
     }
 }

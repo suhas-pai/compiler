@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "ADT/UnorderedStringMap.h"
+#include "ADT/StringMap.h"
+#include "AST/Context.h"
 #include "Interface/DiagnosticsEngine.h"
 
 #include "llvm/ExecutionEngine/JITSymbol.h"
@@ -40,6 +41,11 @@ namespace Backend::LLVM {
             -> decltype(*this);
     };
 
+    // Handler is a struct that handles the llvm-backend process to create a
+    // program.
+    // This program shares a single 'module' in llvm parlance, and a single
+    // function-pass-manager that optimizes the program.
+
     struct Handler {
     protected:
         // This is an object that owns LLVM core data structures
@@ -64,7 +70,11 @@ namespace Backend::LLVM {
         static void LLVMInitialize() noexcept;
 
         virtual void AllocCoreFields(const llvm::StringRef &Name) noexcept;
+
         void Initialize(const llvm::StringRef &Name) noexcept;
+        auto createModuleAndFPM() ->
+            std::pair<std::unique_ptr<llvm::Module>,
+                      std::unique_ptr<llvm::legacy::PassManager>>;
 
         explicit
         Handler(const llvm::StringRef &ModuleName,
@@ -122,10 +132,6 @@ namespace Backend::LLVM {
         auto getASTNode(std::string_view Name) noexcept -> AST::Stmt *;
         auto removeASTNode(std::string_view Name) noexcept -> decltype(*this);
 
-        virtual bool
-        evalulateAndPrint(AST::Stmt &Stmt,
-                          bool PrintIR,
-                          std::string_view Prefix = "",
-                          std::string_view Suffix = "") noexcept;
+        virtual bool evalulate(AST::Context &Context) noexcept;
     };
 }

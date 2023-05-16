@@ -30,7 +30,7 @@ namespace Backend::LLVM {
 
     void Handler::Initialize(const llvm::StringRef &Name) noexcept {
         // Create a new pass manager attached to it.
-        AllocCoreFields("Simple");
+        AllocCoreFields("Compiler");
 
         FPM =
             std::make_unique<llvm::legacy::FunctionPassManager>(
@@ -52,11 +52,11 @@ namespace Backend::LLVM {
                      Interface::DiagnosticsEngine *const Diag) noexcept
     : Diag(Diag)
     {
-        Initialize("Simple");
+        Initialize("Compiler");
     }
 
     Handler::Handler(Interface::DiagnosticsEngine *Diag) noexcept
-    : Handler("Handler", Diag) {}
+    : Handler("Compiler", Diag) {}
 
     auto
     ValueMap::addValue(const std::string_view Name,
@@ -120,10 +120,6 @@ namespace Backend::LLVM {
             &Node
         });
 
-        if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Node)) {
-            getDeclListRef().emplace_back(Decl);
-        }
-
         return *this;
     }
 
@@ -145,29 +141,50 @@ namespace Backend::LLVM {
         return *this;
     }
 
-    bool
-    Handler::evalulateAndPrint(AST::Stmt &Stmt,
-                               const bool PrintIR,
-                               const std::string_view Prefix,
-                               const std::string_view Suffix) noexcept
-    {
-        auto ValueMap = ::Backend::LLVM::ValueMap();
-        const auto Codegen = Stmt.codegen(*this, getBuilder(), ValueMap);
+    bool Handler::evalulate(AST::Context &Context) noexcept {
+        auto ValueMap = LLVM::ValueMap();
+        for (const auto &[Name, Decl] : Context.getDeclMap()) {
+            // We need to be able to reference a function within its body,
+            // so this case must be handled differently.
 
-        if (const auto Constant = llvm::dyn_cast<llvm::ConstantFP>(Codegen)) {
-            fprintf(stdout,
-                    SV_FMT "%f" SV_FMT,
-                    SV_FMT_ARG(Prefix),
-                    Constant->getValueAPF().convertToDouble(),
-                    SV_FMT_ARG(Suffix));
-        } else if (const auto Constant =
-                        llvm::dyn_cast<llvm::ConstantInt>(Codegen))
-        {
-            fprintf(stdout,
-                    SV_FMT "%" PRId64 SV_FMT,
-                    SV_FMT_ARG(Prefix),
-                    Constant->getSExtValue(),
-                    SV_FMT_ARG(Suffix));
+            if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
+                const auto Proto = FuncDecl->getPrototype();
+                const auto ProtoCodegenOpt =
+                    Proto->codegen(*this, getBuilder(), ValueMap);
+
+                if (!ProtoCodegenOpt.has_value()) {
+                    return false;
+                }
+
+                const auto ProtoCodegen = ProtoCodegenOpt.value();
+
+                addASTNode(Name, *Decl);
+                ValueMap.addValue(Proto->getName(), ProtoCodegen);
+
+                const auto FinishedValueOpt =
+                    FuncDecl->finishPrototypeCodegen(*this,
+                                                     getBuilder(),
+                                                     ValueMap,
+                                                     ProtoCodegen);
+
+                if (!FinishedValueOpt.has_value()) {
+                    return false;
+                }
+
+                ValueMap.setValue(Proto->getName(), FinishedValueOpt.value());
+                continue;
+            }
+
+            if (const auto ValueOpt =
+                    Decl->codegen(*this, getBuilder(), ValueMap))
+            {
+                addASTNode(Name, *Decl);
+                ValueMap.addValue(Decl->getName(), ValueOpt.value());
+
+                continue;
+            }
+
+            return false;
         }
 
         return true;

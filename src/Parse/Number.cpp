@@ -30,7 +30,7 @@ namespace Parse {
                 Result.Kind = NumberKind::SignedInteger;
             } else if (SignChar == '+') {
                 if (!Options.AllowPosSign) {
-                    Result.Error = ParseNumberError::NegativeNumber;
+                    Result.Error = ParseNumberError::PositiveSign;
                     return Result;
                 }
 
@@ -39,42 +39,39 @@ namespace Parse {
         }
 
         auto Base = uint8_t(10);
-        if (const auto LeadingZeroChar = Lexer.peek()) {
-            if (LeadingZeroChar == '0') {
-                Lexer.consume();
-                switch (Lexer.peek()) {
-                    case '\0':
-                        if (Result.Kind == NumberKind::SignedInteger) {
-                            Result.Error = ParseNumberError::NegativeZero;
-                        } else {
-                            Result.UInt = 0;
-                        }
+        if (const auto LeadingZeroChar = Lexer.consumeIf('0')) {
+            switch (Lexer.peek()) {
+                case '\0':
+                    if (Result.Kind == NumberKind::SignedInteger) {
+                        Result.Error = ParseNumberError::NegativeZero;
+                    } else {
+                        Result.UInt = 0;
+                    }
 
-                        return Result;
-                    case '.':
-                        Result.Error = ParseNumberError::FloatingPoint;
-                        return Result;
-                    case 'b':
-                    case 'B':
-                        Lexer.consume();
-                        Base = 2;
+                    return Result;
+                case '.':
+                    Result.Error = ParseNumberError::FloatingPoint;
+                    return Result;
+                case 'b':
+                case 'B':
+                    Lexer.consume();
+                    Base = 2;
 
-                        break;
-                    case 'o':
-                    case 'O':
-                        Lexer.consume();
-                        Base = 8;
+                    break;
+                case 'o':
+                case 'O':
+                    Lexer.consume();
+                    Base = 8;
 
-                        break;
-                    case 'x':
-                    case 'X':
-                        Lexer.consume();
-                        Base = 16;
+                    break;
+                case 'x':
+                case 'X':
+                    Lexer.consume();
+                    Base = 16;
 
-                        break;
-                    default:
-                        break;
-                }
+                    break;
+                default:
+                    break;
             }
         }
 

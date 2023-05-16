@@ -18,7 +18,7 @@ namespace AST {
             return Kind;
         }
 
-        virtual llvm::Value *
+        virtual std::optional<llvm::Value *>
         codegen(Backend::LLVM::Handler &Handler,
                 llvm::IRBuilder<> &Builder,
                 Backend::LLVM::ValueMap &ValueMap) noexcept = 0;
