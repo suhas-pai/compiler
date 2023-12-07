@@ -4,7 +4,6 @@
 
 #include <cassert>
 #include <cstdio>
-#include <inttypes.h>
 
 #include "AST/BinaryOperation.h"
 #include "AST/CompoundStmt.h"
@@ -191,7 +190,7 @@ HandlePrompt(const std::string_view &Prompt,
              const ArgumentOptions ArgOptions) noexcept
 {
     auto Diag = Interface::DiagnosticsEngine();
-    auto BackendHandler = Backend::LLVM::JITHandler::Create(&Diag, Context);
+    auto BackendHandler = Backend::LLVM::JITHandler::create(&Diag, Context);
     auto Tokenizer = Lex::Tokenizer(Prompt, Diag);
     auto TokenList = std::vector<Lex::Token>();
 

@@ -11,7 +11,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_executable(compiler ${SOURCES})
 
 target_include_directories(compiler PUBLIC include)
-set(CXX_FLAGS -Wall -Wextra -pedantic -Wsign-conversion -Wredundant-decls -Wstrict-overflow=5 -Wundef -Wnull-dereference -funsigned-char -fno-exceptions -std=gnu++20 -Wno-gnu-case-range -Wno-sign-conversion -Wno-unused-parameter)
+set(CXX_FLAGS
+    -Wall -Wextra -pedantic -Wsign-conversion -Wredundant-decls
+    -Wstrict-overflow=5 -Wundef -Wnull-dereference -funsigned-char
+    -fno-exceptions -std=gnu++20 -Wno-gnu-case-range -Wno-sign-conversion
+    -Wno-unused-parameter)
 
 execute_process(COMMAND llvm-config --cxxflags OUTPUT_VARIABLE LLVM_CXX_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND llvm-config --ldflags OUTPUT_VARIABLE LLVM_LD_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -41,7 +45,11 @@ endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set_target_properties(compiler PROPERTIES OUTPUT_NAME "compiler_debug")
-    target_link_options(compiler PRIVATE "-fsanitize=undefined")
+
+    target_compile_options(compiler PRIVATE
+                           "-fsanitize=address" "-fsanitize=undefined")
+    target_link_options(compiler PRIVATE
+                           "-fsanitize=address" "-fsanitize=undefined")
 endif()
 
 install_files(. FILES compile_commands.json)

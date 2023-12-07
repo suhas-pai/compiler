@@ -4,13 +4,10 @@
 
 #pragma once
 
-#include <string>
 #include <string_view>
-#include <vector>
 
 #include "AST/Decl.h"
 #include "AST/FunctionProtoype.h"
-#include "AST/Expr.h"
 
 namespace AST {
     struct FunctionDecl : public Decl {

@@ -266,7 +266,7 @@ namespace Parse {
 
     auto Parser::parseLHS() noexcept -> AST::Expr * {
         /* Parse Prefixes and then LHS */
-        auto Root = static_cast<AST::UnaryOperation *>(nullptr);
+        auto Root = static_cast<AST::Expr *>(nullptr);
         auto CurrentOper = static_cast<AST::UnaryOperation *>(nullptr);
 
         while (true) {
@@ -278,11 +278,9 @@ namespace Parse {
             const auto Token = TokenOpt.value();
             auto Expr = static_cast<AST::Expr *>(nullptr);
 
-            if (Lex::TokenKindIsUnaryOp(Token.Kind) ||
-                Token.Kind == Lex::TokenKind::Minus)
+            if (!Lex::TokenKindIsUnaryOp(Token.Kind) &&
+                Token.Kind != Lex::TokenKind::Minus)
             {
-                Expr = this->parseUnaryOper(Token);
-            } else {
                 switch (Token.Kind) {
                     case Lex::TokenKind::Identifier:
                         Expr = this->parseIdentifierForLhs(Token);
@@ -309,6 +307,8 @@ namespace Parse {
                                        SV_FMT_ARG(tokenContent(Token)));
                         return nullptr;
                 }
+            } else {
+                Expr = this->parseUnaryOper(Token);
             }
 
             if (Expr == nullptr) {
@@ -316,7 +316,7 @@ namespace Parse {
             }
 
             if (Root == nullptr) {
-                Root = static_cast<AST::UnaryOperation *>(Expr);
+                Root = Expr;
             } else {
                 CurrentOper->setOperand(Expr);
             }
@@ -638,8 +638,7 @@ namespace Parse {
         return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
     }
 
-    auto
-    Parser::parseStmt(const bool ParseTopLevelExpr) noexcept -> AST::Stmt * {
+    auto Parser::parseStmt() noexcept -> AST::Stmt * {
         const auto TokenOpt = this->consume();
         if (!TokenOpt.has_value()) {
             Diag.emitError("Unexpected end of file");
@@ -694,8 +693,8 @@ namespace Parse {
         return true;
     }
 
-    auto Parser::parseTopLevelExpressionOrStmt() noexcept -> AST::Expr * {
-        if (const auto Result = this->parseStmt(/*ParseTopLevelExpr=*/true)) {
+    auto Parser::parseTopLevelExpressionOrStmt() noexcept -> AST::Stmt * {
+        if (const auto Result = this->parseStmt()) {
             if (const auto Token = this->peek()) {
                 Diag.emitError("Unexpected token \"" SV_FMT "\"",
                                SV_FMT_ARG(tokenContent(*Token)));
@@ -706,7 +705,7 @@ namespace Parse {
                 Context.addDecl(Decl);
             }
 
-            return static_cast<AST::Expr *>(Result);
+            return Result;
         }
 
         return nullptr;

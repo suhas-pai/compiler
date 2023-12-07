@@ -3,9 +3,7 @@
  */
 
 #include "AST/FunctionDecl.h"
-#include "AST/NodeKind.h"
-#include "AST/ReturnStmt.h"
-#include "llvm/IR/Constant.h"
+
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Verifier.h"
 
@@ -51,7 +49,7 @@ namespace AST {
         Handler.getModule().print(llvm::outs(), nullptr);
 
         // Run the optimizer on the function.
-        Handler.getFPM().run(*Function);
+        Handler.getFPM().run(*Function, Handler.getFAM());
         return Function;
     }
 

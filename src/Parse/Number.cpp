@@ -113,7 +113,7 @@ namespace Parse {
                     return Result;
                 }
 
-                auto Digit = uint8_t(0);
+                auto Digit = uint8_t();
                 if (Char >= '0' && Char <= '9') {
                     Digit = Char - '0';
                 } else  if (Char >= 'a' && Char <= 'f') {
@@ -126,7 +126,7 @@ namespace Parse {
                 }
 
                 if (Digit >= Base) {
-                    Result.Error  = ParseNumberError::InvalidDigit;
+                    Result.Error = ParseNumberError::InvalidDigit;
                     return Result;
                 }
 

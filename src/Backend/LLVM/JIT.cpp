@@ -5,8 +5,14 @@
 #include "AST/FunctionDecl.h"
 #include "AST/ReturnStmt.h"
 #include "AST/VarDecl.h"
+
 #include "Backend/LLVM/JIT.h"
 #include "Basic/SourceLocation.h"
+
+#include "llvm/ExecutionEngine/Orc/CompileUtils.h"
+#include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
+
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Support/Casting.h"
 
 namespace Backend::LLVM {
@@ -24,7 +30,8 @@ namespace Backend::LLVM {
       CompileLayer(*this->ES, ObjectLayer,
                    std::make_unique<llvm::orc::ConcurrentIRCompiler>(
                        std::move(JTMB))),
-      MainJD(this->ES->createBareJITDylib("<main>"))
+      MainJD(this->ES->createBareJITDylib("<main>")),
+      Context(Context)
     {
         MainJD.addGenerator(
             cantFail(
@@ -65,15 +72,16 @@ namespace Backend::LLVM {
     }
 
     auto
-    JITHandler::Create(Interface::DiagnosticsEngine *Diag,
+    JITHandler::create(Interface::DiagnosticsEngine *Diag,
                        AST::Context &Context) noexcept
         -> std::unique_ptr<JITHandler>
     {
-        LLVMInitialize();
+        initializeLLVM();
 
         auto EPC = llvm::orc::SelfExecutorProcessControl::Create();
-        if (!EPC)
+        if (!EPC) {
             return nullptr;
+        }
 
         auto ES =
             std::make_unique<llvm::orc::ExecutionSession>(std::move(*EPC));
@@ -104,8 +112,8 @@ namespace Backend::LLVM {
         }
     }
 
-    void JITHandler::AllocCoreFields(const llvm::StringRef &Name) noexcept {
-        Handler::AllocCoreFields(Name);
+    void JITHandler::allocCoreFields(const llvm::StringRef &Name) noexcept {
+        Handler::allocCoreFields(Name);
         TheModule->setDataLayout(this->getDataLayout());
     }
 
@@ -146,7 +154,7 @@ namespace Backend::LLVM {
             if (const auto ValueOpt =
                     Decl->codegen(Handler, Handler.getBuilder(), ValueMap))
             {
-                ValueMap.addValue(Decl->getName(), ValueOpt.value());
+                ValueMap.addValue(Name, ValueOpt.value());
                 continue;
             }
 
@@ -236,7 +244,7 @@ namespace Backend::LLVM {
         auto Proto =
             AST::FunctionPrototype(
                 SourceLocation::invalid(),
-                /*Name=*/Name,
+                Name,
                 std::vector<AST::FunctionPrototype::ParamDecl>());
 
         auto ReturnStmt = StmtToExecute;
@@ -265,15 +273,14 @@ namespace Backend::LLVM {
                                         std::move(TheContext));
 
         ExitOnErr(this->addModule(std::move(TSM), RT));
-        Initialize("JIT");
+        initialize("JIT");
 
         // Search the JIT for the __anon_expr symbol.
         const auto ExprSymbol = ExitOnErr(this->lookup(Name));
-        assert(ExprSymbol && "Function not found");
 
         // Get the symbol's address and cast it to the right type (takes no
         // arguments, returns a double) so we can call it as a native function.
-        double (*FP)() = (double (*)())(intptr_t)ExprSymbol.getAddress();
+        double (*const FP)() = ExprSymbol.getAddress().toPtr<double (*)()>();
         fprintf(stdout,
                 SV_FMT "%f" SV_FMT,
                 SV_FMT_ARG(Prefix),

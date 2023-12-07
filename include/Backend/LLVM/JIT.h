@@ -10,19 +10,15 @@
 #include "Interface/DiagnosticsEngine.h"
 #include "llvm/ADT/StringRef.h"
 
-#include "llvm/ExecutionEngine/JITSymbol.h"
-#include "llvm/ExecutionEngine/Orc/CompileUtils.h"
 #include "llvm/ExecutionEngine/Orc/Core.h"
-#include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
 #include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
 #include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
-#include "llvm/ExecutionEngine/SectionMemoryManager.h"
+#include "llvm/ExecutionEngine/Orc/Shared/ExecutorSymbolDef.h"
 
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/LegacyPassManager.h"
 
 namespace Backend::LLVM {
     struct JITHandler : public Handler {
@@ -36,7 +32,7 @@ namespace Backend::LLVM {
         llvm::orc::IRCompileLayer CompileLayer;
 
         llvm::orc::JITDylib &MainJD;
-        AST::Context Context;
+        AST::Context &Context;
 
         explicit
         JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
@@ -45,10 +41,10 @@ namespace Backend::LLVM {
                    AST::Context &Context,
                    Interface::DiagnosticsEngine *Diag) noexcept;
 
-        void AllocCoreFields(const llvm::StringRef &Name) noexcept override;
+        void allocCoreFields(const llvm::StringRef &Name) noexcept override;
     public:
         static auto
-        Create(Interface::DiagnosticsEngine *Diag,
+        create(Interface::DiagnosticsEngine *Diag,
                AST::Context &Context) noexcept -> std::unique_ptr<JITHandler>;
 
         virtual ~JITHandler() noexcept;
@@ -69,14 +65,15 @@ namespace Backend::LLVM {
         addModule(llvm::orc::ThreadSafeModule TSM,
                   llvm::orc::ResourceTrackerSP RT = nullptr) noexcept
         {
-            if (RT == nullptr)
+            if (RT == nullptr) {
                 RT = MainJD.getDefaultResourceTracker();
+            }
 
             return CompileLayer.add(RT, std::move(TSM));
         }
 
         [[nodiscard]] auto lookup(const llvm::StringRef Name) noexcept
-            -> llvm::Expected<llvm::JITEvaluatedSymbol>
+            -> llvm::Expected<llvm::orc::ExecutorSymbolDef>
         {
             return ES->lookup({&MainJD}, Mangle(Name.str()));
         }

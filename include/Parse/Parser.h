@@ -71,9 +71,7 @@ namespace Parse {
         auto parseCompoundStmt(Lex::Token CurlyToken) noexcept
             -> AST::CompoundStmt *;
 
-        [[nodiscard]]
-        auto parseStmt(const bool ParseTopLevelExpr = false) noexcept
-            -> AST::Stmt *;
+        [[nodiscard]] auto parseStmt() noexcept -> AST::Stmt *;
 
         [[nodiscard]] auto parseExpression() noexcept -> AST::Expr *;
         [[nodiscard]] auto parseExpressionAndEnd() noexcept -> AST::Expr *;
@@ -114,7 +112,7 @@ namespace Parse {
           Diag(Diag), Options(Options) {}
 
         auto startParsing() noexcept -> bool;
-        auto parseTopLevelExpressionOrStmt() noexcept -> AST::Expr *;
+        auto parseTopLevelExpressionOrStmt() noexcept -> AST::Stmt *;
 
         [[nodiscard]] constexpr const auto &tokenList() const noexcept {
             return TokenList;

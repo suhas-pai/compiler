@@ -4,7 +4,6 @@
 
 #include "Lex/Tokenizer.h"
 #include "Lex/Keyword.h"
-#include "Parse/String.h"
 
 namespace Lex {
     auto Tokenizer::next() noexcept -> Token {

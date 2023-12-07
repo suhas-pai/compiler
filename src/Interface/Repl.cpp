@@ -2,8 +2,6 @@
  * Interface/Repl.cpp
  */
 
-#include <signal.h>
-
 #include <readline/history.h>
 #include <readline/readline.h>
 

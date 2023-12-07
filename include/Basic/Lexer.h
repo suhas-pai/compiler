@@ -39,7 +39,6 @@ public:
         return false;
     }
 
-
     [[nodiscard]] constexpr auto prev() const noexcept -> char {
         const auto Index = getIndex();
         if (Index >= Text.size()) {

@@ -3,7 +3,6 @@
  */
 
 #include "AST/BinaryOperation.h"
-#include "AST/FunctionProtoype.h"
 
 namespace AST {
     std::optional<llvm::Value *>

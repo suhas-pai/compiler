@@ -6,7 +6,6 @@
 
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Type.h"
-#include "llvm/Support/Alignment.h"
 
 namespace AST {
     std::optional<llvm::Value *>
@@ -36,7 +35,7 @@ namespace AST {
                     /*isConstant=*/false,
                     llvm::GlobalVariable::LinkageTypes::ExternalLinkage,
                     /*Initializer=*/nullptr,
-                    /*Name=*/getName());
+                    getName());
 
             return gVar;
         }

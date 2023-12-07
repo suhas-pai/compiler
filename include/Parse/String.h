@@ -3,7 +3,6 @@
  */
 
 #pragma once
-#include <optional>
 
 namespace Parse {
     auto VerifyEscapeSequence(const char NextChar) -> char;

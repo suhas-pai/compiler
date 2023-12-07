@@ -3,7 +3,6 @@
  */
 
 #pragma once
-#include <cstdint>
 
 #include "AST/Expr.h"
 #include "Basic/SourceLocation.h"

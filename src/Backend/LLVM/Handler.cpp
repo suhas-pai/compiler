@@ -2,60 +2,78 @@
  * Backend/LLVM/Handler.cpp
  */
 
-#include <cstdio>
 #include <memory>
 
-#include "AST/Expr.h"
 #include "AST/FunctionDecl.h"
-
 #include "Backend/LLVM/Handler.h"
 
+#include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/TargetSelect.h"
+
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar/GVN.h"
-#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/Reassociate.h"
+#include "llvm/Transforms/Scalar/SimplifyCFG.h"
 
 namespace Backend::LLVM {
-    void Handler::LLVMInitialize() noexcept {
+    void Handler::initializeLLVM() noexcept {
         llvm::InitializeNativeTarget();
         llvm::InitializeNativeTargetAsmParser();
         llvm::InitializeNativeTargetAsmPrinter();
     }
 
-    void Handler::AllocCoreFields(const llvm::StringRef &Name) noexcept {
-        this->TheContext = std::make_unique<llvm::LLVMContext>();
-        this->Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
-        this->TheModule = std::make_unique<llvm::Module>(Name, *TheContext);
+    void Handler::allocCoreFields(const llvm::StringRef &Name) noexcept {
+        // Open a new context and module.
+        TheContext = std::make_unique<llvm::LLVMContext>();
+        TheModule =
+            std::make_unique<llvm::Module>("KaleidoscopeJIT", *TheContext);
     }
 
-    void Handler::Initialize(const llvm::StringRef &Name) noexcept {
+    void Handler::initialize(const llvm::StringRef &Name) noexcept {
         // Create a new pass manager attached to it.
-        AllocCoreFields("Compiler");
+        allocCoreFields("Compiler");
 
-        FPM =
-            std::make_unique<llvm::legacy::FunctionPassManager>(
-                TheModule.get());
+        Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
 
+        // Create new pass and analysis managers.
+        FPM = std::make_unique<llvm::FunctionPassManager>();
+        FPM = std::make_unique<llvm::FunctionPassManager>();
+        LAM = std::make_unique<llvm::LoopAnalysisManager>();
+        FAM = std::make_unique<llvm::FunctionAnalysisManager>();
+        CGAM = std::make_unique<llvm::CGSCCAnalysisManager>();
+        MAM = std::make_unique<llvm::ModuleAnalysisManager>();
+        PIC = std::make_unique<llvm::PassInstrumentationCallbacks>();
+        SI =
+            std::make_unique<llvm::StandardInstrumentations>(
+                *TheContext,
+                /*DebugLogging*/true);
+
+        SI->registerCallbacks(*PIC, MAM.get());
+        // Add transform passes.
         // Do simple "peephole" optimizations and bit-twiddling optzns.
-        FPM->add(llvm::createInstructionCombiningPass());
+        FPM->addPass(llvm::InstCombinePass());
         // Reassociate expressions.
-        FPM->add(llvm::createReassociatePass());
+        FPM->addPass(llvm::ReassociatePass());
         // Eliminate Common SubExpressions.
-        FPM->add(llvm::createGVNPass());
+        FPM->addPass(llvm::GVNPass());
         // Simplify the control flow graph (deleting unreachable blocks, etc).
-        FPM->add(llvm::createCFGSimplificationPass());
+        FPM->addPass(llvm::SimplifyCFGPass());
 
-        FPM->doInitialization();
+        // Register analysis passes used in these transform passes.
+        llvm::PassBuilder PB;
+        PB.registerModuleAnalyses(*MAM);
+        PB.registerFunctionAnalyses(*FAM);
+        PB.crossRegisterProxies(*LAM, *FAM, *CGAM, *MAM);
     }
 
     Handler::Handler(const llvm::StringRef &Name,
                      Interface::DiagnosticsEngine *const Diag) noexcept
     : Diag(Diag)
     {
-        Initialize("Compiler");
+        initialize("Compiler");
     }
 
-    Handler::Handler(Interface::DiagnosticsEngine *Diag) noexcept
+    Handler::Handler(Interface::DiagnosticsEngine *const Diag) noexcept
     : Handler("Compiler", Diag) {}
 
     auto
@@ -115,11 +133,7 @@ namespace Backend::LLVM {
     Handler::addASTNode(const std::string_view Name, AST::Stmt &Node) noexcept
         -> decltype(*this)
     {
-        getNameToASTNodeMapRef().insert({
-            std::string(Name),
-            &Node
-        });
-
+        getNameToASTNodeMapRef().insert({ std::string(Name), &Node });
         return *this;
     }
 

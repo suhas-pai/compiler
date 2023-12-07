@@ -10,8 +10,8 @@ namespace Backend::LLVM {
     protected:
         std::string OutputFilePath;
     public:
-        explicit CreateObjectFile(
-            Interface::DiagnosticsEngine &Diag,
-            std::string_view OutputFilePath) noexcept;
+        explicit
+        CreateObjectFile(Interface::DiagnosticsEngine &Diag,
+                         std::string_view OutputFilePath) noexcept;
     };
 }

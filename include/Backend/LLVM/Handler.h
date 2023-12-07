@@ -8,14 +8,14 @@
 #include "AST/Context.h"
 #include "Interface/DiagnosticsEngine.h"
 
-#include "llvm/ExecutionEngine/JITSymbol.h"
+#include "llvm/Analysis/CGSCCPassManager.h"
+#include "llvm/Analysis/LoopAnalysisManager.h"
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/PassManager.h"
 
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/User.h"
-
+#include "llvm/Passes/StandardInstrumentations.h"
 #include "llvm/Support/Error.h"
 
 namespace AST {
@@ -62,19 +62,22 @@ namespace Backend::LLVM {
         ADT::UnorderedStringMap<AST::Stmt *> NameToASTNode;
         std::vector<AST::Decl *> DeclList;
 
-        std::unique_ptr<llvm::legacy::FunctionPassManager> FPM;
+        std::unique_ptr<llvm::FunctionPassManager> FPM;
+        std::unique_ptr<llvm::LoopAnalysisManager> LAM;
+        std::unique_ptr<llvm::FunctionAnalysisManager> FAM;
+        std::unique_ptr<llvm::CGSCCAnalysisManager> CGAM;
+        std::unique_ptr<llvm::ModuleAnalysisManager> MAM;
+        std::unique_ptr<llvm::PassInstrumentationCallbacks> PIC;
+        std::unique_ptr<llvm::StandardInstrumentations> SI;
+
         llvm::ExitOnError ExitOnErr;
 
         Interface::DiagnosticsEngine *Diag;
 
-        static void LLVMInitialize() noexcept;
+        static void initializeLLVM() noexcept;
+        virtual void allocCoreFields(const llvm::StringRef &Name) noexcept;
 
-        virtual void AllocCoreFields(const llvm::StringRef &Name) noexcept;
-
-        void Initialize(const llvm::StringRef &Name) noexcept;
-        auto createModuleAndFPM() ->
-            std::pair<std::unique_ptr<llvm::Module>,
-                      std::unique_ptr<llvm::legacy::PassManager>>;
+        void initialize(const llvm::StringRef &Name) noexcept;
 
         explicit
         Handler(const llvm::StringRef &ModuleName,
@@ -112,6 +115,10 @@ namespace Backend::LLVM {
 
         [[nodiscard]] constexpr auto &getFPM() const noexcept {
             return *FPM;
+        }
+
+        [[nodiscard]] constexpr auto &getFAM() const noexcept {
+            return *FAM;
         }
 
         [[nodiscard]] constexpr auto &getDiag() const noexcept {

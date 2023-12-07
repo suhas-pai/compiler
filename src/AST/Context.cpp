@@ -3,7 +3,6 @@
  */
 
 #include "AST/Context.h"
-#include "AST/Decl.h"
 #include "AST/CompoundStmt.h"
 #include "AST/FunctionDecl.h"
 #include "AST/ReturnStmt.h"
@@ -13,7 +12,6 @@
 
 namespace AST {
     auto Context::addDecl(AST::Decl *const Decl) noexcept -> bool {
-        Decl->setLinkage(Decl::Linkage::External);
         return DeclMap.insert({ Decl->getName(), Decl }).second;
     }
 
@@ -83,7 +81,7 @@ namespace AST {
     {
         if (ParentSymbolTable.hasDecl(VarDecl->getName())) {
             Diag.emitError("\"" SV_FMT "\" is already defined",
-                            SV_FMT_ARG(VarDecl->getName()));
+                           SV_FMT_ARG(VarDecl->getName()));
             return;
         }
 

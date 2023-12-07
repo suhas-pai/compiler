@@ -7,7 +7,6 @@
 #include "Backend/LLVM/Handler.h"
 #include "Basic/SourceLocation.h"
 #include "Expr.h"
-#include "llvm/IR/Value.h"
 
 namespace AST {
     struct VariableRef : public Expr {

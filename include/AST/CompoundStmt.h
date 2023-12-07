@@ -19,8 +19,7 @@ namespace AST {
                      std::vector<Stmt *> &&StmtList) noexcept
         : Stmt(ObjKind), BraceLoc(BraceLoc), StmtList(StmtList) {}
 
-        [[nodiscard]]
-        static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return (Stmt.getKind() == ObjKind);
         }
 

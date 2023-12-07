@@ -3,9 +3,7 @@
  */
 
 #pragma once
-
 #include "AST/Stmt.h"
-#include "Basic/SourceLocation.h"
 
 namespace AST {
     struct Decl : public Stmt {

@@ -4,8 +4,7 @@
 
 #pragma once
 
-#include <concepts>
-#include <functional>
+#include <optional>
 #include <variant>
 
 struct ErrorBase {};
