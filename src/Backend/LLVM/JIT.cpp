@@ -164,22 +164,6 @@ namespace Backend::LLVM {
         return true;
     }
 
-    auto
-    UnsetupDecls(JITHandler &Handler,
-                 ::Backend::LLVM::ValueMap &ValueMap) noexcept -> void
-    {
-        for (const auto &[Name, Decl] : Handler.getASTContext().getDeclMap()) {
-            if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
-                const auto Func = llvm::cast<llvm::Function>(
-                    ValueMap.getValue(Decl->getName()));
-
-                if (Func->getParent() != nullptr) {
-                    Func->eraseFromParent();
-                }
-            }
-        }
-    }
-
     bool
     JITHandler::evalulateAndPrint(AST::Stmt &Stmt,
                                   const bool PrintIR,
@@ -211,8 +195,6 @@ namespace Backend::LLVM {
 
                 const auto FuncValue = ValueMap.getValue(Proto->getName());
                 llvm::cast<llvm::Function>(FuncValue)->removeFromParent();
-
-                UnsetupDecls(*this, ValueMap);
             }
 
             return true;
@@ -289,8 +271,6 @@ namespace Backend::LLVM {
 
         // Delete the anonymous expression module from the JIT.
         ExitOnErr(RT->remove());
-        UnsetupDecls(*this, ValueMap);
-
         return true;
     }
 }
