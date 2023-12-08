@@ -31,7 +31,7 @@ namespace ADT {
     auto SymbolTable::hasDecl(const std::string_view Name) const noexcept
         -> bool
     {
-        return (getDecl(Name) != nullptr);
+        return getDecl(Name) != nullptr;
     }
 
     auto SymbolTable::removeDecl(const std::string_view Name) noexcept -> bool {

@@ -26,7 +26,7 @@ namespace AST {
           InitExpr(InitExpr) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
-            return (Stmt.getKind() == ObjKind);
+            return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]

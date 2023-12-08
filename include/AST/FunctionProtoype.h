@@ -82,7 +82,7 @@ namespace AST {
           ParamList(std::move(ParamList)) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
-            return (Stmt.getKind() == ObjKind);
+            return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]

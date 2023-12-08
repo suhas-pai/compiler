@@ -26,7 +26,7 @@ namespace AST {
         : Expr(ObjKind), Loc(Loc), Operator(Operator), Lhs(Lhs), Rhs(Rhs) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
-            return (Stmt.getKind() == ObjKind);
+            return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]

@@ -329,11 +329,11 @@ namespace Lex {
         SourceLocation Loc;
         SourceLocation End;
 
-        [[nodiscard]] static auto eof() -> Token {
+        [[nodiscard]] constexpr static auto eof() -> Token {
             return Token { .Kind = TokenKind::EOFToken };
         }
 
-        [[nodiscard]] static auto invalid() -> Token {
+        [[nodiscard]] constexpr static auto invalid() -> Token {
             return Token { .Kind = TokenKind::Invalid };
         }
 
@@ -349,7 +349,7 @@ namespace Lex {
     TokenStringIsKeyword(const std::string_view TokenString,
                          const Keyword Keyword) noexcept
     {
-        return (TokenString == KeywordToLexemeMap[Keyword]);
+        return TokenString == KeywordToLexemeMap[Keyword];
     }
 
     [[nodiscard]] constexpr
