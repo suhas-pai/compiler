@@ -16,7 +16,7 @@ target_include_directories(compiler PUBLIC include)
 set_target_properties (compiler PROPERTIES
   CXX_STANDARD 20
   CXX_STANDARD_REQUIRED TRUE
-  CXX_EXTENSIONS FALSE
+  CXX_EXTENSIONS TRUE
 )
 
 execute_process(COMMAND

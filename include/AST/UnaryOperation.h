@@ -39,8 +39,8 @@ namespace AST {
             return Operator;
         }
 
-        [[nodiscard]] constexpr auto getOperand() const noexcept {
-            return Operand;
+        [[nodiscard]] constexpr auto &getOperand() const noexcept {
+            return *Operand;
         }
 
         constexpr auto setOperator(const Parse::UnaryOperator Operator) noexcept

@@ -12,6 +12,16 @@ namespace AST {
                          Backend::LLVM::ValueMap &ValueMap) noexcept
     {
         if (const auto Value = ValueMap.getValue(Name)) {
+            if (const auto AllocaInst =
+                    llvm::dyn_cast<llvm::AllocaInst>(Value))
+            {
+                return
+                    Builder.CreateLoad(
+                        llvm::Type::getDoubleTy(Handler.getContext()),
+                        AllocaInst,
+                        "loadedValue");
+            }
+
             return Value;
         }
 

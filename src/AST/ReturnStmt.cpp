@@ -16,7 +16,25 @@ namespace AST {
         }
 
         if (const auto ResultOpt = Value->codegen(Handler, Builder, ValueMap)) {
-            return Builder.CreateRet(ResultOpt.value());
+            const auto Result = ResultOpt.value();
+
+            // For stack variables, create a load instruction and return its
+            // result
+
+            if (const auto AllocaInst =
+                    llvm::dyn_cast<llvm::AllocaInst>(Result))
+            {
+                const auto LoadedValue =
+                    Builder.CreateLoad(
+                        llvm::Type::getDoubleTy(Handler.getContext()),
+                        AllocaInst,
+                        "loadedValue");
+
+                return Builder.CreateRet(LoadedValue);
+            }
+
+            // Otherwise, directly return the value
+            return Builder.CreateRet(Result);
         }
 
         return std::nullopt;

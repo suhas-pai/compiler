@@ -11,14 +11,14 @@ namespace AST {
                             Backend::LLVM::ValueMap &ValueMap) noexcept
     {
         const auto OperandOpt =
-            this->Operand->codegen(Handler, Builder, ValueMap);
+            getOperand().codegen(Handler, Builder, ValueMap);
 
         if (!OperandOpt.has_value()) {
             return std::nullopt;
         }
 
         const auto Operand = OperandOpt.value();
-        switch (this->Operator) {
+        switch (getOperator()) {
             case Parse::UnaryOperator::Negate:
                 return Builder.CreateNeg(Operand);
             case Parse::UnaryOperator::LogicalNot:

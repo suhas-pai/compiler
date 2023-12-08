@@ -39,6 +39,16 @@ namespace AST {
             return gVar;
         }
 
-        return ResultOpt.value();
+        const auto FuncParent = Builder.GetInsertBlock()->getParent();
+        auto TmpB =
+            llvm::IRBuilder<>(&FuncParent->getEntryBlock(),
+                              FuncParent->getEntryBlock().begin());
+
+        const auto DoubleTy = llvm::Type::getDoubleTy(Handler.getContext());
+        const auto AllocaBlock =
+            TmpB.CreateAlloca(DoubleTy, nullptr, getName());
+
+        Builder.CreateStore(ResultOpt.value(), AllocaBlock);
+        return AllocaBlock;
     }
 }

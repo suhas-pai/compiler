@@ -50,7 +50,9 @@ namespace AST {
                      const VisitOptions Options) const noexcept;
     public:
         explicit Context() noexcept {}
-        auto addDecl(Decl *const Decl) noexcept -> bool;
+
+        auto addDecl(Decl *Decl) noexcept -> bool;
+        auto removeDecl(Decl *Decl) noexcept -> void;
 
         [[nodiscard]] constexpr auto &getDeclMap() const noexcept {
             return DeclMap;

@@ -42,6 +42,15 @@ namespace Interface {
     };
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+
 #define DIAG_ASSERT(diag, cond, msg, ...) \
-    if (__builtin_expect(!(cond), 0)) \
-        (diag).emitInternalError((msg), ##__VA_ARGS__)
+    do { \
+        if (__builtin_expect(!(cond), 0)) { \
+            (diag).emitInternalError((msg), ##__VA_ARGS__); \
+            exit(1); \
+        } \
+    } while (false)
+
+#pragma clang diagnostic pop

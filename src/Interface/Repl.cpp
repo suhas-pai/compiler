@@ -49,7 +49,7 @@ namespace Interface {
         using_history();
 
         auto FullPrompt = std::string(Prompt) + "> " + CRESET;
-        FullPrompt.insert(0, BHBLK);
+        FullPrompt.insert(0, BHBLU);
 
         while (true) {
             const auto InputCStr = readline(FullPrompt.c_str());

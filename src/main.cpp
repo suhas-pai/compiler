@@ -13,6 +13,7 @@
 #include "Backend/LLVM/JIT.h"
 #include "Basic/ArgvLexer.h"
 
+#include "Interface/ANSI.h"
 #include "Interface/Repl.h"
 
 #include "Lex/Tokenizer.h"
@@ -33,7 +34,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
     switch (Expr->getKind()) {
         case AST::NodeKind::Base:
-            assert(false && "Got Expr-Base while printing AST");
+            __builtin_unreachable();
         case AST::NodeKind::BinaryOperation: {
             const auto BinaryExpr = llvm::cast<AST::BinaryOperation>(Expr);
             const auto Lexeme =
@@ -52,7 +53,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
                 Parse::UnaryOperatorToLexemeMap[UnaryExpr->getOperator()];
 
             printf("unary-operation<%s>\n", Lexeme->data());
-            PrintAST(Handler, UnaryExpr->getOperand(), Depth + 1);
+            PrintAST(Handler, &UnaryExpr->getOperand(), Depth + 1);
 
             break;
         }
@@ -233,10 +234,17 @@ HandlePrompt(const std::string_view &Prompt,
         fputc('\n', stdout);
     }
 
-    BackendHandler->evalulateAndPrint(*Expr,
-                                      ArgOptions.PrintIR,
-                                      "Evaluated to ",
-                                      "\n");
+    const auto Result =
+        BackendHandler->evalulateAndPrint(*Expr,
+                                          ArgOptions.PrintIR,
+                                          BHGRN "Evaluation> " CRESET,
+                                          "\n");
+
+    if (!Result) {
+        if (const auto Decl = llvm::dyn_cast<AST::Decl>(Expr)) {
+            Context.removeDecl(Decl);
+        }
+    }
 }
 
 void PrintUsage(const char *const Name) noexcept {
@@ -246,8 +254,7 @@ void PrintUsage(const char *const Name) noexcept {
             Name);
 }
 
-void
-HandleReplOption(const ArgumentOptions ArgOptions) {
+void HandleReplOption(const ArgumentOptions ArgOptions) {
     auto Context = AST::Context();
     auto Diag = Interface::DiagnosticsEngine();
     auto ParserOptions = Parse::ParserOptions();

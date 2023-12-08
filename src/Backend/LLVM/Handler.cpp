@@ -151,7 +151,7 @@ namespace Backend::LLVM {
     auto Handler::removeASTNode(const std::string_view Name) noexcept
         -> decltype(*this)
     {
-        this->getNameToASTNodeMapRef().erase(std::string(Name));
+        getNameToASTNodeMapRef().erase(std::string(Name));
         return *this;
     }
 

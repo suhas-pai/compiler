@@ -11,6 +11,8 @@
 
 namespace Parse {
     enum class BinaryOperator {
+        Assignment,
+
         Add,
         Subtract,
 
@@ -35,7 +37,8 @@ namespace Parse {
     };
 
     constexpr auto LexTokenKindToBinaryOperatorMap =
-        ADT::SmallMap<Lex::TokenKind, BinaryOperator, 8>({
+        ADT::SmallMap<Lex::TokenKind, BinaryOperator, 9>({
+            std::make_pair(Lex::TokenKind::Equal, BinaryOperator::Assignment),
             std::make_pair(Lex::TokenKind::Plus, BinaryOperator::Add),
             std::make_pair(Lex::TokenKind::Minus, BinaryOperator::Subtract),
             std::make_pair(Lex::TokenKind::Star, BinaryOperator::Multiply),
@@ -49,7 +52,8 @@ namespace Parse {
         });
 
     constexpr auto BinaryOperatorToLexemeMap =
-        ADT::SmallMap<BinaryOperator, std::string_view, 8>({
+        ADT::SmallMap<BinaryOperator, std::string_view, 9>({
+            std::make_pair(BinaryOperator::Assignment, "="),
             std::make_pair(BinaryOperator::Add, "+"),
             std::make_pair(BinaryOperator::Subtract, "-"),
             std::make_pair(BinaryOperator::Multiply, "*"),

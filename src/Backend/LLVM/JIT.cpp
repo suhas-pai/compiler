@@ -215,6 +215,10 @@ namespace Backend::LLVM {
         }
 
         if (!SetupDecls(*this, ValueMap)) {
+            if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
+                removeASTNode(Decl->getName());
+            }
+
             return false;
         }
 

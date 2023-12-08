@@ -3,6 +3,7 @@
  */
 
 #include "AST/BinaryOperation.h"
+#include "AST/VariableRef.h"
 
 namespace AST {
     std::optional<llvm::Value *>
@@ -10,6 +11,29 @@ namespace AST {
                              llvm::IRBuilder<> &Builder,
                              Backend::LLVM::ValueMap &ValueMap) noexcept
     {
+        if (getOperator() == Parse::BinaryOperator::Assignment) {
+            const auto VarRef = llvm::dyn_cast<AST::VariableRef>(getLhs());
+            if (VarRef == nullptr) {
+                return std::nullopt;
+            }
+
+            const auto VarRefValue = ValueMap.getValue(VarRef->getName());
+            if (VarRefValue == nullptr) {
+                return std::nullopt;
+            }
+
+            const auto RhsValueOpt =
+                getRhs()->codegen(Handler, Builder, ValueMap);
+            if (!RhsValueOpt.has_value()) {
+                return std::nullopt;
+            }
+
+            const auto RhsValue = RhsValueOpt.value();
+            Builder.CreateStore(RhsValue, VarRefValue);
+
+            return RhsValue;
+        }
+
         const auto LeftOpt = getLhs()->codegen(Handler, Builder, ValueMap);
         if (!LeftOpt.has_value()) {
             return std::nullopt;
@@ -26,6 +50,8 @@ namespace AST {
         const auto Right = RightOpt.value();
 
         switch (getOperator()) {
+            case Parse::BinaryOperator::Assignment:
+                __builtin_unreachable();
             case Parse::BinaryOperator::Add:
                 return Builder.CreateFAdd(Left, Right, /*Name=*/"addtmp");
             case Parse::BinaryOperator::Subtract:
@@ -63,6 +89,6 @@ namespace AST {
             }
         }
 
-        assert(false && "Unknown binary operator");
+        __builtin_unreachable();
     }
 }

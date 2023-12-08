@@ -15,6 +15,10 @@ namespace AST {
         return DeclMap.insert({ Decl->getName(), Decl }).second;
     }
 
+    auto Context::removeDecl(AST::Decl *const Decl) noexcept -> void {
+        DeclMap.erase(Decl->getName());
+    }
+
     void
     Context::visitStmt(AST::Stmt *const Stmt,
                        ADT::SymbolTable &ParentSymbolTable,

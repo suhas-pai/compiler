@@ -19,13 +19,13 @@ namespace AST {
             return ProtoCodegen;
         }
 
-        assert(Body != nullptr && "FunctionDecl's body is null");
+        DIAG_ASSERT(Handler.getDiag(),
+                    Body != nullptr,
+                    "FunctionDecl's body is null");
 
         const auto Function = llvm::cast<llvm::Function>(ProtoCodegen);
         const auto BB =
-            llvm::BasicBlock::Create(Handler.getContext(),
-                                     "entry",
-                                     Function);
+            llvm::BasicBlock::Create(Handler.getContext(), "entry", Function);
 
         for (auto &Arg : Function->args()) {
             ValueMap.addValue(Arg.getName(), &Arg);
@@ -46,7 +46,6 @@ namespace AST {
         // Finish off the function.
         // Validate the generated code, checking for consistency.
         llvm::verifyFunction(*Function);
-        Handler.getModule().print(llvm::outs(), nullptr);
 
         // Run the optimizer on the function.
         Handler.getFPM().run(*Function, Handler.getFAM());

@@ -17,7 +17,7 @@ namespace Interface {
         }
 
         va_list List;
-        fputs(RED "Error: " CRESET, stderr);
+        fputs(BRED "Error: " CRESET, stderr);
 
         va_start(List, Message);
         vfprintf(stderr, Message, List);
@@ -38,7 +38,7 @@ namespace Interface {
         }
 
         va_list List;
-        fputs(RED "Internal Error: " CRESET, stderr);
+        fputs(BRED "Internal Error: " CRESET, stderr);
 
         va_start(List, Message);
         vfprintf(stderr, Message, List);
@@ -57,7 +57,7 @@ namespace Interface {
         }
 
         va_list List;
-        fputs(YEL "Warning: " CRESET, stderr);
+        fputs(BYEL "Warning: " CRESET, stderr);
 
         va_start(List, Message);
         vfprintf(stderr, Message, List);
