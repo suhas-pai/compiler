@@ -4,7 +4,7 @@
 # Building & Running (Debug)
     cmake --preset debug
     cd build_debug && ninja
-    ./compiler_debug
+    ./compiler
 
 # Building & Running (Release)
     cmake --preset release
