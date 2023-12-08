@@ -2,13 +2,10 @@
  * AST/Context.cpp
  */
 
-#include "AST/Context.h"
 #include "AST/CompoundStmt.h"
 #include "AST/FunctionDecl.h"
 #include "AST/ReturnStmt.h"
 #include "AST/VarDecl.h"
-
-#include "llvm/Support/Casting.h"
 
 namespace AST {
     auto Context::addDecl(AST::Decl *const Decl) noexcept -> bool {

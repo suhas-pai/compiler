@@ -7,13 +7,11 @@
 #include "AST/VarDecl.h"
 
 #include "Backend/LLVM/JIT.h"
-#include "Basic/SourceLocation.h"
 
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
-#include "llvm/Support/Casting.h"
 
 namespace Backend::LLVM {
     JITHandler::JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,

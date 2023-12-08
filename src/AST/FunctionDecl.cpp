@@ -3,8 +3,6 @@
  */
 
 #include "AST/FunctionDecl.h"
-
-#include "llvm/IR/Instruction.h"
 #include "llvm/IR/Verifier.h"
 
 namespace AST {

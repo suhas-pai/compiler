@@ -5,7 +5,6 @@
 #include <memory>
 
 #include "AST/FunctionDecl.h"
-#include "Backend/LLVM/Handler.h"
 
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/TargetSelect.h"

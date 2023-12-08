@@ -4,9 +4,6 @@
 
 #include "AST/VarDecl.h"
 
-#include "llvm/IR/GlobalVariable.h"
-#include "llvm/IR/Type.h"
-
 namespace AST {
     std::optional<llvm::Value *>
     VarDecl::codegen(Backend::LLVM::Handler &Handler,

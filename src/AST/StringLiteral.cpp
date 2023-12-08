@@ -3,7 +3,6 @@
  */
 
 #include "AST/StringLiteral.h"
-#include "Backend/LLVM/Handler.h"
 
 namespace AST {
     std::optional<llvm::Value *>

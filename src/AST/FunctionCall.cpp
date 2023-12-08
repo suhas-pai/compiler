@@ -5,8 +5,6 @@
 #include "AST/FunctionCall.h"
 #include "AST/FunctionDecl.h"
 
-#include "llvm/Support/Casting.h"
-
 namespace AST {
     std::optional<llvm::Value *>
     FunctionCall::codegen(Backend::LLVM::Handler &Handler,
