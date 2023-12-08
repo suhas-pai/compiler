@@ -4,9 +4,6 @@
 
 #pragma once
 
-#include <optional>
-#include <string_view>
-
 #include "AST/CharLiteral.h"
 #include "AST/CompoundStmt.h"
 #include "AST/Context.h"
@@ -22,7 +19,6 @@
 #include "AST/VarDecl.h"
 
 #include "Basic/SourceManager.h"
-#include "Interface/DiagnosticsEngine.h"
 
 namespace Parse {
     struct ParserOptions {

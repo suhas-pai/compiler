@@ -3,7 +3,6 @@
  */
 
 #pragma once
-
 #include <string_view>
 
 #include "ADT/SmallMap.h"
