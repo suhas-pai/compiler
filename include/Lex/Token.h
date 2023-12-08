@@ -89,7 +89,7 @@ namespace Lex {
     };
 
     [[nodiscard]]
-    constexpr auto TokenKindIsUnaryOp(const TokenKind Kind) noexcept -> bool {
+    constexpr auto TokenKindIsUnaryOp(const TokenKind Kind) noexcept {
         switch (Kind) {
             case TokenKind::Exclamation:
             case TokenKind::Tilde:
@@ -144,14 +144,14 @@ namespace Lex {
             case TokenKind::EOFToken:
                 break;
             case TokenKind::Invalid:
-                assert(false && "TokenKindIsUnaryOp() is invalid");
+                assert(false && "TokenKindIsUnaryOp(): TokenKind is invalid");
         }
 
         return false;
     }
 
     [[nodiscard]]
-    constexpr auto TokenKindIsBinOp(const TokenKind Kind) noexcept -> bool {
+    constexpr auto TokenKindIsBinOp(const TokenKind Kind) noexcept {
         switch (Kind) {
             case TokenKind::Plus:
             case TokenKind::Minus:
@@ -169,6 +169,7 @@ namespace Lex {
             case TokenKind::LessThanOrEqual:
             case TokenKind::GreaterThanOrEqual:
             case TokenKind::DoubleEqual:
+            case TokenKind::Equal:
             case TokenKind::NotEqual:
                 return true;
             case TokenKind::NumberLiteral:
@@ -190,7 +191,6 @@ namespace Lex {
             case TokenKind::DoublePipe:
             case TokenKind::Tilde:
             case TokenKind::TildeEqual:
-            case TokenKind::Equal:
             case TokenKind::Exclamation:
             case TokenKind::QuestionMark:
             case TokenKind::OpenParen:
@@ -206,7 +206,7 @@ namespace Lex {
             case TokenKind::EOFToken:
                 break;
             case TokenKind::Invalid:
-                assert(false && "TokenKindIsBinOp() is invalid");
+                assert(false && "TokenKindIsBinOp(): TokenKind is invalid");
         }
 
         return false;
@@ -318,8 +318,10 @@ namespace Lex {
             case TokenKind::EOFToken:
                 return "eof";
             case TokenKind::Invalid:
-                assert(false && "TokenKindGetName() is invalid");
+                assert(false && "TokenKindGetName(): token is invalid");
         }
+
+        __builtin_unreachable();
     }
 
     struct Token {
@@ -378,8 +380,6 @@ namespace Lex {
         #undef CHECK_KW
         }
 
-        assert(false &&
-               "KeywordTokenGetKeyword() got keyword-token with unrecognized "
-               "keyword");
+        __builtin_unreachable();
     }
 }

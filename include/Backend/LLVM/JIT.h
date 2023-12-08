@@ -39,12 +39,12 @@ namespace Backend::LLVM {
                    llvm::orc::JITTargetMachineBuilder JTMB,
                    llvm::DataLayout DL,
                    AST::Context &Context,
-                   Interface::DiagnosticsEngine *Diag) noexcept;
+                   Interface::DiagnosticsEngine &Diag) noexcept;
 
         void allocCoreFields(const llvm::StringRef &Name) noexcept override;
     public:
         static auto
-        create(Interface::DiagnosticsEngine *Diag,
+        create(Interface::DiagnosticsEngine &Diag,
                AST::Context &Context) noexcept -> std::unique_ptr<JITHandler>;
 
         virtual ~JITHandler() noexcept;

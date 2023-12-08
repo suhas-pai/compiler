@@ -42,6 +42,6 @@ namespace AST {
                 assert(false && "Dereference not yet supported");
         }
 
-        assert(false && "Unknown UnaryOperator");
+        __builtin_unreachable();
     }
 }

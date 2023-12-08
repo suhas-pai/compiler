@@ -10,7 +10,7 @@ namespace AST {
                     llvm::IRBuilder<> &Builder,
                     Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        auto CondValueOpt = Cond->codegen(Handler, Builder, ValueMap);
+        const auto CondValueOpt = Cond->codegen(Handler, Builder, ValueMap);
         if (!CondValueOpt.has_value()) {
             return std::nullopt;
         }

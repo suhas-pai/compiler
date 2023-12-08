@@ -72,7 +72,7 @@ namespace Backend::LLVM {
 
         llvm::ExitOnError ExitOnErr;
 
-        Interface::DiagnosticsEngine *Diag;
+        Interface::DiagnosticsEngine &Diag;
 
         static void initializeLLVM() noexcept;
         virtual void allocCoreFields(const llvm::StringRef &Name) noexcept;
@@ -81,9 +81,9 @@ namespace Backend::LLVM {
 
         explicit
         Handler(const llvm::StringRef &ModuleName,
-                Interface::DiagnosticsEngine *Diag) noexcept;
+                Interface::DiagnosticsEngine &Diag) noexcept;
     public:
-        explicit Handler(Interface::DiagnosticsEngine *Diag) noexcept;
+        explicit Handler(Interface::DiagnosticsEngine &Diag) noexcept;
 
         [[nodiscard]] constexpr auto &getContext() noexcept {
             return *TheContext;
@@ -117,20 +117,29 @@ namespace Backend::LLVM {
             return *FPM;
         }
 
+        [[nodiscard]] constexpr auto &getLAM() const noexcept {
+            return *LAM;
+        }
+
         [[nodiscard]] constexpr auto &getFAM() const noexcept {
             return *FAM;
         }
 
-        [[nodiscard]] constexpr auto &getDiag() const noexcept {
-            return Diag;
+        [[nodiscard]] constexpr auto &getCGAM() const noexcept {
+            return *CGAM;
+        }
+        [[nodiscard]] constexpr auto &getMAM() const noexcept {
+            return *MAM;
+        }
+        [[nodiscard]] constexpr auto &getPIC() const noexcept {
+            return *PIC;
+        }
+        [[nodiscard]] constexpr auto &getSI() const noexcept {
+            return *SI;
         }
 
-        constexpr
-        auto setDiag(Interface::DiagnosticsEngine *const Diag) noexcept
-            -> decltype(*this)
-        {
-            this->Diag = Diag;
-            return *this;
+        [[nodiscard]] constexpr auto &getDiag() const noexcept {
+            return Diag;
         }
 
         auto addASTNode(std::string_view Name, AST::Stmt &Node) noexcept

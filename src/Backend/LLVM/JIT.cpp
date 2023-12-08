@@ -20,7 +20,7 @@ namespace Backend::LLVM {
                            const llvm::orc::JITTargetMachineBuilder JTMB,
                            const llvm::DataLayout DL,
                            AST::Context &Context,
-                           Interface::DiagnosticsEngine *const Diag) noexcept
+                           Interface::DiagnosticsEngine &Diag) noexcept
     : Handler("JIT", Diag), ES(std::move(ES)), DL(std::move(DL)),
       Mangle(*this->ES, this->DL),
       ObjectLayer(*this->ES,
@@ -72,7 +72,7 @@ namespace Backend::LLVM {
     }
 
     auto
-    JITHandler::create(Interface::DiagnosticsEngine *Diag,
+    JITHandler::create(Interface::DiagnosticsEngine &Diag,
                        AST::Context &Context) noexcept
         -> std::unique_ptr<JITHandler>
     {
@@ -177,10 +177,8 @@ namespace Backend::LLVM {
         if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(&Stmt)) {
             const auto Proto = FuncDecl->getPrototype();
             if (getNameToASTNodeMap().contains(Proto->getName())) {
-                if (const auto Diag = getDiag()) {
-                    Diag->emitError("\"" SV_FMT "\" is already defined",
+                getDiag().emitError("\"" SV_FMT "\" is already defined",
                                     SV_FMT_ARG(Proto->getName()));
-                }
 
                 return false;
             }
@@ -203,10 +201,8 @@ namespace Backend::LLVM {
         auto StmtToExecute = &Stmt;
         if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
             if (getNameToASTNodeMap().contains(Decl->getName())) {
-                if (const auto Diag = getDiag()) {
-                    Diag->emitError("\"" SV_FMT "\" is already defined",
+                getDiag().emitError("\"" SV_FMT "\" is already defined",
                                     SV_FMT_ARG(Decl->getName()));
-                }
 
                 return false;
             }

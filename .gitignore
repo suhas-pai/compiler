@@ -14,6 +14,8 @@ _deps
 
 .cache
 build
+build_debug
+build_release
 compile_commands.json
 
 # Prerequisites

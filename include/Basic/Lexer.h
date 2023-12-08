@@ -8,7 +8,7 @@
 struct Lexer {
 protected:
     std::string_view Text;
-    uint64_t Index = 0;
+    uint32_t Index = 0;
 public:
     constexpr explicit Lexer(const std::string_view Text) noexcept
     : Text(Text) {}

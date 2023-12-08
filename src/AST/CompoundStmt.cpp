@@ -19,9 +19,8 @@ namespace AST {
             if (const auto ResultOpt =
                     Stmt->codegen(Handler, Builder, ValueMap))
             {
-                const auto Result = ResultOpt.value();
                 if (const auto Decl = llvm::dyn_cast<AST::Decl>(Stmt)) {
-                    ValueMap.addValue(Decl->getName(), Result);
+                    ValueMap.addValue(Decl->getName(), ResultOpt.value());
                     AddedDecls.push_back(Decl->getName());
                 }
 

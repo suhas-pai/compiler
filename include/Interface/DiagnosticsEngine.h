@@ -32,12 +32,16 @@ namespace Interface {
         }
 
         __printflike(2, 3)
-        void reportError(const char *Message, ...) noexcept;
+        void emitError(const char *Message, ...) noexcept;
 
         __printflike(2, 3)
-        void emitError(const char *Message, ...) noexcept;
+        void emitInternalError(const char *Message, ...) noexcept;
 
         __printflike(2, 3)
         void emitWarning(const char *Message, ...) noexcept;
     };
 }
+
+#define DIAG_ASSERT(diag, cond, msg, ...) \
+    if (__builtin_expect(!(cond), 0)) \
+        (diag).emitInternalError((msg), ##__VA_ARGS__)

@@ -15,10 +15,8 @@ namespace AST {
             return Value;
         }
 
-        if (const auto Diag = Handler.getDiag()) {
-            Diag->emitError("Variable \"" SV_FMT "\" is not defined",
-                            SV_FMT_ARG(Name));
-        }
+        Handler.getDiag().emitError("Variable \"" SV_FMT "\" is not defined",
+                                    SV_FMT_ARG(Name));
 
         return std::nullopt;
     }

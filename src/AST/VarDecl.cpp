@@ -14,10 +14,9 @@ namespace AST {
                      Backend::LLVM::ValueMap &ValueMap) noexcept
     {
         if (ValueMap.getValue(getName()) != nullptr) {
-            if (const auto Diag = Handler.getDiag()) {
-                Diag->emitError("Variable \'" SV_FMT "\' is already defined",
-                                SV_FMT_ARG(getName()));
-            }
+            Handler.getDiag().emitError(
+                "Variable \'" SV_FMT "\' is already defined",
+                SV_FMT_ARG(getName()));
 
             return std::nullopt;
         }

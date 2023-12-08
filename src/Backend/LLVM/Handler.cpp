@@ -67,13 +67,13 @@ namespace Backend::LLVM {
     }
 
     Handler::Handler(const llvm::StringRef &Name,
-                     Interface::DiagnosticsEngine *const Diag) noexcept
+                     Interface::DiagnosticsEngine &Diag) noexcept
     : Diag(Diag)
     {
         initialize("Compiler");
     }
 
-    Handler::Handler(Interface::DiagnosticsEngine *const Diag) noexcept
+    Handler::Handler(Interface::DiagnosticsEngine &Diag) noexcept
     : Handler("Compiler", Diag) {}
 
     auto
@@ -173,7 +173,7 @@ namespace Backend::LLVM {
                 const auto ProtoCodegen = ProtoCodegenOpt.value();
 
                 addASTNode(Name, *Decl);
-                ValueMap.addValue(Proto->getName(), ProtoCodegen);
+                ValueMap.addValue(Name, ProtoCodegen);
 
                 const auto FinishedValueOpt =
                     FuncDecl->finishPrototypeCodegen(*this,
@@ -185,7 +185,7 @@ namespace Backend::LLVM {
                     return false;
                 }
 
-                ValueMap.setValue(Proto->getName(), FinishedValueOpt.value());
+                ValueMap.setValue(Name, FinishedValueOpt.value());
                 continue;
             }
 
@@ -193,7 +193,7 @@ namespace Backend::LLVM {
                     Decl->codegen(*this, getBuilder(), ValueMap))
             {
                 addASTNode(Name, *Decl);
-                ValueMap.addValue(Decl->getName(), ValueOpt.value());
+                ValueMap.addValue(Name, ValueOpt.value());
 
                 continue;
             }

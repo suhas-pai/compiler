@@ -15,10 +15,9 @@ namespace AST {
     {
         const auto FuncValue = ValueMap.getValue(Name);
         if (FuncValue == nullptr) {
-            if (const auto Diag = Handler.getDiag()) {
-                Diag->emitError("Function \"" SV_FMT "\" is not defined",
-                                SV_FMT_ARG(getName()));
-            }
+            Handler.getDiag().emitError(
+                "Function \"" SV_FMT "\" is not defined",
+                SV_FMT_ARG(getName()));
 
             return std::nullopt;
         }
@@ -26,20 +25,20 @@ namespace AST {
         const auto FuncDecl =
             llvm::cast_if_present<AST::FunctionDecl>(Handler.getASTNode(Name));
 
-        assert(FuncDecl != nullptr &&
-               "Function not in Handler's NameToASTNodeMap");
+        DIAG_ASSERT(Handler.getDiag(),
+                    FuncDecl != nullptr,
+                    "Function not in Handler's NameToASTNodeMap");
 
         const auto FuncProto = FuncDecl->getPrototype();
         const auto FuncLLVM = llvm::cast<llvm::Function>(FuncValue);
 
         if (getArgs().size() != FuncProto->getParamList().size()) {
-            if (const auto Diag = Handler.getDiag()) {
-                Diag->emitError("%" PRIdPTR " arguments provided to function "
-                                "\"" SV_FMT "\", expected %" PRIdPTR,
-                                getArgs().size(),
-                                SV_FMT_ARG(getName()),
-                                FuncProto->getParamList().size());
-            }
+            Handler.getDiag().emitError(
+                "%" PRIdPTR " arguments provided to function \"" SV_FMT "\", "
+                "expected %" PRIdPTR,
+                getArgs().size(),
+                SV_FMT_ARG(getName()),
+                FuncProto->getParamList().size());
 
             return std::nullopt;
         }

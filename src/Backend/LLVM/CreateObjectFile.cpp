@@ -9,8 +9,6 @@ namespace Backend::LLVM {
     CreateObjectFile::CreateObjectFile(
         Interface::DiagnosticsEngine &Diag,
         const std::string_view OutputFilePath) noexcept
-    : Handler("CreateObjectFile", &Diag)
-    {
-
-    }
+    : Handler("CreateObjectFile", Diag)
+    {}
 }

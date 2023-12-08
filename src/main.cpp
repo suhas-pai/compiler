@@ -190,7 +190,7 @@ HandlePrompt(const std::string_view &Prompt,
              const ArgumentOptions ArgOptions) noexcept
 {
     auto Diag = Interface::DiagnosticsEngine();
-    auto BackendHandler = Backend::LLVM::JITHandler::create(&Diag, Context);
+    auto BackendHandler = Backend::LLVM::JITHandler::create(Diag, Context);
     auto Tokenizer = Lex::Tokenizer(Prompt, Diag);
     auto TokenList = std::vector<Lex::Token>();
 
@@ -305,7 +305,7 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
         const auto TokenList = TokensOpt.value();
 
         auto Context = AST::Context();
-        auto BackendHandler = Backend::LLVM::Handler(&Diag);
+        auto BackendHandler = Backend::LLVM::Handler(Diag);
         auto Parser = Parse::Parser(*SrcMngr, Context, TokenList, Diag);
 
         if (!Parser.startParsing()) {

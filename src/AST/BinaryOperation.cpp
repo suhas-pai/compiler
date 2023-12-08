@@ -52,10 +52,8 @@ namespace AST {
                     llvm::cast<llvm::Function>(ValueMap.getValue("pow"));
 
                 if (PowFunc == nullptr) {
-                    if (const auto Diag = Handler.getDiag()) {
-                        Diag->emitError("** operator only supprted on JIT");
-                    }
-
+                    Handler.getDiag().emitError(
+                        "** operator only supprted on JIT");
                     return std::nullopt;
                 }
 

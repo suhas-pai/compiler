@@ -99,8 +99,7 @@ namespace Parse {
             Parse::UnaryOperatorToLexemeMap.keyFor(TokenString);
 
         if (!UnaryOpOpt.has_value()) {
-            Diag.emitError("Internal error: unary operator not lexed "
-                           "correctly");
+            Diag.emitInternalError("unary operator not lexed correctly");
             return nullptr;
         }
 
@@ -329,7 +328,7 @@ namespace Parse {
             return Root;
         }
 
-        assert(false && "unreachable");
+        __builtin_unreachable();
     }
 
     auto Parser::parseBinOpRHS(AST::Expr *LHS, const uint64_t MinPrec) noexcept
@@ -347,8 +346,9 @@ namespace Parse {
             }
 
             const auto ThisOperInfoOpt = Parse::OperatorInfoMap[Token.Kind];
-            assert(ThisOperInfoOpt.has_value() &&
-                   "OperatorInfoMap is missing a bin-op");
+            DIAG_ASSERT(Diag,
+                        ThisOperInfoOpt.has_value(),
+                        "OperatorInfoMap is missing a bin-op");
 
             const auto ThisOperInfo = ThisOperInfoOpt.value();
             if (static_cast<uint64_t>(ThisOperInfo.Precedence) < MinPrec) {
@@ -378,8 +378,9 @@ namespace Parse {
                 const auto &NextOperInfoOpt =
                     Parse::OperatorInfoMap[Token.Kind];
 
-                assert(NextOperInfoOpt.has_value() &&
-                       "Internal Error: OperatorInfoMap missing entry");
+                DIAG_ASSERT(Diag,
+                            NextOperInfoOpt.has_value(),
+                            "OperatorInfoMap missing entry");
 
                 const auto NextOperInfo = NextOperInfoOpt.value();
                 if (ThisOperInfo.Precedence < NextOperInfo.Precedence ||
@@ -399,9 +400,9 @@ namespace Parse {
             }
 
             const auto BinOp = LexTokenKindToBinaryOperatorMap[BinOpToken.Kind];
-            assert(BinOp.has_value() &&
-                   "Internal Error: LexTokenKindToBinaryOperatorMap missing "
-                   "BinOp");
+            DIAG_ASSERT(Diag,
+                        BinOp.has_value(),
+                        "LexTokenKindToBinaryOperatorMap missing BinOp");
 
             LHS = new AST::BinaryOperation(Token.Loc, BinOp.value(), LHS, RHS);
         } while (true);
