@@ -1,5 +1,5 @@
 /*
- * AST/FunctionDecl.cp
+ * AST/FunctionDecl.cpp
  */
 
 #include "AST/FunctionDecl.h"
