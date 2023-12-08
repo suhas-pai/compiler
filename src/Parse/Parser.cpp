@@ -195,13 +195,18 @@ namespace Parse {
     auto Parser::parseParenExpr(const Lex::Token Token) noexcept
         -> AST::ParenExpr *
     {
-        const auto ChildExpr = this->parseExpression();
+        const auto ChildExprOpt = this->parseExpression();
+        if (!ChildExprOpt.has_value()) {
+            Diag.emitError("Unexpected semicolon/eof");
+            return nullptr;
+        }
+
         if (!this->expect(Lex::TokenKind::CloseParen)) {
             Diag.emitError("Expected closing parenthesis");
             return nullptr;
         }
 
-        return new AST::ParenExpr(Token, ChildExpr);
+        return new AST::ParenExpr(Token, ChildExprOpt.value());
     }
 
     auto
@@ -225,7 +230,7 @@ namespace Parse {
             }
 
             if (const auto Expr = this->parseExpression()) {
-                ArgList.emplace_back(Expr);
+                ArgList.emplace_back(Expr.value());
             } else {
                 return nullptr;
             }
@@ -408,28 +413,40 @@ namespace Parse {
         } while (true);
     }
 
-    auto Parser::parseExpression() noexcept -> AST::Expr * {
-        if (!this->peek().has_value()) {
-            Diag.emitError("Expected an expression");
+    auto Parser::parseExpression(const bool ExprIsOptional) noexcept
+        -> std::optional<AST::Expr *>
+    {
+        const auto Peek = this->peek();
+        if (!Peek.has_value() ||
+            Peek.value().Kind == Lex::TokenKind::Semicolon)
+        {
+            if (!ExprIsOptional) {
+                Diag.emitError("Expected an expression");
+                return std::nullopt;
+            }
+
             return nullptr;
         }
 
         return this->parseBinOpRHS(this->parseLHS(), /*MinPrec=*/0);
     }
 
-    auto Parser::parseExpressionAndEnd() noexcept -> AST::Expr * {
-        if (const auto Expr = this->parseExpression()) {
-            if (!this->expect(Lex::TokenKind::Semicolon,
-                              /*Optional=*/Options.DontRequireSemicolons))
-            {
-                Diag.emitError("Expected a semicolon after expression");
-                return nullptr;
-            }
-
-            return Expr;
+    auto Parser::parseExpressionAndEnd(const bool ExprIsOptional) noexcept
+        -> AST::Expr *
+    {
+        const auto Expr = this->parseExpression(ExprIsOptional);
+        if (!Expr.has_value()) {
+            return nullptr;
         }
 
-        return nullptr;
+        if (!this->expect(Lex::TokenKind::Semicolon,
+                          /*Optional=*/Options.DontRequireSemicolons))
+        {
+            Diag.emitError("Expected a semicolon after expression");
+            return nullptr;
+        }
+
+        return Expr.value();
     }
 
     auto Parser::parseVarDecl() noexcept -> AST::VarDecl * {
@@ -507,9 +524,7 @@ namespace Parse {
         }
 
         auto ParamList = std::vector<AST::FunctionPrototype::ParamDecl>();
-        if (const auto CloseParenOpt =
-                this->consumeIf(Lex::TokenKind::CloseParen))
-        {
+        if (const auto CloseParenOpt = consumeIf(Lex::TokenKind::CloseParen)) {
             return new AST::FunctionPrototype(NameToken.Loc,
                                                 tokenContent(NameToken),
                                                 ParamList);
@@ -571,8 +586,8 @@ namespace Parse {
             return nullptr;
         }
 
-        const auto Condition = this->parseExpression();
-        if (Condition == nullptr) {
+        const auto ConditionOpt = this->parseExpression();
+        if (!ConditionOpt.has_value()) {
             return nullptr;
         }
 
@@ -587,9 +602,7 @@ namespace Parse {
         }
 
         auto ElseStmt = static_cast<AST::Stmt *>(nullptr);
-        if (const auto ElseTokenOpt =
-                this->consumeIf(Lex::TokenKind::Keyword))
-        {
+        if (const auto ElseTokenOpt = consumeIf(Lex::TokenKind::Keyword)) {
             const auto TokenString = tokenContent(ElseTokenOpt.value());
             if (Lex::TokenStringIsKeyword(TokenString, Lex::Keyword::Else)) {
                 ElseStmt = this->parseStmt();
@@ -599,18 +612,15 @@ namespace Parse {
             }
         }
 
+        const auto Condition = ConditionOpt.value();
         return new AST::IfStmt(IfToken.Loc, Condition, Then, ElseStmt);
     }
 
-    auto
-    Parser::parseReturnStmt(const Lex::Token ReturnToken) noexcept
+    auto Parser::parseReturnStmt(const Lex::Token ReturnToken) noexcept
         -> AST::ReturnStmt *
     {
-        if (const auto Expr = this->parseExpressionAndEnd()) {
-            return new AST::ReturnStmt(ReturnToken.Loc, Expr);
-        }
-
-        return nullptr;
+        const auto Expr = parseExpressionAndEnd(/*ExprIsOptional=*/true);
+        return new AST::ReturnStmt(ReturnToken.Loc, Expr);
     }
 
     auto Parser::parseCompoundStmt(const Lex::Token CurlyToken) noexcept
