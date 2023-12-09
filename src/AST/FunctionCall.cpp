@@ -20,12 +20,21 @@ namespace AST {
             return std::nullopt;
         }
 
-        const auto FuncDecl =
-            llvm::cast_if_present<AST::FunctionDecl>(Handler.getASTNode(Name));
-
+        const auto Node = Handler.getASTNode(Name);
         DIAG_ASSERT(Handler.getDiag(),
-                    FuncDecl != nullptr,
-                    "Function not in Handler's NameToASTNodeMap");
+                    Node != nullptr,
+                    "Function \"" SV_FMT "\" is not in AST, but is in "
+                    "ValueMap",
+                    SV_FMT_ARG(getName()));
+
+        const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Node);
+        if (FuncDecl == nullptr) {
+            Handler.getDiag().emitError(
+                "\"" SV_FMT "\" is not a function",
+                SV_FMT_ARG(getName()));
+
+            return std::nullopt;
+        }
 
         const auto FuncProto = FuncDecl->getPrototype();
         const auto FuncLLVM = llvm::cast<llvm::Function>(FuncValue);
