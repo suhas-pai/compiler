@@ -70,8 +70,9 @@ namespace Parse {
         [[nodiscard]] auto parseStmt() noexcept -> AST::Stmt *;
 
         [[nodiscard]]
-        auto parseExpression(bool ExprIsOptional = false) noexcept
+        auto parseExpressionOpt(bool ExprIsOptional = false) noexcept
             -> std::optional<AST::Expr *>;
+
         [[nodiscard]]
         auto parseExpressionAndEnd(bool ExprIsOptional = false) noexcept
             -> AST::Expr *;

@@ -5,6 +5,7 @@
 #include "AST/BinaryOperation.h"
 #include "AST/VariableRef.h"
 
+#include "Basic/Macros.h"
 #include "Lex/Token.h"
 
 #include "Parse/OperatorPrecedence.h"
@@ -195,7 +196,7 @@ namespace Parse {
     auto Parser::parseParenExpr(const Lex::Token Token) noexcept
         -> AST::ParenExpr *
     {
-        const auto ChildExprOpt = this->parseExpression();
+        const auto ChildExprOpt = this->parseExpressionOpt();
         if (!ChildExprOpt.has_value()) {
             Diag.emitError("Unexpected semicolon/eof");
             return nullptr;
@@ -229,7 +230,7 @@ namespace Parse {
                 break;
             }
 
-            if (const auto Expr = this->parseExpression()) {
+            if (const auto Expr = this->parseExpressionOpt()) {
                 ArgList.emplace_back(Expr.value());
             } else {
                 return nullptr;
@@ -413,12 +414,11 @@ namespace Parse {
         } while (true);
     }
 
-    auto Parser::parseExpression(const bool ExprIsOptional) noexcept
+    auto Parser::parseExpressionOpt(const bool ExprIsOptional) noexcept
         -> std::optional<AST::Expr *>
     {
         const auto Peek = this->peek();
-        if (!Peek.has_value() ||
-            Peek.value().Kind == Lex::TokenKind::Semicolon)
+        if (!Peek.has_value() || Peek.value().Kind == Lex::TokenKind::Semicolon)
         {
             if (!ExprIsOptional) {
                 Diag.emitError("Expected an expression");
@@ -434,7 +434,7 @@ namespace Parse {
     auto Parser::parseExpressionAndEnd(const bool ExprIsOptional) noexcept
         -> AST::Expr *
     {
-        const auto Expr = this->parseExpression(ExprIsOptional);
+        const auto Expr = this->parseExpressionOpt(ExprIsOptional);
         if (!Expr.has_value()) {
             return nullptr;
         }
@@ -571,7 +571,22 @@ namespace Parse {
 
     auto Parser::parseFuncDecl() noexcept -> AST::FunctionDecl * {
         if (const auto Proto = this->parseFuncPrototype()) {
-            if (const auto Body = this->parseStmt()) {
+            const auto OpenParenOpt = this->peek();
+            if (!OpenParenOpt.has_value()) {
+                Diag.emitError("Unexepcted eof after function prototype");
+                return nullptr;
+            }
+
+            const auto OpenParen = OpenParenOpt.value();
+            if (OpenParen.Kind != Lex::TokenKind::OpenCurlyBrace) {
+                Diag.emitError("Expected open-paren, got " SV_FMT " instead",
+                               SV_FMT_ARG(
+                                Lex::TokenKindGetName(OpenParen.Kind)));
+                return nullptr;
+            }
+
+            this->consume();
+            if (const auto Body = this->parseCompoundStmt(OpenParen)) {
                 return new AST::FunctionDecl(Proto, Body);
             }
         }
@@ -586,7 +601,7 @@ namespace Parse {
             return nullptr;
         }
 
-        const auto ConditionOpt = this->parseExpression();
+        const auto ConditionOpt = this->parseExpressionOpt();
         if (!ConditionOpt.has_value()) {
             return nullptr;
         }
@@ -630,7 +645,7 @@ namespace Parse {
         while (true) {
             const auto TokenOpt = this->peek();
             if (!TokenOpt.has_value()) {
-                Diag.emitError("Unexpected end of file");
+                Diag.emitError("Expected closing curly-bracket");
                 return nullptr;
             }
 
