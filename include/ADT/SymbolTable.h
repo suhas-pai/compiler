@@ -3,6 +3,8 @@
  */
 
 #pragma once
+
+#include <map>
 #include "StringMap.h"
 
 namespace AST {
