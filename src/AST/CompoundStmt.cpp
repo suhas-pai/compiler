@@ -11,8 +11,8 @@ namespace AST {
                           llvm::IRBuilder<> &Builder,
                           Backend::LLVM::ValueMap &ValueMap) noexcept
     {
-        // Create blocks for the then and else cases. Insert the 'then' block
-        // at the end of the function.
+        // Create blocks for the then and else cases. Insert the 'then' block at
+        // the end of the function.
 
         auto AddedDecls = std::vector<std::string_view>();
         for (const auto &Stmt : getStmtList()) {
