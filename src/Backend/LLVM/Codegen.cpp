@@ -346,9 +346,19 @@ namespace Backend::LLVM {
         auto CondValue = CondValueOpt.value();
         auto &Context = Handler.getContext();
 
-        // Convert condition to a bool by comparing non-equal to 0.0.
-        const auto ZeroFP =  llvm::ConstantFP::get(Context, llvm::APFloat(0.0));
-        CondValue = Builder.CreateFCmpONE(CondValue, ZeroFP, "ifcond");
+        if (!llvm::isa<llvm::ConstantInt>(CondValue)) {
+            // Convert condition to a bool by comparing non-equal to 0.0.
+            const auto ZeroFP =
+                llvm::ConstantFP::get(Context, llvm::APFloat(0.0));
+
+            CondValue = Builder.CreateICmpNE(CondValue, ZeroFP, "ifcond");
+        } else {
+            // Convert condition to a bool by comparing non-equal to 0.0.
+            const auto ZeroFP =
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(Context), 0);
+
+            CondValue = Builder.CreateICmpNE(CondValue, ZeroFP, "ifcond");
+        }
 
         const auto TheFunction = Builder.GetInsertBlock()->getParent();
 
