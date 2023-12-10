@@ -64,7 +64,7 @@ namespace Backend::LLVM {
                                   /*Body=*/nullptr,
                                   /*IsExternal=*/true);
 
-        addASTNode(PowFuncProto->getName(), *PowFunc);
+        Context.addDecl(PowFunc);
         for (auto &[Name, Decl] : Context.getDeclMap()) {
             addASTNode(Name, *Decl);
         }
