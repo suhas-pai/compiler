@@ -2,22 +2,8 @@
  * Backend/LLVM/Codegen.cpp
  */
 
-#include "AST/BinaryOperation.h"
-#include "AST/CharLiteral.h"
-#include "AST/CompoundStmt.h"
-#include "AST/FunctionDecl.h"
-#include "AST/FunctionCall.h"
-#include "AST/IfStmt.h"
-#include "AST/NumberLiteral.h"
-#include "AST/ParenExpr.h"
-#include "AST/ReturnStmt.h"
-#include "AST/StringLiteral.h"
-#include "AST/UnaryOperation.h"
-#include "AST/VarDecl.h"
-#include "AST/VariableRef.h"
-
-#include "Backend/LLVM/Handler.h"
 #include "llvm/IR/Verifier.h"
+#include "Backend/LLVM/Codegen.h"
 
 namespace Backend::LLVM {
     auto
@@ -32,11 +18,18 @@ namespace Backend::LLVM {
                 llvm::dyn_cast<AST::VariableRef>(BinOp.getLhs());
 
             if (VarRef == nullptr) {
+                Handler.getDiag().emitError(
+                    "Left-side of assignment is not a variable");
+
                 return std::nullopt;
             }
 
             const auto VarRefValue = ValueMap.getValue(VarRef->getName());
             if (VarRefValue == nullptr) {
+                Handler.getDiag().emitError(
+                    "Variable \"" SV_FMT "\" is not defined",
+                    SV_FMT_ARG(VarRef->getName()));
+
                 return std::nullopt;
             }
 
@@ -604,10 +597,11 @@ namespace Backend::LLVM {
         return std::nullopt;
     }
 
-    std::optional<llvm::Value *>
+    auto
     Handler::codegen(AST::Stmt &Stmt,
                      llvm::IRBuilder<> &Builder,
                      LLVM::ValueMap &ValueMap) noexcept
+        -> std::optional<llvm::Value *>
     {
         switch (Stmt.getKind()) {
             case AST::NodeKind::Base:
