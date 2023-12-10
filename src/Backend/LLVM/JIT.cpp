@@ -117,8 +117,8 @@ namespace Backend::LLVM {
     }
 
     auto
-    SetupDecls(JITHandler &Handler,
-               ::Backend::LLVM::ValueMap &ValueMap) noexcept -> bool
+    SetupGlobalDecls(JITHandler &Handler,
+                     ::Backend::LLVM::ValueMap &ValueMap) noexcept -> bool
     {
         for (const auto &[Name, Decl] : Handler.getASTContext().getDeclMap()) {
             // We need to be able to reference a function within its body,
@@ -144,7 +144,8 @@ namespace Backend::LLVM {
                                                        Handler,
                                                        Handler.getBuilder(),
                                                        ValueMap,
-                                                       ProtoCodegen);
+                                                       ProtoCodegen,
+                                                       /*BB=*/nullptr);
 
                 if (!FinishedValueOpt.has_value()) {
                     return false;
@@ -153,9 +154,25 @@ namespace Backend::LLVM {
                 ValueMap.setValue(Proto->getName(), FinishedValueOpt.value());
                 continue;
             }
+        }
 
-            if (const auto ValueOpt =
-                    Handler.codegen(*Decl, Handler.getBuilder(), ValueMap))
+        return true;
+    }
+
+    auto
+    SetupLocalDecls(JITHandler &Handler,
+                    llvm::IRBuilder<> &Builder,
+                    ::Backend::LLVM::ValueMap &ValueMap) noexcept -> bool
+    {
+        for (const auto &[Name, Decl] : Handler.getASTContext().getDeclMap()) {
+            // We need to be able to reference a function within its body,
+            // so this case must be handled differently.
+
+            if (llvm::isa<AST::FunctionDecl>(Decl)) {
+                continue;
+            }
+
+            if (const auto ValueOpt = Handler.codegen(*Decl, Builder, ValueMap))
             {
                 ValueMap.addValue(Name, ValueOpt.value());
                 continue;
@@ -188,7 +205,7 @@ namespace Backend::LLVM {
 
             addASTNode(Proto->getName(), *FuncDecl);
             if (PrintIR) {
-                if (!SetupDecls(*this, ValueMap)) {
+                if (!SetupGlobalDecls(*this, ValueMap)) {
                     return false;
                 }
 
@@ -211,14 +228,13 @@ namespace Backend::LLVM {
             }
 
             if (const auto VarDecl = llvm::dyn_cast<AST::VarDecl>(&Stmt)) {
-                VarDecl->setLinkage(AST::Decl::Linkage::External);
                 StmtToExecute = VarDecl->getInitExpr();
             }
 
             addASTNode(Decl->getName(), *Decl);
         }
 
-        if (!SetupDecls(*this, ValueMap)) {
+        if (!SetupGlobalDecls(*this, ValueMap)) {
             if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
                 removeASTNode(Decl->getName());
             }
@@ -240,11 +256,42 @@ namespace Backend::LLVM {
                                     static_cast<AST::Expr *>(StmtToExecute));
         }
 
-        auto Func = AST::FunctionDecl(&Proto, ReturnStmt);
-        const auto FuncDeclCodegen =
-            FunctionDeclCodegen(Func, *this, getBuilder(), ValueMap);
+        auto FuncDecl = AST::FunctionDecl(&Proto, ReturnStmt);
+        const auto ProtoCodegenOpt =
+            FunctionPrototypeCodegen(*FuncDecl.getPrototype(),
+                                     *this,
+                                     *Builder,
+                                     ValueMap);
 
-        if (!FuncDeclCodegen.has_value()) {
+        if (!ProtoCodegenOpt.has_value()) {
+            return false;
+        }
+
+        const auto BB =
+            llvm::BasicBlock::Create(
+                getContext(),
+                "entry",
+                llvm::cast<llvm::Function>(ProtoCodegenOpt.value()));
+
+        auto BBBuilder = llvm::IRBuilder<>(BB);
+        if (!SetupLocalDecls(*this, BBBuilder, ValueMap)) {
+            if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
+                removeASTNode(Decl->getName());
+            }
+
+            return false;
+        }
+
+        const auto ProtoCodegen = ProtoCodegenOpt.value();
+        const auto FuncProtoValueOpt =
+            FunctionDeclFinishPrototypeCodegen(FuncDecl,
+                                               *this,
+                                               *Builder,
+                                               ValueMap,
+                                               ProtoCodegen,
+                                               BB);
+
+        if (!FuncProtoValueOpt.has_value()) {
             return false;
         }
 

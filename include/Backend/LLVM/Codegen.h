@@ -54,7 +54,8 @@ namespace Backend::LLVM {
                                        Backend::LLVM::Handler &Handler,
                                        llvm::IRBuilder<> &Builder,
                                        Backend::LLVM::ValueMap &ValueMap,
-                                       llvm::Value *const ProtoCodegen) noexcept
+                                       llvm::Value *ProtoCodegen,
+                                       llvm::BasicBlock *BB) noexcept
         -> std::optional<llvm::Value *>;
 
     auto

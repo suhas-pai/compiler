@@ -226,7 +226,8 @@ namespace Backend::LLVM {
                                        Backend::LLVM::Handler &Handler,
                                        llvm::IRBuilder<> &Builder,
                                        Backend::LLVM::ValueMap &ValueMap,
-                                       llvm::Value *const ProtoCodegen) noexcept
+                                       llvm::Value *const ProtoCodegen,
+                                       llvm::BasicBlock *BB) noexcept
         -> std::optional<llvm::Value *>
     {
         if (FuncDecl.isExternal()) {
@@ -238,8 +239,12 @@ namespace Backend::LLVM {
                     "FunctionDecl's body is null");
 
         const auto Function = llvm::cast<llvm::Function>(ProtoCodegen);
-        const auto BB =
-            llvm::BasicBlock::Create(Handler.getContext(), "entry", Function);
+        if (BB == nullptr) {
+            BB =
+                llvm::BasicBlock::Create(Handler.getContext(),
+                                         "entry",
+                                         Function);
+        }
 
         for (auto &Arg : Function->args()) {
             ValueMap.addValue(Arg.getName(), &Arg);
@@ -319,7 +324,8 @@ namespace Backend::LLVM {
                                                   Handler,
                                                   Builder,
                                                   ValueMap,
-                                                  ProtoCodegen);
+                                                  ProtoCodegen,
+                                                  /*BB=*/nullptr);
     }
 
     auto
@@ -443,25 +449,8 @@ namespace Backend::LLVM {
         if (const auto ResultOpt =
                 Handler.codegen(*RetStmt.getValue(), Builder, ValueMap))
         {
-            const auto Result = ResultOpt.value();
-
-            // For stack variables, create a load instruction and return its
-            // result
-
-            if (const auto AllocaInst =
-                    llvm::dyn_cast<llvm::AllocaInst>(Result))
-            {
-                const auto LoadedValue =
-                    Builder.CreateLoad(
-                        llvm::Type::getDoubleTy(Handler.getContext()),
-                        AllocaInst,
-                        "loadedValue");
-
-                return Builder.CreateRet(LoadedValue);
-            }
-
             // Otherwise, directly return the value
-            return Builder.CreateRet(Result);
+            return Builder.CreateRet(ResultOpt.value());
         }
 
         return std::nullopt;
@@ -548,6 +537,7 @@ namespace Backend::LLVM {
             const auto Type = llvm::Type::getDoubleTy(Handler.getContext());
             const auto gVar =
                 new llvm::GlobalVariable(
+                    Handler.getModule(),
                     Type,
                     /*isConstant=*/false,
                     llvm::GlobalVariable::LinkageTypes::ExternalLinkage,
@@ -585,6 +575,16 @@ namespace Backend::LLVM {
                     Builder.CreateLoad(
                         llvm::Type::getDoubleTy(Handler.getContext()),
                         AllocaInst,
+                        "loadedValue");
+            }
+
+            if (const auto GlobalVar =
+                    llvm::dyn_cast<llvm::GlobalVariable>(Value))
+            {
+                return
+                    Builder.CreateLoad(
+                        llvm::Type::getDoubleTy(Handler.getContext()),
+                        GlobalVar,
                         "loadedValue");
             }
 

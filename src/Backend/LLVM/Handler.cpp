@@ -183,7 +183,8 @@ namespace Backend::LLVM {
                                                        *this,
                                                        getBuilder(),
                                                        ValueMap,
-                                                       ProtoCodegen);
+                                                       ProtoCodegen,
+                                                       /*BB=*/nullptr);
 
                 if (!FinishedValueOpt.has_value()) {
                     return false;
