@@ -71,7 +71,6 @@ namespace Backend::LLVM {
         std::unique_ptr<llvm::StandardInstrumentations> SI;
 
         llvm::ExitOnError ExitOnErr;
-
         Interface::DiagnosticsEngine &Diag;
 
         static void initializeLLVM() noexcept;
