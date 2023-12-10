@@ -211,6 +211,7 @@ namespace Backend::LLVM {
             }
 
             if (const auto VarDecl = llvm::dyn_cast<AST::VarDecl>(&Stmt)) {
+                VarDecl->setLinkage(AST::Decl::Linkage::External);
                 StmtToExecute = VarDecl->getInitExpr();
             }
 
