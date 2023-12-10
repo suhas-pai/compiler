@@ -21,7 +21,7 @@ namespace Parse {
         return tokenList().at(position());
     }
 
-    [[nodiscard]] auto Parser::prev() -> std::optional<Lex::Token> {
+    auto Parser::prev() -> std::optional<Lex::Token> {
         if (position() - 1 >= tokenList().size()) {
             return std::nullopt;
         }
@@ -38,7 +38,6 @@ namespace Parse {
         return tokenList().at(position() - 1);
     }
 
-    [[nodiscard]]
     auto Parser::consumeIf(const Lex::TokenKind Kind)
         -> std::optional<Lex::Token>
     {
@@ -85,7 +84,6 @@ namespace Parse {
         return Optional;
     }
 
-    [[nodiscard]]
     auto Parser::tokenContent(const Lex::Token Token) const noexcept
         -> std::string_view
     {
@@ -649,7 +647,7 @@ namespace Parse {
                 return nullptr;
             }
 
-            if (this->consumeIf(Lex::TokenKind::CloseCurlyBrace)) {
+            if (this->consumeIf(Lex::TokenKind::CloseCurlyBrace).has_value()) {
                 break;
             }
 

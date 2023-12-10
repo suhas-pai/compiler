@@ -86,7 +86,6 @@ namespace Parse {
         [[nodiscard]] auto peek() -> std::optional<Lex::Token>;
         [[nodiscard]] auto prev() -> std::optional<Lex::Token>;
 
-        [[nodiscard]]
         auto consumeIf(Lex::TokenKind Kind) -> std::optional<Lex::Token>;
 
         [[nodiscard]]
