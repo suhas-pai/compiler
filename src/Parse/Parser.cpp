@@ -447,7 +447,8 @@ namespace Parse {
         return Expr.value();
     }
 
-    auto Parser::parseVarDecl() noexcept -> AST::VarDecl * {
+    auto
+    Parser::parseVarDecl(const Lex::Token Token) noexcept -> AST::VarDecl * {
         const auto NameTokenOpt = this->consume();
         if (!NameTokenOpt.has_value()) {
             Diag.emitError("Expected a name for variable declaration");
@@ -485,7 +486,10 @@ namespace Parse {
             return nullptr;
         }
 
-        return new AST::VarDecl(NameToken, tokenContent(NameToken), Expr);
+        return new AST::VarDecl(NameToken,
+                                tokenContent(NameToken),
+                                /*IsConstant=*/tokenContent(Token) == "const",
+                                Expr);
     }
 
     auto Parser::parseFuncPrototype() noexcept -> AST::FunctionPrototype * {
@@ -675,7 +679,8 @@ namespace Parse {
                 const auto TokenString = tokenContent(Token);
                 switch (Lex::KeywordTokenGetKeyword(TokenString)) {
                     case Lex::Keyword::Let:
-                        return this->parseVarDecl();
+                    case Lex::Keyword::Const:
+                        return this->parseVarDecl(Token);
                     case Lex::Keyword::Function:
                         return this->parseFuncDecl();
                     case Lex::Keyword::If:

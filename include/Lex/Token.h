@@ -365,6 +365,9 @@ namespace Lex {
             CHECK_KW(Let)
             [[fallthrough]];
 
+            CHECK_KW(Const)
+            [[fallthrough]];
+
             CHECK_KW(Function);
             [[fallthrough]];
 

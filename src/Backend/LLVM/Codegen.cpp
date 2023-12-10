@@ -33,6 +33,19 @@ namespace Backend::LLVM {
                 return std::nullopt;
             }
 
+            if (const auto VarDecl =
+                    llvm::dyn_cast<AST::VarDecl>(
+                        Handler.getASTNode(VarRef->getName())))
+            {
+                if (VarDecl->isConstant()) {
+                    Handler.getDiag().emitError(
+                        "Variable \"" SV_FMT "\" is constant",
+                        SV_FMT_ARG(VarRef->getName()));
+
+                    return std::nullopt;
+                }
+            }
+
             const auto RhsValueOpt =
                 Handler.codegen(*BinOp.getRhs(), Builder, ValueMap);
 

@@ -19,13 +19,15 @@ namespace AST {
         std::string Name;
 
         Expr *InitExpr;
+        bool IsConstant : 1;
     public:
         constexpr explicit
         VarDecl(const Lex::Token NameToken,
                 const std::string_view Name,
+                bool IsConstant,
                 Expr *const InitExpr = nullptr) noexcept
         : Decl(ObjKind), NameLoc(NameToken.Loc), Name(Name),
-          InitExpr(InitExpr) {}
+          InitExpr(InitExpr), IsConstant(IsConstant) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
@@ -49,6 +51,10 @@ namespace AST {
             return InitExpr;
         }
 
+        [[nodiscard]] constexpr auto isConstant() const noexcept {
+            return IsConstant;
+        }
+
         constexpr
         auto setName(const std::string_view Name) noexcept -> decltype(*this) {
             this->Name = Name;
@@ -64,6 +70,13 @@ namespace AST {
         constexpr
         auto setInitExpr(Expr *const InitExpr) noexcept -> decltype(*this) {
             this->InitExpr = InitExpr;
+            return *this;
+        }
+
+        constexpr auto setIsConstant(const bool IsConstant) noexcept
+            -> decltype(*this)
+        {
+            this->IsConstant = IsConstant;
             return *this;
         }
     };
