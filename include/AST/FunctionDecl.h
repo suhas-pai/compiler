@@ -81,18 +81,5 @@ namespace AST {
             this->IsExternal = IsExternal;
             return *this;
         }
-
-        [[nodiscard]] auto
-        finishPrototypeCodegen(
-            Backend::LLVM::Handler &Handler,
-            llvm::IRBuilder<> &Builder,
-            Backend::LLVM::ValueMap &ValueMap,
-            llvm::Value *ProtoCodegen) noexcept
-                -> std::optional<llvm::Value *>;
-
-        [[nodiscard]] std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept override;
     };
 }

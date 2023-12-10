@@ -1,5 +1,5 @@
 /*
- * AST/NumberLiteral.h
+ * AST/FloatLiteral.h
  */
 
 #pragma once
@@ -9,16 +9,16 @@
 #include "Parse/Number.h"
 
 namespace AST {
-    struct NumberLiteral : public Expr {
+    struct FloatLiteral : public Expr {
     public:
-        constexpr static auto ObjKind = NodeKind::NumberLiteral;
+        constexpr static auto ObjKind = NodeKind::FloatLiteral;
     protected:
         SourceLocation Loc;
         Parse::ParseNumberResult Number;
     public:
         constexpr explicit
-        NumberLiteral(const SourceLocation Loc,
-                      const Parse::ParseNumberResult Number) noexcept
+        FloatLiteral(const SourceLocation Loc,
+                     const Parse::ParseNumberResult Number) noexcept
         : Expr(ObjKind), Loc(Loc), Number(Number) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {

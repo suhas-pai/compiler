@@ -148,6 +148,11 @@ namespace Backend::LLVM {
         auto getASTNode(std::string_view Name) noexcept -> AST::Stmt *;
         auto removeASTNode(std::string_view Name) noexcept -> decltype(*this);
 
+        virtual std::optional<llvm::Value *>
+        codegen(AST::Stmt &Stmt,
+                llvm::IRBuilder<> &Builder,
+                LLVM::ValueMap &ValueMap) noexcept;
+
         virtual bool evalulate(AST::Context &Context) noexcept;
     };
 }

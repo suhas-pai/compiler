@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "Basic/SourceLocation.h"
 #include "Expr.h"
 
@@ -57,10 +60,5 @@ namespace AST {
         [[nodiscard]] constexpr auto &getArgsRef() noexcept {
             return Args;
         }
-
-        [[nodiscard]] std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept;
     };
 }

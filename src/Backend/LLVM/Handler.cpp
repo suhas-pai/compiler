@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "AST/FunctionDecl.h"
+#include "Backend/LLVM/Codegen.h"
 
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/TargetSelect.h"
@@ -163,7 +164,10 @@ namespace Backend::LLVM {
             if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
                 const auto Proto = FuncDecl->getPrototype();
                 const auto ProtoCodegenOpt =
-                    Proto->codegen(*this, getBuilder(), ValueMap);
+                    FunctionPrototypeCodegen(*Proto,
+                                             *this,
+                                             getBuilder(),
+                                             ValueMap);
 
                 if (!ProtoCodegenOpt.has_value()) {
                     return false;
@@ -175,10 +179,11 @@ namespace Backend::LLVM {
                 ValueMap.addValue(Name, ProtoCodegen);
 
                 const auto FinishedValueOpt =
-                    FuncDecl->finishPrototypeCodegen(*this,
-                                                     getBuilder(),
-                                                     ValueMap,
-                                                     ProtoCodegen);
+                    FunctionDeclFinishPrototypeCodegen(*FuncDecl,
+                                                       *this,
+                                                       getBuilder(),
+                                                       ValueMap,
+                                                       ProtoCodegen);
 
                 if (!FinishedValueOpt.has_value()) {
                     return false;
@@ -188,9 +193,7 @@ namespace Backend::LLVM {
                 continue;
             }
 
-            if (const auto ValueOpt =
-                    Decl->codegen(*this, getBuilder(), ValueMap))
-            {
+            if (const auto ValueOpt = codegen(*Decl, getBuilder(), ValueMap)) {
                 addASTNode(Name, *Decl);
                 ValueMap.addValue(Name, ValueOpt.value());
 

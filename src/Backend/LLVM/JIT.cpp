@@ -6,6 +6,7 @@
 #include "AST/ReturnStmt.h"
 #include "AST/VarDecl.h"
 
+#include "Backend/LLVM/Codegen.h"
 #include "Backend/LLVM/JIT.h"
 
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -126,7 +127,10 @@ namespace Backend::LLVM {
             if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
                 const auto Proto = FuncDecl->getPrototype();
                 const auto ProtoCodegenOpt =
-                    Proto->codegen(Handler, Handler.getBuilder(), ValueMap);
+                    FunctionPrototypeCodegen(*Proto,
+                                             Handler,
+                                             Handler.getBuilder(),
+                                             ValueMap);
 
                 if (!ProtoCodegenOpt.has_value()) {
                     return false;
@@ -136,10 +140,11 @@ namespace Backend::LLVM {
                 ValueMap.addValue(Proto->getName(), ProtoCodegen);
 
                 const auto FinishedValueOpt =
-                    FuncDecl->finishPrototypeCodegen(Handler,
-                                                     Handler.getBuilder(),
-                                                     ValueMap,
-                                                     ProtoCodegen);
+                    FunctionDeclFinishPrototypeCodegen(*FuncDecl,
+                                                       Handler,
+                                                       Handler.getBuilder(),
+                                                       ValueMap,
+                                                       ProtoCodegen);
 
                 if (!FinishedValueOpt.has_value()) {
                     return false;
@@ -150,7 +155,7 @@ namespace Backend::LLVM {
             }
 
             if (const auto ValueOpt =
-                    Decl->codegen(Handler, Handler.getBuilder(), ValueMap))
+                    Handler.codegen(*Decl, Handler.getBuilder(), ValueMap))
             {
                 ValueMap.addValue(Name, ValueOpt.value());
                 continue;
@@ -235,7 +240,10 @@ namespace Backend::LLVM {
         }
 
         auto Func = AST::FunctionDecl(&Proto, ReturnStmt);
-        if (!Func.codegen(*this, getBuilder(), ValueMap).has_value()) {
+        const auto FuncDeclCodegen =
+            FunctionDeclCodegen(Func, *this, getBuilder(), ValueMap);
+
+        if (!FuncDeclCodegen.has_value()) {
             return false;
         }
 

@@ -3,9 +3,7 @@
  */
 
 #pragma once
-
 #include "AST/NodeKind.h"
-#include "Backend/LLVM/Handler.h"
 
 namespace AST {
     struct Stmt {
@@ -17,10 +15,5 @@ namespace AST {
         [[nodiscard]] constexpr auto getKind() const noexcept {
             return Kind;
         }
-
-        virtual std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept = 0;
     };
 }

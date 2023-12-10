@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "AST/Stmt.h"
+#include "Backend/LLVM/Handler.h"
 #include "Basic/SourceLocation.h"
 
 namespace AST {
@@ -108,10 +109,5 @@ namespace AST {
         [[nodiscard]] constexpr auto &getParamListRef() noexcept {
             return ParamList;
         }
-
-        [[nodiscard]] std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept;
     };
 }

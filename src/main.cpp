@@ -159,7 +159,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto ReturnStmt = llvm::cast<AST::ReturnStmt>(Expr);
 
             printf("return-stmt\n");
-            PrintAST(Handler, ReturnStmt->getExpr(), Depth + 1);
+            PrintAST(Handler, ReturnStmt->getValue(), Depth + 1);
 
             break;
         }

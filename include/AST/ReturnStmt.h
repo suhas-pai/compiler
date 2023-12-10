@@ -36,7 +36,7 @@ namespace AST {
             return ReturnLoc;
         }
 
-        [[nodiscard]] constexpr auto getExpr() const noexcept {
+        [[nodiscard]] constexpr auto getValue() const noexcept {
             return Value;
         }
 
@@ -51,10 +51,5 @@ namespace AST {
             this->Value = Value;
             return *this;
         }
-
-        [[nodiscard]] std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept override;
     };
 }

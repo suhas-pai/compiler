@@ -56,10 +56,5 @@ namespace AST {
             this->Operand = Operand;
             return *this;
         }
-
-        [[nodiscard]] std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept;
     };
 }

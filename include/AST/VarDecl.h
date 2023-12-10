@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <string>
+
 #include "AST/Decl.h"
 #include "AST/Expr.h"
 #include "Lex/Token.h"
@@ -64,10 +66,5 @@ namespace AST {
             this->InitExpr = InitExpr;
             return *this;
         }
-
-        [[nodiscard]] std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept override;
     };
 }

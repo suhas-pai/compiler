@@ -3,6 +3,8 @@
  */
 
 #pragma once
+
+#include <string_view>
 #include "AST/Stmt.h"
 
 namespace AST {

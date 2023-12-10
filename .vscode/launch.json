@@ -8,8 +8,8 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceFolder}/build/compiler_debug",
-            "args": ["--print-ast", "--print-ir", "${workspaceFolder}/examples/file.txt"],
+            "program": "${workspaceFolder}/build_debug/compiler",
+            "args": ["--print-ast", "--print-ir"],
             "cwd": "${workspaceFolder}"
         }
     ]

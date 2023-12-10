@@ -3,6 +3,9 @@
  */
 
 #pragma once
+
+#include <vector>
+
 #include "AST/Stmt.h"
 #include "Basic/SourceLocation.h"
 
@@ -46,10 +49,5 @@ namespace AST {
             this->BraceLoc = BraceLoc;
             return *this;
         }
-
-        [[nodiscard]] std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept;
     };
 }

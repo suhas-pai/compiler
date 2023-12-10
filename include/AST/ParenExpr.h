@@ -49,10 +49,5 @@ namespace AST {
             this->ChildExpr = ChildExpr;
             return *this;
         }
-
-        [[nodiscard]] std::optional<llvm::Value *>
-        codegen(Backend::LLVM::Handler &Handler,
-                llvm::IRBuilder<> &Builder,
-                Backend::LLVM::ValueMap &ValueMap) noexcept;
     };
 }
