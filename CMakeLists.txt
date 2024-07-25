@@ -49,7 +49,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(compiler PRIVATE
                            "-fsanitize=address" "-fsanitize=undefined")
     target_link_options(compiler PRIVATE
-                           "-fsanitize=address" "-fsanitize=undefined")
+                        "-fsanitize=address" "-fsanitize=undefined")
 endif()
 
 install_files(. FILES compile_commands.json)

@@ -34,8 +34,8 @@ jobs:
     - run: |
        sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
        sudo apt update
-       sudo apt install -y clang cmake lld ninja-build
-       echo "$(find /usr/lib/llvm-* -maxdepth 0)/bin" >> $GITHUB_PATH
+       sudo apt install -y clang cmake lld ninja-build libc++-18-dev libc++abi-18-dev
+       echo "$(find /usr/lib/llvm-18/bin" >> $GITHUB_PATH
     - uses: actions/checkout@v4
       with:
         submodules: 'recursive'
