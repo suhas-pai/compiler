@@ -14,7 +14,8 @@
 
 namespace Lex {
     enum class TokenKind : uint8_t {
-        NumberLiteral,
+        IntegerLiteral,
+        FloatLiteral,
 
         CharLiteral,
         StringLiteral,
@@ -111,7 +112,8 @@ namespace Lex {
             case TokenKind::GreaterThanOrEqual:
             case TokenKind::Equal:
             case TokenKind::NotEqual:
-            case TokenKind::NumberLiteral:
+            case TokenKind::IntegerLiteral:
+            case TokenKind::FloatLiteral:
             case TokenKind::CharLiteral:
             case TokenKind::StringLiteral:
             case TokenKind::Identifier:
@@ -172,7 +174,8 @@ namespace Lex {
             case TokenKind::Equal:
             case TokenKind::NotEqual:
                 return true;
-            case TokenKind::NumberLiteral:
+            case TokenKind::IntegerLiteral:
+            case TokenKind::FloatLiteral:
             case TokenKind::CharLiteral:
             case TokenKind::StringLiteral:
             case TokenKind::Identifier:
@@ -217,8 +220,10 @@ namespace Lex {
         -> std::string_view
     {
         switch (Kind) {
-            case TokenKind::NumberLiteral:
-                return "number-literal";
+            case TokenKind::IntegerLiteral:
+                return "integer-literal";
+            case TokenKind::FloatLiteral:
+                return "float-literal";
             case TokenKind::CharLiteral:
                 return "char-literal";
             case TokenKind::StringLiteral:
@@ -330,11 +335,19 @@ namespace Lex {
         SourceLocation End;
 
         [[nodiscard]] constexpr static auto eof() -> Token {
-            return Token { .Kind = TokenKind::EOFToken };
+            return Token {
+                .Kind = TokenKind::EOFToken,
+                .Loc = SourceLocation::invalid(),
+                .End = SourceLocation::invalid()
+            };
         }
 
         [[nodiscard]] constexpr static auto invalid() -> Token {
-            return Token { .Kind = TokenKind::Invalid };
+            return Token {
+                .Kind = TokenKind::Invalid,
+                .Loc = SourceLocation::invalid(),
+                .End = SourceLocation::invalid()
+            };
         }
 
         [[nodiscard]]

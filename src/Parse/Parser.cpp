@@ -35,7 +35,7 @@ namespace Parse {
         }
 
         this->Index += Skip + 1;
-        return tokenList().at(position() - 1);
+        return tokenList().at(Index - 1);
     }
 
     auto Parser::consumeIf(const Lex::TokenKind Kind)
@@ -139,9 +139,9 @@ namespace Parse {
         }
 
         if (FirstChar == '\\' && TokenString.size() == 3) {
-            Diag.emitError(
-                "Expected another character to parse escape-sequence. "
-                "Use \'\\\\\' to store a back-slash");
+            Diag.emitError("Expected another character to parse "
+                           "escape-sequence. Use \'\\\\\' to store a "
+                           "back-slash");
             return nullptr;
         }
 
@@ -166,26 +166,27 @@ namespace Parse {
 
         for (auto I = uint64_t(); I != TokenStringLiteral.size(); ++I) {
             auto Char = TokenStringLiteral.at(I);
-            if (Char == '\\') {
-                if (I + 1 == TokenStringLiteral.size()) {
-                    Diag.emitError("Expected another character to parse "
-                                   "escape-sequence");
-                    return nullptr;
-                }
-
-                I++;
-                const auto NextChar =
-                    VerifyEscapeSequence(TokenStringLiteral.at(I));
-
-                if (NextChar == '\0') {
-                    Diag.emitError("Invalid escape-sequence");
-                    return nullptr;
-                }
-
-                Char = NextChar;
+            if (Char != '\\') {
+                String.append(1, Char);
+                continue;
             }
 
-            String.append(1, Char);
+            I++;
+            if (I == TokenStringLiteral.size()) {
+                Diag.emitError("Expected another character to parse "
+                               "escape-sequence");
+                return nullptr;
+            }
+
+            const auto NextChar =
+                VerifyEscapeSequence(TokenStringLiteral.at(I));
+
+            if (NextChar == '\0') {
+                Diag.emitError("Invalid escape-sequence");
+                return nullptr;
+            }
+
+            String.append(1, NextChar);
         }
 
         return new AST::StringLiteral(Token.Loc, String);
@@ -267,8 +268,8 @@ namespace Parse {
         return new AST::VariableRef(IdentToken.Loc, tokenContent(IdentToken));
     }
 
-    auto Parser::parseLHS() noexcept -> AST::Expr * {
-        /* Parse Prefixes and then LHS */
+    auto Parser::parseLhs() noexcept -> AST::Expr * {
+        /* Parse Prefixes and then Lhs */
         auto Root = static_cast<AST::Expr *>(nullptr);
         auto CurrentOper = static_cast<AST::UnaryOperation *>(nullptr);
 
@@ -281,8 +282,8 @@ namespace Parse {
             const auto Token = TokenOpt.value();
             auto Expr = static_cast<AST::Expr *>(nullptr);
 
-            if (!Lex::TokenKindIsUnaryOp(Token.Kind) &&
-                Token.Kind != Lex::TokenKind::Minus)
+            if (!Lex::TokenKindIsUnaryOp(Token.Kind)
+                && Token.Kind != Lex::TokenKind::Minus)
             {
                 switch (Token.Kind) {
                     case Lex::TokenKind::Identifier:
@@ -293,9 +294,12 @@ namespace Parse {
                                        "in an expression",
                                        SV_FMT_ARG(tokenContent(Token)));
                         return nullptr;
-                    case Lex::TokenKind::NumberLiteral:
+                    case Lex::TokenKind::IntegerLiteral:
                         Expr = this->parseNumberLiteral(Token);
                         break;
+                    case Lex::TokenKind::FloatLiteral:
+                        Diag.emitError("Floating-point is not supported");
+                        return nullptr;
                     case Lex::TokenKind::CharLiteral:
                         Expr = this->parseCharLiteral(Token);
                         break;
@@ -335,18 +339,18 @@ namespace Parse {
         __builtin_unreachable();
     }
 
-    auto Parser::parseBinOpRHS(AST::Expr *LHS, const uint64_t MinPrec) noexcept
+    auto Parser::parseBinOpRhs(AST::Expr *Lhs, const uint64_t MinPrec) noexcept
         -> AST::Expr *
     {
         do {
             auto TokenOpt = this->peek();
             if (!TokenOpt.has_value()) {
-                return LHS;
+                return Lhs;
             }
 
             auto Token = TokenOpt.value();
             if (!Lex::TokenKindIsBinOp(Token.Kind)) {
-                return LHS;
+                return Lhs;
             }
 
             const auto ThisOperInfoOpt = Parse::OperatorInfoMap[Token.Kind];
@@ -356,7 +360,7 @@ namespace Parse {
 
             const auto ThisOperInfo = ThisOperInfoOpt.value();
             if (static_cast<uint64_t>(ThisOperInfo.Precedence) < MinPrec) {
-                return LHS;
+                return Lhs;
             }
 
             this->consume();
@@ -366,14 +370,14 @@ namespace Parse {
                 return nullptr;
             }
 
-            auto RHS = this->parseLHS();
-            if (RHS == nullptr) {
+            auto Rhs = this->parseLhs();
+            if (Rhs == nullptr) {
                 return nullptr;
             }
 
             const auto BinOpToken = Token;
-            if ((TokenOpt = this->peek()) &&
-                Lex::TokenKindIsBinOp(TokenOpt.value().Kind))
+            if ((TokenOpt = this->peek())
+                && Lex::TokenKindIsBinOp(TokenOpt.value().Kind))
             {
                 Token = TokenOpt.value();
 
@@ -387,18 +391,18 @@ namespace Parse {
                             "OperatorInfoMap missing entry");
 
                 const auto NextOperInfo = NextOperInfoOpt.value();
-                if (ThisOperInfo.Precedence < NextOperInfo.Precedence ||
-                    (ThisOperInfo.Precedence == NextOperInfo.Precedence &&
-                     ThisIsRightAssoc))
+                if (ThisOperInfo.Precedence < NextOperInfo.Precedence
+                    || (ThisOperInfo.Precedence == NextOperInfo.Precedence
+                        && ThisIsRightAssoc))
                 {
                     const auto NextMinPrec =
                         static_cast<uint64_t>(
-                            static_cast<uint64_t>(ThisOperInfo.Precedence) +
-                            !ThisIsRightAssoc);
+                            static_cast<uint64_t>(ThisOperInfo.Precedence)
+                            + !ThisIsRightAssoc);
 
-                    RHS = this->parseBinOpRHS(RHS, NextMinPrec);
-                    if (RHS == nullptr) {
-                        return RHS;
+                    Rhs = this->parseBinOpRhs(Rhs, NextMinPrec);
+                    if (Rhs == nullptr) {
+                        return Rhs;
                     }
                 }
             }
@@ -408,7 +412,7 @@ namespace Parse {
                         BinOp.has_value(),
                         "LexTokenKindToBinaryOperatorMap missing BinOp");
 
-            LHS = new AST::BinaryOperation(Token.Loc, BinOp.value(), LHS, RHS);
+            Lhs = new AST::BinaryOperation(Token.Loc, BinOp.value(), Lhs, Rhs);
         } while (true);
     }
 
@@ -426,14 +430,14 @@ namespace Parse {
             return nullptr;
         }
 
-        return this->parseBinOpRHS(this->parseLHS(), /*MinPrec=*/0);
+        return this->parseBinOpRhs(this->parseLhs(), /*MinPrec=*/0);
     }
 
     auto Parser::parseExpressionAndEnd(const bool ExprIsOptional) noexcept
         -> AST::Expr *
     {
-        const auto Expr = this->parseExpressionOpt(ExprIsOptional);
-        if (!Expr.has_value()) {
+        const auto ExprOpt = this->parseExpressionOpt(ExprIsOptional);
+        if (!ExprOpt.has_value()) {
             return nullptr;
         }
 
@@ -444,7 +448,7 @@ namespace Parse {
             return nullptr;
         }
 
-        return Expr.value();
+        return ExprOpt.value();
     }
 
     auto
@@ -464,7 +468,8 @@ namespace Parse {
                                "variable name",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
-            case Lex::TokenKind::NumberLiteral:
+            case Lex::TokenKind::IntegerLiteral:
+            case Lex::TokenKind::FloatLiteral:
                 Diag.emitError("Number Literal \"" SV_FMT "\" cannot be used "
                                "as a variable name",
                                SV_FMT_ARG(tokenContent(NameToken)));
@@ -477,7 +482,7 @@ namespace Parse {
         }
 
         if (!this->expect(Lex::TokenKind::Equal)) {
-            Diag.emitError("Variable declaration must have an initial value");
+            Diag.emitError("Variable declarations must have an initial value");
             return nullptr;
         }
 
@@ -489,6 +494,7 @@ namespace Parse {
         return new AST::VarDecl(NameToken,
                                 tokenContent(NameToken),
                                 /*IsConstant=*/tokenContent(Token) == "const",
+                                /*IsGlobal=*/false,
                                 Expr);
     }
 
@@ -508,7 +514,8 @@ namespace Parse {
                                "function name",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
-            case Lex::TokenKind::NumberLiteral:
+            case Lex::TokenKind::IntegerLiteral:
+            case Lex::TokenKind::FloatLiteral:
                 Diag.emitError("Number Literal \"" SV_FMT "\" cannot be used "
                                "as a function name",
                                SV_FMT_ARG(tokenContent(NameToken)));
@@ -528,8 +535,8 @@ namespace Parse {
         auto ParamList = std::vector<AST::FunctionPrototype::ParamDecl>();
         if (const auto CloseParenOpt = consumeIf(Lex::TokenKind::CloseParen)) {
             return new AST::FunctionPrototype(NameToken.Loc,
-                                                tokenContent(NameToken),
-                                                ParamList);
+                                              tokenContent(NameToken),
+                                              ParamList);
         }
 
         do {

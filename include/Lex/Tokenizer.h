@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "Interface/DiagnosticsEngine.h"
 #include "Token.h"
 
@@ -15,7 +17,8 @@ namespace Lex {
 
             CharLiteral,
             StringLiteral,
-            NumberLiteral,
+            IntegerLiteral,
+            FloatLiteral,
             Identifier,
 
             Plus,
@@ -66,7 +69,7 @@ namespace Lex {
         }
 
         [[nodiscard]] auto next() noexcept -> Lex::Token;
-        [[nodiscard]] constexpr auto createList() noexcept
+        [[nodiscard]] auto createList() noexcept
             -> std::optional<std::vector<Lex::Token>>
         {
             auto Result = std::vector<Lex::Token>();

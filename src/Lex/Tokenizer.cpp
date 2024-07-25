@@ -65,8 +65,8 @@ namespace Lex {
 
                             continue;
                         case '0'...'9':
-                            State = State::NumberLiteral;
-                            Result.Kind = TokenKind::NumberLiteral;
+                            State = State::IntegerLiteral;
+                            Result.Kind = TokenKind::IntegerLiteral;
 
                             continue;
                         case '+':
@@ -195,7 +195,7 @@ namespace Lex {
                     }
 
                     break;
-                case State::NumberLiteral:
+                case State::IntegerLiteral:
                     switch (Char) {
                         case '0'...'9':
                         case 'a'...'f':
@@ -206,10 +206,18 @@ namespace Lex {
                         case 'X':
                             break;
                         case '.':
-                            Diag.emitError("Floating-point not yet supported");
-                            Result.Kind = TokenKind::Invalid;
-
+                            Result.Kind = TokenKind::FloatLiteral;
                             goto done;
+                        default:
+                            Index--;
+                            goto done;
+                    }
+
+                    break;
+                case State::FloatLiteral:
+                    switch (Char) {
+                        case '0'...'9':
+                            break;
                         default:
                             Index--;
                             goto done;

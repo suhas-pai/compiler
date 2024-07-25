@@ -2,8 +2,8 @@
  * Backend/LLVM/Codegen.cpp
  */
 
-#include "llvm/IR/Verifier.h"
 #include "Backend/LLVM/Codegen.h"
+#include "llvm/IR/Verifier.h"
 
 namespace Backend::LLVM {
     auto
@@ -384,7 +384,7 @@ namespace Backend::LLVM {
         const auto CondBrValue =
             Builder.CreateCondBr(CondValue, ThenBB, ElseBB);
 
-        auto ThenIRBuilder = llvm::IRBuilder<>(ThenBB);
+        auto ThenIRBuilder = llvm::IRBuilder(ThenBB);
 
         const auto Then = IfStmt.getThen();
         const auto Else = IfStmt.getElse();
@@ -402,7 +402,7 @@ namespace Backend::LLVM {
         // Emit else block.
         TheFunction->insert(TheFunction->end(), ElseBB);
         if (Else != nullptr) {
-            auto ElseIRBuilder = llvm::IRBuilder<>(ElseBB);
+            auto ElseIRBuilder = llvm::IRBuilder(ElseBB);
             const auto ElseValueOpt =
                 Handler.codegen(*Else, ElseIRBuilder, ValueMap);
 
@@ -539,6 +539,35 @@ namespace Backend::LLVM {
             return std::nullopt;
         }
 
+        if (VarDecl.getLinkage() == AST::VarDecl::Linkage::External) {
+            const auto Type = llvm::Type::getDoubleTy(Handler.getContext());
+            const auto GV =
+                new llvm::GlobalVariable(
+                    Handler.getModule(),
+                    Type,
+                    VarDecl.isConstant(),
+                    llvm::GlobalVariable::LinkageTypes::ExternalLinkage,
+                    /*Initializer=*/nullptr,
+                    VarDecl.getName());
+
+            return GV;
+        }
+
+        if (VarDecl.isGlobal()) {
+            const auto Type = llvm::Type::getDoubleTy(Handler.getContext());
+            const auto GV =
+                new llvm::GlobalVariable(
+                    Handler.getModule(),
+                    Type,
+                    VarDecl.isConstant(),
+                    llvm::GlobalVariable::LinkageTypes::WeakAnyLinkage,
+                    /*Initializer=*/llvm::ConstantFP::get(Handler.getContext(),
+                                                          llvm::APFloat(0.0)),
+                    VarDecl.getName());
+
+            return GV;
+        }
+
         const auto ResultOpt =
             Handler.codegen(*VarDecl.getInitExpr(), Builder, ValueMap);
 
@@ -546,24 +575,10 @@ namespace Backend::LLVM {
             return std::nullopt;
         }
 
-        if (VarDecl.getLinkage() == AST::VarDecl::Linkage::External) {
-            const auto Type = llvm::Type::getDoubleTy(Handler.getContext());
-            const auto gVar =
-                new llvm::GlobalVariable(
-                    Handler.getModule(),
-                    Type,
-                    /*isConstant=*/false,
-                    llvm::GlobalVariable::LinkageTypes::ExternalLinkage,
-                    /*Initializer=*/nullptr,
-                    VarDecl.getName());
-
-            return gVar;
-        }
-
         const auto FuncParent = Builder.GetInsertBlock()->getParent();
         auto TmpB =
-            llvm::IRBuilder<>(&FuncParent->getEntryBlock(),
-                              FuncParent->getEntryBlock().begin());
+            llvm::IRBuilder(&FuncParent->getEntryBlock(),
+                            FuncParent->getEntryBlock().begin());
 
         const auto DoubleTy = llvm::Type::getDoubleTy(Handler.getContext());
         const auto AllocaBlock =
@@ -581,8 +596,7 @@ namespace Backend::LLVM {
         -> std::optional<llvm::Value *>
     {
         if (const auto Value = ValueMap.getValue(VarRef.getName())) {
-            if (const auto AllocaInst =
-                    llvm::dyn_cast<llvm::AllocaInst>(Value))
+            if (const auto AllocaInst = llvm::dyn_cast<llvm::AllocaInst>(Value))
             {
                 return
                     Builder.CreateLoad(

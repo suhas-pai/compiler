@@ -8,6 +8,7 @@
 
 #include "AST/Decl.h"
 #include "AST/Expr.h"
+
 #include "Lex/Token.h"
 
 namespace AST {
@@ -19,15 +20,18 @@ namespace AST {
         std::string Name;
 
         Expr *InitExpr;
+
         bool IsConstant : 1;
+        bool IsGlobal : 1;
     public:
         constexpr explicit
         VarDecl(const Lex::Token NameToken,
                 const std::string_view Name,
-                bool IsConstant,
+                const bool IsConstant,
+                const bool IsGlobal,
                 Expr *const InitExpr = nullptr) noexcept
         : Decl(ObjKind), NameLoc(NameToken.Loc), Name(Name),
-          InitExpr(InitExpr), IsConstant(IsConstant) {}
+          InitExpr(InitExpr), IsConstant(IsConstant), IsGlobal(IsGlobal) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
@@ -55,6 +59,10 @@ namespace AST {
             return IsConstant;
         }
 
+        [[nodiscard]] constexpr auto isGlobal() const noexcept {
+            return IsGlobal;
+        }
+
         constexpr
         auto setName(const std::string_view Name) noexcept -> decltype(*this) {
             this->Name = Name;
@@ -77,6 +85,13 @@ namespace AST {
             -> decltype(*this)
         {
             this->IsConstant = IsConstant;
+            return *this;
+        }
+
+        constexpr auto setIsGlobal(const bool IsGlobal) noexcept
+            -> decltype(*this)
+        {
+            this->IsGlobal = IsGlobal;
             return *this;
         }
     };

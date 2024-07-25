@@ -30,9 +30,7 @@ namespace Backend::LLVM {
     }
 
     void Handler::initialize(const llvm::StringRef &Name) noexcept {
-        // Create a new pass manager attached to it.
         allocCoreFields("Compiler");
-
         Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
 
         // Create new pass and analysis managers.
@@ -151,7 +149,11 @@ namespace Backend::LLVM {
     auto Handler::removeASTNode(const std::string_view Name) noexcept
         -> decltype(*this)
     {
-        getNameToASTNodeMapRef().erase(std::string(Name));
+        auto &Map = getNameToASTNodeMapRef();
+        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
+            Map.erase(Iter);
+        }
+
         return *this;
     }
 

@@ -2,6 +2,7 @@
  * Basic/SourceManager.cpp
  */
 
+#include <cstring>
 #include <fcntl.h>
 
 #include <sys/mman.h>

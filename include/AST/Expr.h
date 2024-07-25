@@ -11,7 +11,5 @@ namespace AST {
         constexpr static auto ObjKind = NodeKind::Base;
     protected:
         constexpr explicit Expr(const NodeKind Kind) noexcept : Stmt(Kind) {}
-    public:
-        virtual ~Expr() noexcept = default;
     };
 }

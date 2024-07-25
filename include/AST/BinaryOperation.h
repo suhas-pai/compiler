@@ -15,8 +15,8 @@ namespace AST {
         SourceLocation Loc;
         Parse::BinaryOperator Operator;
 
-        Expr *Lhs = nullptr;
-        Expr *Rhs = nullptr;
+        Expr *Lhs;
+        Expr *Rhs;
     public:
         constexpr explicit
         BinaryOperation(const SourceLocation Loc,

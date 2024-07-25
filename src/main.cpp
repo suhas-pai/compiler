@@ -223,7 +223,6 @@ HandlePrompt(const std::string_view &Prompt,
     auto Parser =
         Parse::Parser(*SourceMngr, Context, TokenList, Diag, ParseOptions);
 
-    // We got an error while parsing.
     auto Expr = Parser.parseTopLevelExpressionOrStmt();
     if (Expr == nullptr) {
         return;
@@ -348,8 +347,8 @@ int main(const int argc, const char *const argv[]) {
             break;
         }
 
-        if (Arg == "-h" || Arg == "--help" ||
-            Arg == "-u" || Arg == "--usage")
+        if (Arg == "-h" || Arg == "--help"
+            || Arg == "-u" || Arg == "--usage")
         {
             PrintUsage(argv[0]);
             return 0;

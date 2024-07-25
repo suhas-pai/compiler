@@ -3,6 +3,7 @@
  */
 
 #pragma once
+
 #include "AST/Expr.h"
 #include "Backend/LLVM/Handler.h"
 #include "Basic/SourceLocation.h"
@@ -47,7 +48,7 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto setExpr(Expr *const Value) noexcept -> decltype(*this) {
+        constexpr auto setValue(Expr *const Value) noexcept -> decltype(*this) {
             this->Value = Value;
             return *this;
         }

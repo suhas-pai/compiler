@@ -50,10 +50,10 @@ namespace Parse {
         [[nodiscard]]
         auto parseIdentifierForLhs(Lex::Token Token) noexcept -> AST::Expr *;
 
-        [[nodiscard]] auto parseLHS() noexcept -> AST::Expr *;
+        [[nodiscard]] auto parseLhs() noexcept -> AST::Expr *;
 
         [[nodiscard]]
-        auto parseBinOpRHS(AST::Expr *LHS, uint64_t MinPrec) noexcept
+        auto parseBinOpRhs(AST::Expr *LHS, uint64_t MinPrec) noexcept
             -> AST::Expr *;
 
         [[nodiscard]]

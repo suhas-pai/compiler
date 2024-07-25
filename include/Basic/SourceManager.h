@@ -4,7 +4,9 @@
 
 #pragma once
 
+#include <cstdlib>
 #include <string>
+
 #include "Basic/ErrorOr.h"
 #include "Interface/DiagnosticsEngine.h"
 
