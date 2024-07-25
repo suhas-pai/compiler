@@ -33,7 +33,7 @@ string(REPLACE " " ";" LLVM_LINK_FLAGS ${LLVM_LINK_FLAGS})
 
 target_compile_options(compiler PUBLIC ${LLVM_CXX_FLAGS})
 
-target_link_options(compiler PUBLIC ${LLVM_LD_FLAGS} ${LLVM_LINK_FLAGS})
+target_link_options(compiler PUBLIC ${LLVM_LD_FLAGS} ${LLVM_LINK_FLAGS} -stdlib=libc++)
 target_link_libraries(compiler readline)
 
 set_property(TARGET compiler PROPERTY CXX_STANDARD 20)
