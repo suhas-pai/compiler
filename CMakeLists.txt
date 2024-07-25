@@ -27,13 +27,16 @@ execute_process(COMMAND
     llvm-config --libs all OUTPUT_VARIABLE LLVM_LINK_FLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 string(REPLACE "-std=c++17 " "" LLVM_CXX_FLAGS ${LLVM_CXX_FLAGS})
-string(REPLACE " " ";" LLVM_CXX_FLAGS ${LLVM_CXX_FLAGS} -stdlib=libc++)
+string(REPLACE " " ";" LLVM_CXX_FLAGS ${LLVM_CXX_FLAGS})
 string(REPLACE " " ";" LLVM_LD_FLAGS ${LLVM_LD_FLAGS})
 string(REPLACE " " ";" LLVM_LINK_FLAGS ${LLVM_LINK_FLAGS})
 
 target_compile_options(compiler PUBLIC ${LLVM_CXX_FLAGS})
+target_compile_options(compiler PUBLIC -stdlib=libc++)
 
-target_link_options(compiler PUBLIC ${LLVM_LD_FLAGS} ${LLVM_LINK_FLAGS} -stdlib=libc++ -lc++abi)
+target_link_options(compiler PUBLIC ${LLVM_LD_FLAGS} ${LLVM_LINK_FLAGS})
+target_link_options(compiler PUBLIC -stdlib=libc++ -lc++abi)
+
 target_link_libraries(compiler readline)
 
 set_property(TARGET compiler PROPERTY CXX_STANDARD 20)
