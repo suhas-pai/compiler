@@ -11,6 +11,14 @@
             "program": "${workspaceFolder}/build_debug/compiler",
             "args": ["--print-ast", "--print-ir"],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug (file)",
+            "program": "${workspaceFolder}/build_debug/compiler",
+            "args": ["--print-ast", "--print-ir", "examples/file.txt"],
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

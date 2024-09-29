@@ -14,6 +14,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/IR/Module.h"
 
 #include "llvm/Passes/StandardInstrumentations.h"
 #include "llvm/Support/Error.h"
@@ -39,6 +40,8 @@ namespace Backend::LLVM {
         auto getValue(std::string_view Name) const noexcept -> llvm::Value *;
         auto removeValue(std::string_view Name) noexcept
             -> decltype(*this);
+
+        auto clear() noexcept -> decltype(*this);
     };
 
     // Handler is a struct that handles the llvm-backend process to create a

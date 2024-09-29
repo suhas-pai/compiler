@@ -10,8 +10,8 @@
 
 #include "Basic/SourceManager.h"
 
-auto SourceManager::fromFile(const std::string_view Path) noexcept ->
-    ErrorOr<SourceManager *, Error>
+auto SourceManager::fromFile(const std::string_view Path) noexcept
+    -> ErrorOr<SourceManager *, Error>
 {
     const auto Fd = open(Path.data(), O_RDONLY);
     if (Fd == -1) {
@@ -28,11 +28,24 @@ auto SourceManager::fromFile(const std::string_view Path) noexcept ->
         return Error::createMapError(strerror(errno));
     }
 
-    return new SourceManager(Map, Stat.st_size, /*IsMapped=*/true);
+    return new SourceManager(Map, Stat.st_size, DestroyMapKind::Mapped);
+}
+
+auto SourceManager::fromAlloc(void *Base, size_t Size) noexcept
+    -> ErrorOr<SourceManager *, Error>
+{
+    return new SourceManager(Base, Size, DestroyMapKind::Allocated);
 }
 
 SourceManager::~SourceManager() noexcept {
-    if (IsMapped) {
-        munmap(Base, Size);
+    switch (DestroyKind) {
+        case DestroyMapKind::Normal:
+            break;
+        case DestroyMapKind::Mapped:
+            munmap(Base, Size);
+            break;
+        case DestroyMapKind::Allocated:
+            free(Base);
+            break;
     }
 }

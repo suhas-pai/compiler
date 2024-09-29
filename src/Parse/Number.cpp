@@ -2,8 +2,8 @@
  * Parse/Number.cpp
  */
 
-#include "Parse/Number.h"
 #include "Basic/Lexer.h"
+#include "Parse/Number.h"
 
 namespace Parse {
     auto
@@ -11,11 +11,6 @@ namespace Parse {
                 const ParseNumberOptions Options) noexcept -> ParseNumberResult
     {
         auto Result = ParseNumberResult();
-        if (Text.empty()) {
-            Result.Error = ParseNumberError::EmptyString;
-            return Result;
-        }
-
         Result.Kind = NumberKind::UnsignedInteger;
 
         auto Lexer = ::Lexer(Text);
@@ -29,13 +24,16 @@ namespace Parse {
                 Lexer.consume();
                 Result.Kind = NumberKind::SignedInteger;
             } else if (SignChar == '+') {
-                if (!Options.AllowPosSign) {
+                if (!Options.AllowPositiveSign) {
                     Result.Error = ParseNumberError::PositiveSign;
                     return Result;
                 }
 
                 Lexer.consume();
             }
+        } else {
+            Result.Error = ParseNumberError::EmptyString;
+            return Result;
         }
 
         auto Base = uint8_t(10);
@@ -71,7 +69,8 @@ namespace Parse {
 
                     break;
                 default:
-                    break;
+                    Result.Error = ParseNumberError::UnrecognizedBase;
+                    return Result;
             }
         }
 
@@ -101,8 +100,12 @@ namespace Parse {
                     return Result;
                 }
 
-                Result.SInt *= Base;
-                Result.SInt -= Digit;
+                if (__builtin_mul_overflow(Result.SInt, Base, &Result.SInt)
+                 || __builtin_add_overflow(Result.SInt, Digit, &Result.SInt))
+                {
+                    Result.Error = ParseNumberError::Overflow;
+                    return Result;
+                };
             }
         } else {
             for (auto Char = Lexer.consume(); Char != '\0';
@@ -130,8 +133,12 @@ namespace Parse {
                     return Result;
                 }
 
-                Result.UInt *= Base;
-                Result.UInt += Digit;
+                if (__builtin_mul_overflow(Result.UInt, Base, &Result.UInt)
+                 || __builtin_add_overflow(Result.UInt, Digit, &Result.UInt))
+                {
+                    Result.Error = ParseNumberError::Overflow;
+                    return Result;
+                };
             }
         }
 

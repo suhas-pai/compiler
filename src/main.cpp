@@ -19,6 +19,43 @@
 #include "Lex/Tokenizer.h"
 #include "Parse/Parser.h"
 
+static void PrintDepth(const uint8_t Depth) noexcept {
+    for (auto I = uint8_t(); I != Depth; ++I) {
+        printf("\t");
+    }
+}
+
+static void
+PrintTypeQualifiers(const char *const Prefix,
+                    const Sema::TypeQualifiers Qual,
+                    const char *const Suffix) noexcept
+{
+    printf("%s%s, %s%s",
+           Prefix,
+           Qual.isMutable() ? "mutable" : "immutable",
+           Qual.isVolatile() ? "volatile" : "non-volatile",
+           Suffix);
+}
+
+static void PrintTypeRefInstInfo(AST::TypeRef::Inst *const Inst) {
+    switch (Inst->getKind()) {
+        case AST::TypeRef::Pointer: {
+            const auto PtrInst = llvm::cast<AST::TypeRef::PointerInst>(Inst);
+            const auto Qual = PtrInst->getQualifiers();
+
+            PrintTypeQualifiers("pointer<", Qual, ">");
+            break;
+        }
+        case AST::TypeRef::Type: {
+            const auto TypeInst = llvm::cast<AST::TypeRef::TypeInst>(Inst);
+            const auto Qual = TypeInst->getQualifiers();
+
+            PrintTypeQualifiers("type<", Qual, ">");
+            break;
+        }
+    }
+}
+
 void
 PrintAST(Backend::LLVM::Handler &Handler,
          AST::Stmt *const Expr,
@@ -28,13 +65,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
         return;
     }
 
-    for (auto I = uint8_t(); I != Depth; ++I) {
-        printf("\t");
-    }
-
+    PrintDepth(Depth);
     switch (Expr->getKind()) {
-        case AST::NodeKind::Base:
-            __builtin_unreachable();
         case AST::NodeKind::BinaryOperation: {
             const auto BinaryExpr = llvm::cast<AST::BinaryOperation>(Expr);
             const auto Lexeme =
@@ -42,8 +74,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             printf("binary-operation<%s>\n", Lexeme->data());
 
-            PrintAST(Handler, BinaryExpr->getLhs(), Depth + 1);
-            PrintAST(Handler, BinaryExpr->getRhs(), Depth + 1);
+            PrintAST(Handler, &BinaryExpr->getLhs(), Depth + 1);
+            PrintAST(Handler, &BinaryExpr->getRhs(), Depth + 1);
 
             break;
         }
@@ -67,11 +99,11 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto IntLit = llvm::cast<AST::NumberLiteral>(Expr);
             switch (IntLit->getNumber().Kind) {
                 case Parse::NumberKind::UnsignedInteger:
-                    printf("number-literal<%llu, unsigned>\n",
+                    printf("number-literal<%" PRIu64 ", unsigned>\n",
                            IntLit->getNumber().UInt);
                     break;
                 case Parse::NumberKind::SignedInteger:
-                    printf("number-literal<%lld, signed>\n",
+                    printf("number-literal<%" PRId64 ", signed>\n",
                            IntLit->getNumber().SInt);
                     break;
                 case Parse::NumberKind::FloatingPoint32:
@@ -93,6 +125,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto VarDecl = llvm::cast<AST::VarDecl>(Expr);
 
             printf("var-decl<\"%s\">\n", VarDecl->getName().data());
+
+            PrintAST(Handler, VarDecl->getTypeRef(), Depth + 1);
             PrintAST(Handler, VarDecl->getInitExpr(), Depth + 1);
 
             break;
@@ -109,8 +143,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto FuncDecl = llvm::cast<AST::FunctionDecl>(Expr);
             printf("function-decl\n");
 
-            PrintAST(Handler, FuncDecl->getPrototype(), Depth + 1);
-            PrintAST(Handler, FuncDecl->getBody(), Depth + 2);
+            PrintAST(Handler, &FuncDecl->getPrototype(), Depth + 1);
+            PrintAST(Handler, &FuncDecl->getBody(), Depth + 2);
 
             break;
         }
@@ -151,7 +185,9 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             PrintAST(Handler, IfStmt->getCond(), Depth + 1);
             PrintAST(Handler, IfStmt->getThen(), Depth + 2);
-            PrintAST(Handler, IfStmt->getElse(), Depth + 1);
+
+            printf("\telse-stmt\n");
+            PrintAST(Handler, IfStmt->getElse(), Depth + 2);
 
             break;
         }
@@ -172,6 +208,31 @@ PrintAST(Backend::LLVM::Handler &Handler,
             }
 
             break;
+        }
+        case AST::NodeKind::TypeRef: {
+            const auto TypeRef = llvm::cast<AST::TypeRef>(Expr);
+
+            printf("type-ref\n");
+            PrintDepth(Depth + 1);
+
+            const auto &InstList = TypeRef->getInstList();
+            printf("instructions: [");
+
+            if (!InstList.empty()) {
+                PrintTypeRefInstInfo(InstList.front());
+                for (auto It = std::next(InstList.begin()),
+                        End = InstList.end();
+                     It != End;
+                     ++It)
+                {
+                    printf(", ");
+                    PrintTypeRefInstInfo(*It);
+                }
+
+                printf("]\n");
+            } else {
+                printf("] (empty)\n");
+            }
         }
     }
 }
@@ -318,11 +379,14 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
             exit(1);
         }
 
-        Context.visitDecls(Diag, AST::Context::VisitOptions());
+        //Context.visitDecls(Diag, AST::Context::VisitOptions());
         BackendHandler.evalulate(Context);
 
         if (ArgOptions.PrintAST) {
-            for (const auto &[Name, Decl] : Context.getDeclMap()) {
+            const auto &DeclMap =
+                Context.getSymbolTable().getGlobalScope().getDeclMap();
+
+            for (const auto &[Name, Decl] : DeclMap) {
                 PrintAST(BackendHandler, Decl, /*Depth=*/ArgOptions.PrintDepth);
             }
         }

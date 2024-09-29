@@ -5,7 +5,7 @@
 #pragma once
 #include <string_view>
 
-#include "ADT/SmallMap.h"
+#include "ADT/SmallArrayMap.h"
 #include "Lex/Token.h"
 
 namespace Parse {
@@ -36,7 +36,7 @@ namespace Parse {
     };
 
     constexpr auto LexTokenKindToBinaryOperatorMap =
-        ADT::SmallMap<Lex::TokenKind, BinaryOperator, 9>({
+        ADT::SmallArrayMap<Lex::TokenKind, BinaryOperator, 9>({
             std::make_pair(Lex::TokenKind::Equal, BinaryOperator::Assignment),
             std::make_pair(Lex::TokenKind::Plus, BinaryOperator::Add),
             std::make_pair(Lex::TokenKind::Minus, BinaryOperator::Subtract),
@@ -51,7 +51,7 @@ namespace Parse {
         });
 
     constexpr auto BinaryOperatorToLexemeMap =
-        ADT::SmallMap<BinaryOperator, std::string_view, 9>({
+        ADT::SmallArrayMap<BinaryOperator, std::string_view, 9>({
             std::make_pair(BinaryOperator::Assignment, "="),
             std::make_pair(BinaryOperator::Add, "+"),
             std::make_pair(BinaryOperator::Subtract, "-"),
@@ -64,7 +64,7 @@ namespace Parse {
         });
 
     constexpr auto UnaryOperatorToLexemeMap =
-        ADT::SmallMap<UnaryOperator, std::string_view, 7>({
+        ADT::SmallArrayMap<UnaryOperator, std::string_view, 7>({
             std::make_pair(UnaryOperator::Negate, "-"),
             std::make_pair(UnaryOperator::LogicalNot, "!"),
             std::make_pair(UnaryOperator::BitwiseNot, "~"),

@@ -5,7 +5,7 @@
 #include "Parse/String.h"
 
 namespace Parse {
-    auto VerifyEscapeSequence(const char NextChar) -> char {
+    auto VerifyEscapeSequence(const char NextChar) noexcept -> char {
         switch (NextChar) {
             case 'a':
                 return '\a';

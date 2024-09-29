@@ -32,14 +32,18 @@ namespace Lex {
             Tilde,
             LessThan,
             GreaterThan,
-            Shl,
-            Shr,
+            ShiftLeft,
+            ShiftRight,
             Equal,
             Exclamation,
         };
     protected:
         std::string_view Text;
-        uint64_t Index = 0;
+
+        uint32_t Row = 0;
+        uint32_t Index = 0;
+        uint16_t Column = 0;
+
         Interface::DiagnosticsEngine &Diag;
 
         [[nodiscard]] constexpr auto peek() const noexcept -> char {
@@ -50,8 +54,11 @@ namespace Lex {
             return Text.at(Index);
         }
 
-        constexpr auto consume(const uint64_t Skip = 0) noexcept -> char {
-            if (Index + Skip >= Text.length()) {
+        constexpr auto consume(const uint32_t Skip = 0) noexcept -> char {
+            uint32_t End = 0;
+            if (__builtin_add_overflow(Index, Skip, &End) ||
+                End >= Text.length())
+            {
                 return '\0';
             }
 
@@ -66,6 +73,14 @@ namespace Lex {
 
         [[nodiscard]] constexpr auto index() const noexcept {
             return Index;
+        }
+
+        [[nodiscard]] constexpr auto getLoc() const noexcept {
+            return SourceLocation {
+                .Index = Index,
+                .Row = Row,
+                .Column = Column
+            };
         }
 
         [[nodiscard]] auto next() noexcept -> Lex::Token;

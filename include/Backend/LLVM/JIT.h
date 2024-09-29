@@ -34,6 +34,8 @@ namespace Backend::LLVM {
         llvm::orc::JITDylib &MainJD;
         AST::Context &Context;
 
+        ValueMap ValueMap;
+
         explicit
         JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
                    llvm::orc::JITTargetMachineBuilder JTMB,

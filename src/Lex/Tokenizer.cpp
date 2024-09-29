@@ -3,16 +3,14 @@
  */
 
 #include "Lex/Tokenizer.h"
-#include "Lex/Keyword.h"
 
 namespace Lex {
     auto Tokenizer::next() noexcept -> Token {
         auto State = State::Start;
         auto Result = Token();
 
-        for (auto Char = this->consume();;
-             Char = this->consume(), Result.End.Value++)
-        {
+        Result.End.Index = Index;
+        for (auto Char = this->consume();; Char = this->consume()) {
             if (Char == '\0') {
                 if (State == State::Identifier) {
                     const auto TokenKindOpt =
@@ -34,69 +32,110 @@ namespace Lex {
                     break;
                 }
 
-                Diag.emitError("Tokenizer::next(): Unexpected null char\n");
+                Diag.emitInternalError(
+                    "Tokenizer::next(): Unexpected null char\n");
+
                 return Token::invalid();
             }
 
             switch (State) {
                 case State::Start:
-                    Result.Loc.Value = Index - 1;
+                    Result.Loc.Index = Index - 1;
                     switch (Char) {
-                        case ' ':
                         case '\n':
+                            Row++;
+                            Column = 0;
+
+                            if (Row > SourceLocation::RowLimit) {
+                                Diag.emitError(Result.Loc, "Line is too long");
+                                return Token::invalid();
+                            }
+
+                            continue;
+                        case ' ':
                         case '\t':
                         case '\r':
-                            continue;
+                            goto next;
                         case '\'':
                             State = State::CharLiteral;
                             Result.Kind = TokenKind::CharLiteral;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case '"':
                             State = State::StringLiteral;
                             Result.Kind = TokenKind::StringLiteral;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case 'a'...'z':
                         case 'A'...'Z':
                         case '_':
                             State = State::Identifier;
                             Result.Kind = TokenKind::Identifier;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case '0'...'9':
                             State = State::IntegerLiteral;
                             Result.Kind = TokenKind::IntegerLiteral;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case '+':
                             State = State::Plus;
                             Result.Kind = TokenKind::Plus;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case '-':
                             State = State::Minus;
                             Result.Kind = TokenKind::Minus;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case '*':
                             State = State::Star;
                             Result.Kind = TokenKind::Star;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case '%':
                             State = State::Percent;
                             Result.Kind = TokenKind::Percent;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case '/':
                             State = State::Slash;
                             Result.Kind = TokenKind::Slash;
 
-                            continue;
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
+                            goto next;
                         case '^':
                             State = State::Caret;
                             Result.Kind = TokenKind::Caret;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
 
                             break;
                         case '&':
@@ -107,66 +146,126 @@ namespace Lex {
                             State = State::Pipe;
                             Result.Kind = TokenKind::Pipe;
 
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             break;
                         case '~':
                             State = State::Tilde;
                             Result.Kind = TokenKind::Tilde;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
 
                             break;
                         case '<':
                             State = State::LessThan;
                             Result.Kind = TokenKind::LessThan;
 
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             break;
                         case '>':
                             State = State::GreaterThan;
                             Result.Kind = TokenKind::GreaterThan;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
 
                             break;
                         case '=':
                             State = State::Equal;
                             Result.Kind = TokenKind::Equal;
 
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             break;
                         case '!':
                             State = State::Exclamation;
                             Result.Kind = TokenKind::Exclamation;
 
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             break;
                         case '(':
                             Result.Kind = TokenKind::OpenParen;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case ')':
                             Result.Kind = TokenKind::CloseParen;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case '{':
                             Result.Kind = TokenKind::OpenCurlyBrace;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case '}':
                             Result.Kind = TokenKind::CloseCurlyBrace;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case '[':
                             Result.Kind = TokenKind::LeftSquareBracket;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case ']':
                             Result.Kind = TokenKind::RightSquareBracket;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case ',':
                             Result.Kind = TokenKind::Comma;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case '.':
                             Result.Kind = TokenKind::Dot;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case ':':
                             Result.Kind = TokenKind::Colon;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         case ';':
                             Result.Kind = TokenKind::Semicolon;
+
+                            Result.Loc.Row = Row;
+                            Result.Loc.Column = Column;
+
                             goto done;
                         default:
-                            Diag.emitError("Unrecognized token: %c\n", Char);
-                            Result.Kind = TokenKind::Invalid;
+                            Diag.emitError(SourceLocation::invalid(),
+                                           "Unrecognized token: %c\n",
+                                           Char);
 
+                            Result.Kind = TokenKind::Invalid;
                             goto done;
                     }
 
@@ -210,6 +309,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -220,6 +321,8 @@ namespace Lex {
                             break;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -233,7 +336,7 @@ namespace Lex {
                             break;
                         default:
                             Index--;
-                            Result.End.Value = Index;
+                            Column--;
 
                             const auto KeywordOpt =
                                 KeywordToLexemeMap.keyFor(
@@ -254,6 +357,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -265,6 +370,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -279,6 +386,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -290,6 +399,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -301,6 +412,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -312,6 +425,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -326,6 +441,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -340,6 +457,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -351,6 +470,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -358,15 +479,17 @@ namespace Lex {
                 case State::LessThan:
                     switch (Char) {
                         case '<':
-                            State = State::Shl;
-                            Result.Kind = TokenKind::Shl;
+                            State = State::ShiftLeft;
+                            Result.Kind = TokenKind::ShiftLeft;
 
-                            continue;
+                            goto next;
                         case '=':
                             Result.Kind = TokenKind::LessThanOrEqual;
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -374,37 +497,43 @@ namespace Lex {
                 case State::GreaterThan:
                     switch (Char) {
                         case '>':
-                            State = State::Shr;
-                            Result.Kind = TokenKind::Shr;
+                            State = State::ShiftRight;
+                            Result.Kind = TokenKind::ShiftRight;
 
-                            continue;
+                            goto next;
                         case '=':
                             Result.Kind = TokenKind::GreaterThanOrEqual;
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
                     break;
-                case State::Shl:
+                case State::ShiftLeft:
                     switch (Char) {
                         case '=':
-                            Result.Kind = TokenKind::ShlEqual;
+                            Result.Kind = TokenKind::ShiftLeftEqual;
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
                     break;
-                case State::Shr:
+                case State::ShiftRight:
                     switch (Char) {
                         case '=':
-                            Result.Kind = TokenKind::ShrEqual;
+                            Result.Kind = TokenKind::ShiftRightEqual;
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -416,6 +545,8 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
@@ -427,16 +558,34 @@ namespace Lex {
                             goto done;
                         default:
                             Index--;
+                            Column--;
+
                             goto done;
                     }
 
                     break;
             }
+
+        next:
+            if (Char == '\n') {
+                Row++;
+            }
+
+            Column++;
+            Result.End.Index++;
+
+            if (Column > SourceLocation::ColumnLimit) {
+                Diag.emitError(SourceLocation::forLine(Row),
+                               "Line is too long");
+                return Token::invalid();
+            }
         }
 
     done:
         State = State::Start;
-        Result.End.Value = Index;
+
+        Result.End.Row = Row;
+        Result.End.Column = Column + 1;
 
         return Result;
     }

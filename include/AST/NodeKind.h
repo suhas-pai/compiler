@@ -3,11 +3,10 @@
  */
 
 #pragma once
+#include <cstdint>
 
 namespace AST {
-    enum class NodeKind {
-        Base,
-
+    enum class NodeKind : uint8_t {
         BinaryOperation,
         UnaryOperation,
         CharLiteral,
@@ -15,6 +14,7 @@ namespace AST {
         FloatLiteral,
         StringLiteral,
         VariableRef,
+        TypeRef, // Forward-decl of type
 
         Paren,
 

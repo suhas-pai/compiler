@@ -11,19 +11,24 @@
 #include "Interface/TerminalKind.h"
 
 namespace Interface {
-    void DiagnosticsEngine::emitError(const char *const Message, ...) noexcept {
+    void
+    DiagnosticsEngine::emitError(const SourceLocation Loc,
+                                 const char *const Message,
+                                 ...) noexcept
+    {
+        (void)Loc;
         if (ErrorStream == nullptr) {
             return;
         }
 
         va_list List;
-        fputs(BRED "Error: " CRESET, stderr);
+        fputs(BRED "Error: " CRESET, ErrorStream);
 
         va_start(List, Message);
-        vfprintf(stderr, Message, List);
+        vfprintf(ErrorStream, Message, List);
         va_end(List);
 
-        fputc('\n', stderr);
+        fputc('\n', ErrorStream);
         if (GetTerminalKind() != TerminalKind::Repl) {
             exit(0);
         }
@@ -38,31 +43,34 @@ namespace Interface {
         }
 
         va_list List;
-        fputs(BRED "Internal Error: " CRESET, stderr);
+        fputs(BRED "Internal Error: " CRESET, ErrorStream);
 
         va_start(List, Message);
-        vfprintf(stderr, Message, List);
+        vfprintf(ErrorStream, Message, List);
         va_end(List);
 
-        fputc('\n', stderr);
+        fputc('\n', ErrorStream);
         if (GetTerminalKind() != TerminalKind::Repl) {
             exit(0);
         }
     }
 
     void
-    DiagnosticsEngine::emitWarning(const char *const Message, ...) noexcept {
+    DiagnosticsEngine::emitWarning(const SourceLocation Loc,
+                                   const char *const Message, ...) noexcept
+    {
+        (void)Loc;
         if (ErrorStream == nullptr) {
             return;
         }
 
         va_list List;
-        fputs(BYEL "Warning: " CRESET, stderr);
+        fputs(BYEL "Warning: " CRESET, ErrorStream);
 
         va_start(List, Message);
-        vfprintf(stderr, Message, List);
+        vfprintf(ErrorStream, Message, List);
         va_end(List);
 
-        fputc('\n', stderr);
+        fputc('\n', ErrorStream);
     }
 }

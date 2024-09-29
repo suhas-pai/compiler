@@ -6,32 +6,48 @@
 
 #include <string>
 
-#include "AST/Decl.h"
-#include "AST/Expr.h"
+#include "AST/TypeRef.h"
+#include "AST/VarQualifiers.h"
 
 #include "Lex/Token.h"
+#include "Sema/Types/Type.h"
+
+#include "Decl.h"
 
 namespace AST {
     struct VarDecl : public Decl {
     public:
         constexpr static auto ObjKind = NodeKind::VarDecl;
     protected:
-        SourceLocation NameLoc;
         std::string Name;
-
         Expr *InitExpr;
 
-        bool IsConstant : 1;
+        VarQualifiers Qualifiers;
+        std::variant<Sema::Type *, AST::TypeRef *> TypeOrTypeRef;
+
         bool IsGlobal : 1;
     public:
         constexpr explicit
         VarDecl(const Lex::Token NameToken,
                 const std::string_view Name,
-                const bool IsConstant,
+                const VarQualifiers Qualifiers,
+                AST::TypeRef *const TypeRef,
                 const bool IsGlobal,
                 Expr *const InitExpr = nullptr) noexcept
-        : Decl(ObjKind), NameLoc(NameToken.Loc), Name(Name),
-          InitExpr(InitExpr), IsConstant(IsConstant), IsGlobal(IsGlobal) {}
+        : Decl(ObjKind, NameToken.Loc, Linkage::Private), Name(Name),
+          InitExpr(InitExpr), Qualifiers(Qualifiers), TypeOrTypeRef(TypeRef),
+          IsGlobal(IsGlobal) {}
+
+        constexpr explicit
+        VarDecl(const Lex::Token NameToken,
+                const std::string_view Name,
+                const VarQualifiers Qualifiers,
+                Sema::Type *const Type,
+                const bool IsGlobal,
+                Expr *const InitExpr = nullptr) noexcept
+        : Decl(ObjKind, NameToken.Loc, Linkage::Private), Name(Name),
+          InitExpr(InitExpr),  Qualifiers(Qualifiers), TypeOrTypeRef(Type),
+          IsGlobal(IsGlobal) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
@@ -40,10 +56,6 @@ namespace AST {
         [[nodiscard]]
         static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
-        }
-
-        [[nodiscard]] constexpr auto getNameLoc() const noexcept {
-            return NameLoc;
         }
 
         [[nodiscard]]
@@ -55,12 +67,28 @@ namespace AST {
             return InitExpr;
         }
 
-        [[nodiscard]] constexpr auto isConstant() const noexcept {
-            return IsConstant;
-        }
-
         [[nodiscard]] constexpr auto isGlobal() const noexcept {
             return IsGlobal;
+        }
+
+        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+            return Qualifiers;
+        }
+
+        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+            return Qualifiers;
+        }
+
+        [[nodiscard]] constexpr auto getSemaType() {
+            return std::get<Sema::Type *>(TypeOrTypeRef);
+        }
+
+        [[nodiscard]] constexpr auto getTypeRef() {
+            return std::get<AST::TypeRef *>(TypeOrTypeRef);
+        }
+
+        [[nodiscard]] constexpr auto hasSemaType() {
+            return std::holds_alternative<Sema::Type *>(TypeOrTypeRef);
         }
 
         constexpr
@@ -69,9 +97,8 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto
-        setNameLoc(const SourceLocation NameLoc) noexcept -> decltype(*this) {
-            this->NameLoc = NameLoc;
+        constexpr auto setName(std::string &&Name) noexcept -> decltype(*this) {
+            this->Name = std::move(Name);
             return *this;
         }
 
@@ -81,17 +108,24 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto setIsConstant(const bool IsConstant) noexcept
-            -> decltype(*this)
-        {
-            this->IsConstant = IsConstant;
-            return *this;
-        }
-
         constexpr auto setIsGlobal(const bool IsGlobal) noexcept
             -> decltype(*this)
         {
             this->IsGlobal = IsGlobal;
+            return *this;
+        }
+
+        constexpr auto setSemaType(Sema::Type *const Type) noexcept
+            -> decltype(*this)
+        {
+            TypeOrTypeRef = Type;
+            return *this;
+        }
+
+        constexpr auto setTypeRef(AST::TypeRef *const TypeRef) noexcept
+            -> decltype(*this)
+        {
+            TypeOrTypeRef = TypeRef;
             return *this;
         }
     };

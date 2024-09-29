@@ -9,6 +9,7 @@ add_executable(compiler ${SOURCES})
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(CPack)
 
@@ -31,15 +32,14 @@ string(REPLACE " " ";" LLVM_CXX_FLAGS ${LLVM_CXX_FLAGS})
 string(REPLACE " " ";" LLVM_LD_FLAGS ${LLVM_LD_FLAGS})
 string(REPLACE " " ";" LLVM_LINK_FLAGS ${LLVM_LINK_FLAGS})
 
-target_compile_options(compiler PUBLIC ${LLVM_CXX_FLAGS})
 target_compile_options(compiler PUBLIC -stdlib=libc++)
+target_compile_options(compiler PUBLIC ${LLVM_CXX_FLAGS})
 
 target_link_options(compiler PUBLIC ${LLVM_LD_FLAGS} ${LLVM_LINK_FLAGS})
-target_link_options(compiler PUBLIC -stdlib=libc++ -lc++abi)
+target_link_options(compiler PUBLIC -stdlib=libc++)
+target_link_options(compiler PUBLIC -fuse-ld=lld)
 
 target_link_libraries(compiler readline)
-
-set_property(TARGET compiler PROPERTY CXX_STANDARD 20)
 set(CMAKE_CXX_CLANG_TIDY
     clang-tidy;
     -header-filter=include;

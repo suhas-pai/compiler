@@ -42,12 +42,12 @@ namespace AST {
             return Operator;
         }
 
-        [[nodiscard]] constexpr auto getLhs() const noexcept {
-            return Lhs;
+        [[nodiscard]] constexpr auto &getLhs() const noexcept {
+            return *Lhs;
         }
 
-        [[nodiscard]] constexpr auto getRhs() const noexcept {
-            return Rhs;
+        [[nodiscard]] constexpr auto &getRhs() const noexcept {
+            return *Rhs;
         }
 
         constexpr auto setLhs(Expr *const Lhs) noexcept -> decltype(*this) {

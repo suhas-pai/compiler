@@ -16,7 +16,7 @@ namespace Parse {
     };
 
     struct ParseNumberOptions {
-        bool AllowPosSign : 1 = false;
+        bool AllowPositiveSign : 1 = false;
         bool DontAllowNegativeNumbers : 1 = false;
     };
 
@@ -29,12 +29,14 @@ namespace Parse {
 
         InvalidDigit,
         UnrecognizedChar,
+        UnrecognizedBase,
 
         TooLarge,
         LeadingZero,
         NegativeZero,
 
-        FloatingPoint
+        FloatingPoint,
+        Overflow,
     };
 
     struct ParseNumberResult {

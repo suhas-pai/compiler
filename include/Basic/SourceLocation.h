@@ -6,9 +6,27 @@
 #include <cstdint>
 
 struct SourceLocation {
-    int32_t Value = 0;
+    constexpr static auto RowLimit = (1 << 20) - 1;
+    constexpr static auto ColumnLimit = (1 << 12) - 1;
 
-    [[nodiscard]] static constexpr auto invalid() noexcept {
-        return SourceLocation({ .Value = -1 });
+    uint32_t Index = 0;
+    uint32_t Row : 20;
+    uint16_t Column : 12;
+
+    constexpr static auto forLine(const uint32_t Line) noexcept {
+        return SourceLocation {
+            .Index = 0,
+            .Row = Line,
+            .Column = 0
+        };
     }
+
+    [[nodiscard]] constexpr static auto invalid() noexcept {
+        return SourceLocation({ .Index = 0, .Row = 0, .Column = 0 });
+    }
+};
+
+struct SourceRange {
+    SourceLocation Start;
+    SourceLocation End;
 };

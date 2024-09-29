@@ -91,14 +91,24 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getName() const noexcept {
-            return std::string_view(Name);
+        [[nodiscard]]
+        constexpr auto getName() const noexcept -> std::string_view {
+            return Name;
+        }
+
+        [[nodiscard]] constexpr auto getNameLoc() const noexcept {
+            return NameLoc;
         }
 
         constexpr auto setName(const std::string_view Name) noexcept
             -> decltype(*this)
         {
             this->Name = Name;
+            return *this;
+        }
+
+        constexpr auto setName(std::string &&Name) noexcept -> decltype(*this) {
+            this->Name = std::move(Name);
             return *this;
         }
 

@@ -8,8 +8,9 @@
 #include <cassert>
 #include <string_view>
 
-#include "ADT/SmallMap.h"
+#include "ADT/SmallArrayMap.h"
 #include "Basic/SourceLocation.h"
+
 #include "Keyword.h"
 
 namespace Lex {
@@ -39,11 +40,11 @@ namespace Lex {
         Percent,
         PercentEqual,
 
-        Shl,
-        ShlEqual,
+        ShiftLeft,
+        ShiftLeftEqual,
 
-        Shr,
-        ShrEqual,
+        ShiftRight,
+        ShiftRightEqual,
 
         Caret,
         CaretEqual,
@@ -102,8 +103,8 @@ namespace Lex {
             case TokenKind::Slash:
             case TokenKind::DoubleStar:
             case TokenKind::Percent:
-            case TokenKind::Shl:
-            case TokenKind::Shr:
+            case TokenKind::ShiftLeft:
+            case TokenKind::ShiftRight:
             case TokenKind::Caret:
             case TokenKind::Pipe:
             case TokenKind::LessThan:
@@ -123,8 +124,8 @@ namespace Lex {
             case TokenKind::StarEqual:
             case TokenKind::SlashEqual:
             case TokenKind::PercentEqual:
-            case TokenKind::ShlEqual:
-            case TokenKind::ShrEqual:
+            case TokenKind::ShiftLeftEqual:
+            case TokenKind::ShiftRightEqual:
             case TokenKind::CaretEqual:
             case TokenKind::AmpersandEqual:
             case TokenKind::DoubleAmpersand:
@@ -161,8 +162,8 @@ namespace Lex {
             case TokenKind::Slash:
             case TokenKind::DoubleStar:
             case TokenKind::Percent:
-            case TokenKind::Shl:
-            case TokenKind::Shr:
+            case TokenKind::ShiftLeft:
+            case TokenKind::ShiftRight:
             case TokenKind::Caret:
             case TokenKind::Ampersand:
             case TokenKind::Pipe:
@@ -185,8 +186,8 @@ namespace Lex {
             case TokenKind::StarEqual:
             case TokenKind::SlashEqual:
             case TokenKind::PercentEqual:
-            case TokenKind::ShlEqual:
-            case TokenKind::ShrEqual:
+            case TokenKind::ShiftLeftEqual:
+            case TokenKind::ShiftRightEqual:
             case TokenKind::CaretEqual:
             case TokenKind::AmpersandEqual:
             case TokenKind::DoubleAmpersand:
@@ -254,13 +255,13 @@ namespace Lex {
                 return "percent";
             case TokenKind::PercentEqual:
                 return "percent-equal";
-            case TokenKind::Shl:
+            case TokenKind::ShiftLeft:
                 return "shl-operator";
-            case TokenKind::ShlEqual:
+            case TokenKind::ShiftLeftEqual:
                 return "shl-equal";
-            case TokenKind::Shr:
+            case TokenKind::ShiftRight:
                 return "shr-operator";
-            case TokenKind::ShrEqual:
+            case TokenKind::ShiftRightEqual:
                 return "shr-equal";
             case TokenKind::Caret:
                 return "caret";
@@ -334,7 +335,7 @@ namespace Lex {
         SourceLocation Loc;
         SourceLocation End;
 
-        [[nodiscard]] constexpr static auto eof() -> Token {
+        [[nodiscard]] constexpr static auto eof() {
             return Token {
                 .Kind = TokenKind::EOFToken,
                 .Loc = SourceLocation::invalid(),
@@ -342,7 +343,7 @@ namespace Lex {
             };
         }
 
-        [[nodiscard]] constexpr static auto invalid() -> Token {
+        [[nodiscard]] constexpr static auto invalid() {
             return Token {
                 .Kind = TokenKind::Invalid,
                 .Loc = SourceLocation::invalid(),
@@ -351,10 +352,8 @@ namespace Lex {
         }
 
         [[nodiscard]]
-        constexpr auto getString(const std::string_view Text) const noexcept
-            -> std::string_view
-        {
-            return Text.substr(Loc.Value, End.Value - Loc.Value);
+        constexpr auto getString(const std::string_view Text) const noexcept {
+            return Text.substr(Loc.Index, End.Index - Loc.Index);
         }
     };
 
@@ -378,7 +377,7 @@ namespace Lex {
             CHECK_KW(Let)
             [[fallthrough]];
 
-            CHECK_KW(Const)
+            CHECK_KW(Mut)
             [[fallthrough]];
 
             CHECK_KW(Function);
@@ -391,6 +390,9 @@ namespace Lex {
             [[fallthrough]];
 
             CHECK_KW(Return);
+            [[fallthrough]];
+
+            CHECK_KW(Volatile);
             break;
 
         #undef CHECK_KW

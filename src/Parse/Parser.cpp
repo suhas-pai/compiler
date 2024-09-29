@@ -5,12 +5,12 @@
 #include "AST/BinaryOperation.h"
 #include "AST/VariableRef.h"
 
-#include "Basic/Macros.h"
 #include "Lex/Token.h"
-
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
 #include "Parse/String.h"
+
+#include "Sema/Types/Qualifiers.h"
 
 namespace Parse {
     auto Parser::peek() -> std::optional<Lex::Token> {
@@ -38,7 +38,15 @@ namespace Parse {
         return tokenList().at(Index - 1);
     }
 
-    auto Parser::consumeIf(const Lex::TokenKind Kind)
+    auto Parser::peekIs(Lex::TokenKind Kind) -> bool {
+        if (const auto TokenOpt = this->peek()) {
+            return TokenOpt.value().Kind == Kind;
+        }
+
+        return false;
+    }
+
+    auto Parser::consumeIfToken(const Lex::TokenKind Kind)
         -> std::optional<Lex::Token>
     {
         if (const auto TokenOpt = this->peek()) {
@@ -58,14 +66,9 @@ namespace Parse {
         if (TokenOpt.has_value()) {
             if (TokenOpt.value().Kind == Kind) {
                 if (Kind == Lex::TokenKind::Semicolon) {
-                    while ((TokenOpt = this->peek())) {
-                        /* Skip past multiple semicolons */
-                        const auto Token = TokenOpt.value();
-                        if (Token.Kind != Lex::TokenKind::Semicolon) {
-                            break;
-                        }
-
-                        this->consume();
+                    // Skip past multiple semicolons
+                    while (this->consumeIfToken(Lex::TokenKind::Semicolon)) {
+                        continue;
                     }
                 }
 
@@ -109,9 +112,42 @@ namespace Parse {
         -> AST::NumberLiteral *
     {
         const auto ParseResult = Parse::ParseNumber(tokenContent(Token));
-        if (ParseResult.Error != ParseNumberError::None) {
-            Diag.emitError("Failed to parse number-literal");
-            return nullptr;
+        switch (ParseResult.Error) {
+            case ParseNumberError::None:
+                break;
+            case ParseNumberError::EmptyString:
+                assert(false && "NumberLiteral token-string is empty");
+            case ParseNumberError::NegativeNumber:
+                Diag.emitError(Token.Loc, "Signed integers can't be negative");
+                break;
+            case ParseNumberError::PositiveSign:
+                Diag.emitError(Token.Loc, "Integers can't have a +sign");
+                break;
+            case ParseNumberError::InvalidDigit:
+                Diag.emitError(Token.Loc, "Invalid digit in number");
+                break;
+            case ParseNumberError::UnrecognizedChar:
+                Diag.emitError(Token.Loc, "Unrecognized character in number");
+                break;
+            case ParseNumberError::UnrecognizedBase:
+                Diag.emitError(Token.Loc, "Unrecognized base in number");
+                break;
+            case ParseNumberError::TooLarge:
+                Diag.emitError(Token.Loc, "Number is too large");
+                break;
+            case ParseNumberError::LeadingZero:
+                Diag.emitError(Token.Loc, "Number cannot have a leading zero");
+                break;
+            case ParseNumberError::NegativeZero:
+                Diag.emitError(Token.Loc, "Negative zero cannot be valid");
+                break;
+            case ParseNumberError::FloatingPoint:
+                Diag.emitError(Token.Loc,
+                               "Floating-point number not supported");
+                break;
+            case ParseNumberError::Overflow:
+                Diag.emitError(Token.Loc, "Number is too large");
+                break;
         }
 
         return new AST::NumberLiteral(Token.Loc, ParseResult);
@@ -122,7 +158,8 @@ namespace Parse {
     {
         const auto TokenString = tokenContent(Token);
         if (TokenString.size() == 2) {
-            Diag.emitError("Characters cannot be empty. Use \'\'0\' to store a "
+            Diag.emitError(Token.Loc,
+                           "Characters cannot be empty. Use \'\'0\' to store a "
                            "null-character");
             return nullptr;
         }
@@ -130,7 +167,8 @@ namespace Parse {
         const auto FirstChar = TokenString.at(1);
         if (FirstChar != '\\') {
             if (TokenString.size() != 3) {
-                Diag.emitError("Use double quotes to store strings with "
+                Diag.emitError(Token.Loc,
+                               "Use double quotes to store strings with "
                                "multiple characters");
                 return nullptr;
             }
@@ -139,7 +177,8 @@ namespace Parse {
         }
 
         if (FirstChar == '\\' && TokenString.size() == 3) {
-            Diag.emitError("Expected another character to parse "
+            Diag.emitError(Token.Loc,
+                           "Expected another character to parse "
                            "escape-sequence. Use \'\\\\\' to store a "
                            "back-slash");
             return nullptr;
@@ -147,7 +186,7 @@ namespace Parse {
 
         const auto EscapedChar = VerifyEscapeSequence(TokenString.at(2));
         if (EscapedChar == '\0') {
-            Diag.emitError("Invalid escape-sequence");
+            Diag.emitError(Token.Loc, "Invalid escape-sequence");
             return nullptr;
         }
 
@@ -173,7 +212,8 @@ namespace Parse {
 
             I++;
             if (I == TokenStringLiteral.size()) {
-                Diag.emitError("Expected another character to parse "
+                Diag.emitError(Token.Loc,
+                               "Expected another character to parse "
                                "escape-sequence");
                 return nullptr;
             }
@@ -182,7 +222,7 @@ namespace Parse {
                 VerifyEscapeSequence(TokenStringLiteral.at(I));
 
             if (NextChar == '\0') {
-                Diag.emitError("Invalid escape-sequence");
+                Diag.emitError(Token.Loc, "Invalid escape-sequence");
                 return nullptr;
             }
 
@@ -195,14 +235,14 @@ namespace Parse {
     auto Parser::parseParenExpr(const Lex::Token Token) noexcept
         -> AST::ParenExpr *
     {
-        const auto ChildExprOpt = this->parseExpressionOpt();
+        const auto ChildExprOpt = this->parseExpression();
         if (!ChildExprOpt.has_value()) {
-            Diag.emitError("Unexpected semicolon/eof");
+            Diag.emitError(Token.Loc, "Unexpected semicolon/eof");
             return nullptr;
         }
 
         if (!this->expect(Lex::TokenKind::CloseParen)) {
-            Diag.emitError("Expected closing parenthesis");
+            Diag.emitError(Token.Loc, "Expected closing parenthesis");
             return nullptr;
         }
 
@@ -215,21 +255,27 @@ namespace Parse {
         -> AST::FunctionCall *
     {
         auto ArgList = std::vector<AST::Expr *>();
+        const auto TokenOpt = this->peek();
+
+        if (!TokenOpt.has_value()) {
+            Diag.emitError(NameToken.Loc,
+                           "Unexpected end of file while parsing function "
+                           "parameter list");
+            return nullptr;
+        }
+
+        const auto Token = TokenOpt.value();
+        if (Token.Kind == Lex::TokenKind::CloseParen) {
+            this->consume();
+            goto done;
+        }
+
         do {
-            const auto TokenOpt = this->peek();
-            if (!TokenOpt.has_value()) {
-                Diag.emitError("Unexpected end of file while parsing function "
-                               "parameter list");
-                return nullptr;
-            }
+            if (const auto Expr = this->parseExpression()) {
+                if (Expr.value() == nullptr) {
+                    return nullptr;
+                }
 
-            const auto Token = TokenOpt.value();
-            if (Token.Kind == Lex::TokenKind::CloseParen) {
-                this->consume();
-                break;
-            }
-
-            if (const auto Expr = this->parseExpressionOpt()) {
                 ArgList.emplace_back(Expr.value());
             } else {
                 return nullptr;
@@ -237,7 +283,8 @@ namespace Parse {
 
             const auto ArgEndTokenOpt = this->consume();
             if (!ArgEndTokenOpt.has_value()) {
-                Diag.emitError("Expected end of function parameter list");
+                Diag.emitError(NameToken.Loc,
+                               "Expected end of function parameter list");
                 return nullptr;
             }
 
@@ -247,11 +294,13 @@ namespace Parse {
             }
 
             if (ArgEndToken.Kind != Lex::TokenKind::Comma) {
-                Diag.emitError("Expected comma or closing parenthesis");
+                Diag.emitError(ArgEndToken.Loc,
+                               "Expected comma or closing parenthesis");
                 return nullptr;
             }
         } while (true);
 
+done:
         return new AST::FunctionCall(NameToken.Loc,
                                      tokenContent(NameToken),
                                      std::move(ArgList));
@@ -261,7 +310,7 @@ namespace Parse {
     Parser::parseIdentifierForLhs(const Lex::Token IdentToken) noexcept
         -> AST::Expr *
     {
-        if (const auto TokenOpt = this->consumeIf(Lex::TokenKind::OpenParen)) {
+        if (const auto TokenOpt = this->consumeIfToken(Lex::TokenKind::OpenParen)) {
             return this->parseFunctionCall(IdentToken, TokenOpt.value());
         }
 
@@ -269,7 +318,7 @@ namespace Parse {
     }
 
     auto Parser::parseLhs() noexcept -> AST::Expr * {
-        /* Parse Prefixes and then Lhs */
+        // Parse Prefixes and then Lhs
         auto Root = static_cast<AST::Expr *>(nullptr);
         auto CurrentOper = static_cast<AST::UnaryOperation *>(nullptr);
 
@@ -283,14 +332,15 @@ namespace Parse {
             auto Expr = static_cast<AST::Expr *>(nullptr);
 
             if (!Lex::TokenKindIsUnaryOp(Token.Kind)
-                && Token.Kind != Lex::TokenKind::Minus)
+             && Token.Kind != Lex::TokenKind::Minus)
             {
                 switch (Token.Kind) {
                     case Lex::TokenKind::Identifier:
                         Expr = this->parseIdentifierForLhs(Token);
                         break;
                     case Lex::TokenKind::Keyword:
-                        Diag.emitError("Keyword \"" SV_FMT "\" cannot be used "
+                        Diag.emitError(Token.Loc,
+                                       "Keyword \"" SV_FMT "\" cannot be used "
                                        "in an expression",
                                        SV_FMT_ARG(tokenContent(Token)));
                         return nullptr;
@@ -298,7 +348,8 @@ namespace Parse {
                         Expr = this->parseNumberLiteral(Token);
                         break;
                     case Lex::TokenKind::FloatLiteral:
-                        Diag.emitError("Floating-point is not supported");
+                        Diag.emitError(Token.Loc,
+                                       "Floating-point is not supported");
                         return nullptr;
                     case Lex::TokenKind::CharLiteral:
                         Expr = this->parseCharLiteral(Token);
@@ -310,7 +361,8 @@ namespace Parse {
                         Expr = this->parseParenExpr(Token);
                         break;
                     default:
-                        Diag.emitError("Unexpected token \"" SV_FMT "\"",
+                        Diag.emitError(Token.Loc,
+                                       "Unexpected token \"" SV_FMT "\"",
                                        SV_FMT_ARG(tokenContent(Token)));
                         return nullptr;
                 }
@@ -365,7 +417,8 @@ namespace Parse {
 
             this->consume();
             if (!this->peek().has_value()) {
-                Diag.emitError("Expected an expression after \"" SV_FMT "\"",
+                Diag.emitError(Token.Loc,
+                               "Expected an expression after \"" SV_FMT "\"",
                                SV_FMT_ARG(tokenContent(Token)));
                 return nullptr;
             }
@@ -377,7 +430,7 @@ namespace Parse {
 
             const auto BinOpToken = Token;
             if ((TokenOpt = this->peek())
-                && Lex::TokenKindIsBinOp(TokenOpt.value().Kind))
+             && Lex::TokenKindIsBinOp(TokenOpt.value().Kind))
             {
                 Token = TokenOpt.value();
 
@@ -398,7 +451,7 @@ namespace Parse {
                     const auto NextMinPrec =
                         static_cast<uint64_t>(
                             static_cast<uint64_t>(ThisOperInfo.Precedence)
-                            + !ThisIsRightAssoc);
+                          + !ThisIsRightAssoc);
 
                     Rhs = this->parseBinOpRhs(Rhs, NextMinPrec);
                     if (Rhs == nullptr) {
@@ -416,14 +469,14 @@ namespace Parse {
         } while (true);
     }
 
-    auto Parser::parseExpressionOpt(const bool ExprIsOptional) noexcept
+    auto Parser::parseExpression(const bool ExprIsOptional) noexcept
         -> std::optional<AST::Expr *>
     {
         const auto Peek = this->peek();
         if (!Peek.has_value() || Peek.value().Kind == Lex::TokenKind::Semicolon)
         {
             if (!ExprIsOptional) {
-                Diag.emitError("Expected an expression");
+                Diag.emitError(Peek->Loc, "Expected an expression");
                 return std::nullopt;
             }
 
@@ -436,7 +489,7 @@ namespace Parse {
     auto Parser::parseExpressionAndEnd(const bool ExprIsOptional) noexcept
         -> AST::Expr *
     {
-        const auto ExprOpt = this->parseExpressionOpt(ExprIsOptional);
+        const auto ExprOpt = this->parseExpression(ExprIsOptional);
         if (!ExprOpt.has_value()) {
             return nullptr;
         }
@@ -444,18 +497,206 @@ namespace Parse {
         if (!this->expect(Lex::TokenKind::Semicolon,
                           /*Optional=*/Options.DontRequireSemicolons))
         {
-            Diag.emitError("Expected a semicolon after expression");
+            Diag.emitError(SourceLocation::invalid(),
+                           "Expected a semicolon after expression");
             return nullptr;
         }
 
         return ExprOpt.value();
     }
 
+    [[nodiscard]] auto Parser::parseTypeQualifiers() noexcept
+        -> std::optional<Sema::TypeQualifiers>
+    {
+        // TODO: Enforce specific ordering of qualifiers.
+
+        auto seenMutable = false;
+        auto seenVolatile = false;
+
+        auto Qual = Sema::TypeQualifiers();
+        while (true) {
+            if (this->peekIs(Lex::TokenKind::Keyword)) {
+                const auto NextToken = this->consume().value();
+
+                const auto KeywordString = tokenContent(NextToken);
+                const auto Keyword = Lex::KeywordTokenGetKeyword(KeywordString);
+
+                if (Keyword == Lex::Keyword::Mut) {
+                    if (seenMutable) {
+                        Diag.emitError(NextToken.Loc,
+                                       "Duplicate 'mut' qualifier");
+                        return std::nullopt;
+                    }
+
+                    Qual.setIsMutable(true);
+                    seenMutable = true;
+                } else if (Keyword == Lex::Keyword::Volatile) {
+                    if (seenVolatile) {
+                        Diag.emitError(NextToken.Loc,
+                                       "Duplicate 'volatile' qualifier");
+                        return std::nullopt;
+                    }
+
+                    Qual.setIsVolatile(true);
+                    seenVolatile = true;
+                } else {
+                    break;
+                }
+
+                continue;
+            }
+
+            break;
+        }
+
+        return Qual;
+    }
+
+    [[nodiscard]] auto
+    Parser::parsePointerType(const Sema::TypeQualifiers Qual) noexcept
+        -> AST::TypeRef::PointerInst *
+    {
+        return new AST::TypeRef::PointerInst(Qual);
+    }
+
+    [[nodiscard]] auto
+    Parser::parseTypeExprInstList(
+        std::vector<AST::TypeRef::Inst *> &InstList) noexcept -> bool
+    {
+        const auto NextTokenOpt = this->peek();
+        if (!NextTokenOpt.has_value()) {
+            Diag.emitError(SourceLocation::invalid(),
+                           "Expected a type expression");
+            return false;
+        }
+
+        while (true) {
+            auto Qual = Sema::TypeQualifiers();
+            if (this->peekIs(Lex::TokenKind::Keyword)) {
+                const auto QualOpt = this->parseTypeQualifiers();
+                if (!QualOpt.has_value()) {
+                    return false;
+                }
+
+                Qual = QualOpt.value();
+            }
+
+            if (this->consumeIfToken(Lex::TokenKind::Star)) {
+                InstList.emplace_back(this->parsePointerType(Qual));
+                continue;
+            }
+
+            if (const auto TokenOpt =
+                    this->consumeIfToken(Lex::TokenKind::Identifier))
+            {
+                const auto Token = TokenOpt.value();
+                const auto Name = tokenContent(Token);
+                const auto Inst =
+                    new AST::TypeRef::TypeInst(Name, Token.Loc, Qual);
+
+                InstList.emplace_back(Inst);
+                return true; // An identifier will be the base type.
+            }
+
+            if (const auto TokenOpt =
+                    this->consumeIfToken(Lex::TokenKind::Keyword))
+            {
+                const auto Token = TokenOpt.value();
+                Diag.emitError(Token.Loc, "Expected a type expression");
+
+                return false;
+            }
+
+            Diag.emitError(SourceLocation::invalid(),
+                           "Unexpected token '" SV_FMT "' when parsing type",
+                           SV_FMT_ARG(tokenContent(this->peek().value())));
+
+            return false;
+        }
+    }
+
+    [[nodiscard]] auto Parser::parseTypeExpr() noexcept -> AST::TypeRef * {
+        auto InstList = std::vector<AST::TypeRef::Inst *>();
+        if (!parseTypeExprInstList(InstList)) {
+            return nullptr;
+        }
+
+        return new AST::TypeRef(std::move(InstList));
+    }
+
+    [[nodiscard]]
+    auto Parser::parseVarQualifiers() noexcept
+        -> std::optional<AST::VarQualifiers>
+    {
+        auto seenMutable = false;
+        auto seenVolatile = false;
+
+        // TODO: Enforce specific ordering of qualifiers.
+
+        auto Qual = AST::VarQualifiers();
+        while (true) {
+            const auto NextTokenOpt = this->peek();
+            if (!NextTokenOpt.has_value()) {
+                Diag.emitError(SourceLocation::invalid(),
+                               "Expected either a qualifier or a variable "
+                               "name");
+                return std::nullopt;
+            }
+
+            const auto NextToken = NextTokenOpt.value();
+            if (NextToken.Kind == Lex::TokenKind::Keyword) {
+                this->consume();
+
+                const auto KeywordString = tokenContent(NextToken);
+                const auto Keyword = Lex::KeywordTokenGetKeyword(KeywordString);
+
+                if (Keyword == Lex::Keyword::Mut) {
+                    if (seenMutable) {
+                        Diag.emitError(NextToken.Loc,
+                                       "Duplicate 'mut' qualifier");
+                        return std::nullopt;
+                    }
+
+                    Qual.setIsMutable(true);
+                    seenMutable = true;
+                } else if (Keyword == Lex::Keyword::Volatile) {
+                    if (seenVolatile) {
+                        Diag.emitError(NextToken.Loc,
+                                       "Duplicate 'volatile' qualifier");
+                        return std::nullopt;
+                    }
+
+                    Qual.setIsVolatile(true);
+                    seenVolatile = true;
+                } else {
+                    Diag.emitError(NextToken.Loc,
+                                   "Keyword '" SV_FMT "' is not a valid "
+                                   "variable qualifier and cannot be used as a "
+                                   "variable name",
+                                   SV_FMT_ARG(KeywordString));
+                    return std::nullopt;
+                }
+
+                continue;
+            }
+
+            break;
+        }
+
+        return Qual;
+    }
+
     auto
     Parser::parseVarDecl(const Lex::Token Token) noexcept -> AST::VarDecl * {
+        const auto QualifiersOpt = this->parseVarQualifiers();
+        if (!QualifiersOpt.has_value()) {
+            return nullptr;
+        }
+
         const auto NameTokenOpt = this->consume();
         if (!NameTokenOpt.has_value()) {
-            Diag.emitError("Expected a name for variable declaration");
+            Diag.emitError(Token.Loc,
+                           "Expected a name for variable declaration");
             return nullptr;
         }
 
@@ -464,25 +705,37 @@ namespace Parse {
             case Lex::TokenKind::Identifier:
                 break;
             case Lex::TokenKind::Keyword:
-                Diag.emitError("Keyword \"" SV_FMT "\" cannot be used as a "
+                Diag.emitError(NameToken.Loc,
+                               "Keyword \"" SV_FMT "\" cannot be used as a "
                                "variable name",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
             case Lex::TokenKind::IntegerLiteral:
             case Lex::TokenKind::FloatLiteral:
-                Diag.emitError("Number Literal \"" SV_FMT "\" cannot be used "
+                Diag.emitError(NameToken.Loc,
+                               "Number Literal \"" SV_FMT "\" cannot be used "
                                "as a variable name",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
             default:
-                Diag.emitError("Expected a variable name, got \"" SV_FMT "\" "
+                Diag.emitError(NameToken.Loc,
+                               "Expected a variable name, got \"" SV_FMT "\" "
                                "instead",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
         }
 
+        auto TypeRef = static_cast<AST::TypeRef *>(nullptr);
+        if (this->consumeIfToken(Lex::TokenKind::Colon)) {
+            TypeRef = this->parseTypeExpr();
+            if (TypeRef == nullptr) {
+                return nullptr;
+            }
+        }
+
         if (!this->expect(Lex::TokenKind::Equal)) {
-            Diag.emitError("Variable declarations must have an initial value");
+            Diag.emitError(NameToken.Loc,
+                           "Variable declarations must have an initial value");
             return nullptr;
         }
 
@@ -493,7 +746,8 @@ namespace Parse {
 
         return new AST::VarDecl(NameToken,
                                 tokenContent(NameToken),
-                                /*IsConstant=*/tokenContent(Token) == "const",
+                                QualifiersOpt.value(),
+                                TypeRef,
                                 /*IsGlobal=*/false,
                                 Expr);
     }
@@ -501,7 +755,8 @@ namespace Parse {
     auto Parser::parseFuncPrototype() noexcept -> AST::FunctionPrototype * {
         const auto NameTokenOpt = this->consume();
         if (!NameTokenOpt.has_value()) {
-            Diag.emitError("Expected a name for function declaration");
+            Diag.emitError(SourceLocation::invalid(),
+                           "Expected a name for function declaration");
             return nullptr;
         }
 
@@ -510,30 +765,34 @@ namespace Parse {
             case Lex::TokenKind::Identifier:
                 break;
             case Lex::TokenKind::Keyword:
-                Diag.emitError("Keyword \"" SV_FMT "\" cannot be used as a "
+                Diag.emitError(NameToken.Loc,
+                               "Keyword \"" SV_FMT "\" cannot be used as a "
                                "function name",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
             case Lex::TokenKind::IntegerLiteral:
             case Lex::TokenKind::FloatLiteral:
-                Diag.emitError("Number Literal \"" SV_FMT "\" cannot be used "
+                Diag.emitError(NameToken.Loc,
+                               "Number Literal \"" SV_FMT "\" cannot be used "
                                "as a function name",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
             default:
-                Diag.emitError("Expected a function name, got \"" SV_FMT "\""
+                Diag.emitError(NameToken.Loc,
+                               "Expected a function name, got \"" SV_FMT "\""
                                "instead",
                                SV_FMT_ARG(tokenContent(NameToken)));
                 return nullptr;
         }
 
         if (!this->expect(Lex::TokenKind::OpenParen)) {
-            Diag.emitError("Expected an parenthesis after function name");
+            Diag.emitError(NameToken.Loc,
+                           "Expected an parenthesis after function name");
             return nullptr;
         }
 
         auto ParamList = std::vector<AST::FunctionPrototype::ParamDecl>();
-        if (const auto CloseParenOpt = consumeIf(Lex::TokenKind::CloseParen)) {
+        if (const auto CloseParenOpt = consumeIfToken(Lex::TokenKind::CloseParen)) {
             return new AST::FunctionPrototype(NameToken.Loc,
                                               tokenContent(NameToken),
                                               ParamList);
@@ -542,14 +801,16 @@ namespace Parse {
         do {
             const auto TokenOpt = this->consume();
             if (!TokenOpt.has_value()) {
-                Diag.emitError("Unexpected end of file while parsing function "
+                Diag.emitError(NameToken.Loc,
+                               "Unexpected end of file while parsing function "
                                "parameter list");
                 return nullptr;
             }
 
             const auto Token = TokenOpt.value();
             if (Token.Kind != Lex::TokenKind::Identifier) {
-                Diag.emitError("Unexpected token \"" SV_FMT "\" while parsing ",
+                Diag.emitError(Token.Loc,
+                               "Unexpected token \"" SV_FMT "\" while parsing ",
                                SV_FMT_ARG(tokenContent(Token)));
                 return nullptr;
             }
@@ -558,7 +819,8 @@ namespace Parse {
 
             const auto CommaOrCloseParenOpt = this->consume();
             if (!CommaOrCloseParenOpt.has_value()) {
-                Diag.emitError("Expected a comma or closing parenthesis");
+                Diag.emitError(Token.Loc,
+                               "Expected a comma or closing parenthesis");
                 return nullptr;
             }
 
@@ -568,7 +830,8 @@ namespace Parse {
             }
 
             if (CommaOrCloseParen.Kind != Lex::TokenKind::Comma) {
-                Diag.emitError("Expected a comma or closing parenthesis");
+                Diag.emitError(Token.Loc,
+                               "Expected a comma or closing parenthesis");
                 return nullptr;
             }
         } while (true);
@@ -582,13 +845,15 @@ namespace Parse {
         if (const auto Proto = this->parseFuncPrototype()) {
             const auto OpenParenOpt = this->peek();
             if (!OpenParenOpt.has_value()) {
-                Diag.emitError("Unexepcted eof after function prototype");
+                Diag.emitError(SourceLocation::invalid(),
+                               "Unexepcted eof after function prototype");
                 return nullptr;
             }
 
             const auto OpenParen = OpenParenOpt.value();
             if (OpenParen.Kind != Lex::TokenKind::OpenCurlyBrace) {
-                Diag.emitError("Expected open-paren, got " SV_FMT " instead",
+                Diag.emitError(OpenParen.Loc,
+                               "Expected open-paren, got " SV_FMT " instead",
                                SV_FMT_ARG(
                                 Lex::TokenKindGetName(OpenParen.Kind)));
                 return nullptr;
@@ -596,7 +861,9 @@ namespace Parse {
 
             this->consume();
             if (const auto Body = this->parseCompoundStmt(OpenParen)) {
-                return new AST::FunctionDecl(Proto, Body);
+                return new AST::FunctionDecl(Proto,
+                                             Body,
+                                             AST::Decl::Linkage::Private);
             }
         }
 
@@ -606,17 +873,19 @@ namespace Parse {
     auto Parser::parseIfStmt(const Lex::Token IfToken) noexcept -> AST::IfStmt *
     {
         if (!this->expect(Lex::TokenKind::OpenParen)) {
-            Diag.emitError("Expected an opening parenthesis after if");
+            Diag.emitError(IfToken.Loc,
+                           "Expected an opening parenthesis after if");
             return nullptr;
         }
 
-        const auto ConditionOpt = this->parseExpressionOpt();
+        const auto ConditionOpt = this->parseExpression();
         if (!ConditionOpt.has_value()) {
             return nullptr;
         }
 
         if (!this->expect(Lex::TokenKind::CloseParen)) {
-            Diag.emitError("Expected a closing parenthesis after if condition");
+            Diag.emitError(IfToken.Loc,
+                           "Expected a closing parenthesis after if condition");
             return nullptr;
         }
 
@@ -626,7 +895,7 @@ namespace Parse {
         }
 
         auto ElseStmt = static_cast<AST::Stmt *>(nullptr);
-        if (const auto ElseTokenOpt = consumeIf(Lex::TokenKind::Keyword)) {
+        if (const auto ElseTokenOpt = consumeIfToken(Lex::TokenKind::Keyword)) {
             const auto TokenString = tokenContent(ElseTokenOpt.value());
             if (Lex::TokenStringIsKeyword(TokenString, Lex::Keyword::Else)) {
                 ElseStmt = this->parseStmt();
@@ -654,11 +923,12 @@ namespace Parse {
         while (true) {
             const auto TokenOpt = this->peek();
             if (!TokenOpt.has_value()) {
-                Diag.emitError("Expected closing curly-bracket");
+                Diag.emitError(CurlyToken.Loc,
+                               "Expected closing curly-bracket");
                 return nullptr;
             }
 
-            if (this->consumeIf(Lex::TokenKind::CloseCurlyBrace).has_value()) {
+            if (this->consumeIfToken(Lex::TokenKind::CloseCurlyBrace)) {
                 break;
             }
 
@@ -676,7 +946,7 @@ namespace Parse {
     auto Parser::parseStmt() noexcept -> AST::Stmt * {
         const auto TokenOpt = this->consume();
         if (!TokenOpt.has_value()) {
-            Diag.emitError("Unexpected end of file");
+            Diag.emitError(SourceLocation::invalid(), "Unexpected end of file");
             return nullptr;
         }
 
@@ -686,7 +956,7 @@ namespace Parse {
                 const auto TokenString = tokenContent(Token);
                 switch (Lex::KeywordTokenGetKeyword(TokenString)) {
                     case Lex::Keyword::Let:
-                    case Lex::Keyword::Const:
+                    case Lex::Keyword::Mut: // FIXME: 'mut' by itself is invalid
                         return this->parseVarDecl(Token);
                     case Lex::Keyword::Function:
                         return this->parseFuncDecl();
@@ -696,6 +966,10 @@ namespace Parse {
                         return this->parseExpressionAndEnd();
                     case Lex::Keyword::Return:
                         return this->parseReturnStmt(Token);
+                    case Lex::Keyword::Volatile:
+                        Diag.emitError(Token.Loc,
+                                       "Unexpected 'volatile' keyword");
+                        return nullptr;
                 }
 
                 [[fallthrough]];
@@ -718,11 +992,12 @@ namespace Parse {
                     continue;
                 }
 
-                Diag.emitError("Unexpected non-declaration statement");
+                Diag.emitError(Token->Loc,
+                               "Unexpected non-declaration statement");
                 return false;
             }
 
-            Diag.emitError("Unexpected non-statement");
+            Diag.emitError(Token->Loc, "Unexpected non-statement");
             return false;
         }
 
@@ -732,7 +1007,8 @@ namespace Parse {
     auto Parser::parseTopLevelExpressionOrStmt() noexcept -> AST::Stmt * {
         if (const auto Result = this->parseStmt()) {
             if (const auto Token = this->peek()) {
-                Diag.emitError("Unexpected token \"" SV_FMT "\"",
+                Diag.emitError(Token->Loc,
+                               "Unexpected token \"" SV_FMT "\"",
                                SV_FMT_ARG(tokenContent(*Token)));
                 return nullptr;
             }

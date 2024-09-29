@@ -30,10 +30,7 @@ namespace AST {
         FunctionCall(const SourceLocation NameLoc,
                      const std::string_view Name,
                      std::vector<Expr *> &&Args) noexcept
-        : Expr(ObjKind), NameLoc(NameLoc), Name(Name), Args(Args) {}
-
-        constexpr explicit FunctionCall(const std::string_view Name) noexcept
-        : Expr(ObjKind), Name(Name) {}
+        : Expr(ObjKind), NameLoc(NameLoc), Name(Name), Args(std::move(Args)) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;

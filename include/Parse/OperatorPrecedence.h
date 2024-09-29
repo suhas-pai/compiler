@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ADT/SmallMap.h"
+#include "ADT/SmallArrayMap.h"
 #include "Lex/Token.h"
 
 namespace Parse {
@@ -43,7 +43,7 @@ namespace Parse {
     };
 
     constexpr auto OperatorInfoMap =
-        ADT::SmallMap<Lex::TokenKind, OperatorInfo, 31>({
+        ADT::SmallArrayMap<Lex::TokenKind, OperatorInfo, 31>({
             std::make_pair(Lex::TokenKind::Comma,
                            OperatorInfo(Precedence::Comma,
                                         OperatorAssoc::Left)),
@@ -65,10 +65,10 @@ namespace Parse {
             std::make_pair(Lex::TokenKind::MinusEqual,
                            OperatorInfo(Precedence::Assignment,
                                         OperatorAssoc::Left)),
-            std::make_pair(Lex::TokenKind::ShlEqual,
+            std::make_pair(Lex::TokenKind::ShiftLeftEqual,
                            OperatorInfo(Precedence::Assignment,
                                         OperatorAssoc::Left)),
-            std::make_pair(Lex::TokenKind::ShrEqual,
+            std::make_pair(Lex::TokenKind::ShiftRightEqual,
                            OperatorInfo(Precedence::Assignment,
                                         OperatorAssoc::Left)),
             std::make_pair(Lex::TokenKind::AmpersandEqual,
@@ -113,10 +113,10 @@ namespace Parse {
             std::make_pair(Lex::TokenKind::GreaterThan,
                            OperatorInfo(Precedence::Relational,
                                         OperatorAssoc::Left)),
-            std::make_pair(Lex::TokenKind::Shl,
+            std::make_pair(Lex::TokenKind::ShiftLeft,
                            OperatorInfo(Precedence::Shift,
                                         OperatorAssoc::Left)),
-            std::make_pair(Lex::TokenKind::Shr,
+            std::make_pair(Lex::TokenKind::ShiftRight,
                            OperatorInfo(Precedence::Shift,
                                         OperatorAssoc::Left)),
             std::make_pair(Lex::TokenKind::Plus,

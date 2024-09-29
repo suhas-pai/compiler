@@ -68,9 +68,8 @@ namespace Parse {
             -> AST::CompoundStmt *;
 
         [[nodiscard]] auto parseStmt() noexcept -> AST::Stmt *;
-
         [[nodiscard]]
-        auto parseExpressionOpt(bool ExprIsOptional = false) noexcept
+        auto parseExpression(bool ExprIsOptional = false) noexcept
             -> std::optional<AST::Expr *>;
 
         [[nodiscard]]
@@ -80,6 +79,21 @@ namespace Parse {
         [[nodiscard]] auto parseFuncPrototype() noexcept
             -> AST::FunctionPrototype *;
 
+        [[nodiscard]] auto parseTypeQualifiers() noexcept
+            -> std::optional<Sema::TypeQualifiers>;
+
+        [[nodiscard]]
+        auto parsePointerType(Sema::TypeQualifiers Qual) noexcept
+            -> AST::TypeRef::PointerInst *;
+
+        [[nodiscard]] auto
+        parseTypeExprInstList(
+            std::vector<AST::TypeRef::Inst *> &InstList) noexcept -> bool;
+
+        [[nodiscard]] auto parseTypeExpr() noexcept -> AST::TypeRef *;
+        [[nodiscard]]
+        auto parseVarQualifiers() noexcept -> std::optional<AST::VarQualifiers>;
+
         [[nodiscard]]
         auto parseVarDecl(Lex::Token Token) noexcept -> AST::VarDecl *;
 
@@ -88,7 +102,8 @@ namespace Parse {
         [[nodiscard]] auto peek() -> std::optional<Lex::Token>;
         [[nodiscard]] auto prev() -> std::optional<Lex::Token>;
 
-        auto consumeIf(Lex::TokenKind Kind) -> std::optional<Lex::Token>;
+        auto peekIs(Lex::TokenKind Kind) -> bool;
+        auto consumeIfToken(Lex::TokenKind Kind) -> std::optional<Lex::Token>;
 
         [[nodiscard]]
         auto tokenContent(Lex::Token Token) const noexcept -> std::string_view;

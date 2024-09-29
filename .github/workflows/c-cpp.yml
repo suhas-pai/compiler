@@ -27,23 +27,3 @@ jobs:
       run: |
         cmake .. -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_CXX_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_LINKER_TYPE=lld
         ninja
-
-  linux-build:
-    runs-on: ubuntu-latest
-    steps:
-    - run: |
-       sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-       sudo apt update
-       sudo apt install -y clang cmake lld ninja-build libc++-18-dev libc++abi-18-dev
-       echo "/usr/lib/llvm-18/bin" >> $GITHUB_PATH
-    - uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
-    - name: Make directory
-      run: |
-        mkdir -p build_debug
-    - name: Make
-      working-directory: build_debug/
-      run: |
-        cmake .. -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_CXX_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_LINKER_TYPE=lld
-        ninja

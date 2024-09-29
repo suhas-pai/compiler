@@ -5,7 +5,9 @@
 #include <memory>
 
 #include "AST/FunctionDecl.h"
+
 #include "Backend/LLVM/Codegen.h"
+#include "Backend/LLVM/Handler.h"
 
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/TargetSelect.h"
@@ -76,8 +78,7 @@ namespace Backend::LLVM {
 
     auto
     ValueMap::addValue(const std::string_view Name,
-                       llvm::Value *const Value) noexcept
-        -> decltype(*this)
+                       llvm::Value *const Value) noexcept -> decltype(*this)
     {
         if (const auto Iter = Map.find(Name); Iter != Map.end()) {
             Iter->second.push_back(Value);
@@ -90,8 +91,7 @@ namespace Backend::LLVM {
 
     auto
     ValueMap::setValue(const std::string_view Name,
-                       llvm::Value *const Value) noexcept
-        -> decltype(*this)
+                       llvm::Value *const Value) noexcept -> decltype(*this)
     {
         if (const auto Iter = Map.find(Name); Iter != Map.end()) {
             Iter->second.pop_back();
@@ -127,6 +127,11 @@ namespace Backend::LLVM {
         return *this;
     }
 
+    auto ValueMap::clear() noexcept -> decltype(*this) {
+        Map.clear();
+        return *this;
+    }
+
     auto
     Handler::addASTNode(const std::string_view Name, AST::Stmt &Node) noexcept
         -> decltype(*this)
@@ -159,14 +164,17 @@ namespace Backend::LLVM {
 
     bool Handler::evalulate(AST::Context &Context) noexcept {
         auto ValueMap = LLVM::ValueMap();
-        for (const auto &[Name, Decl] : Context.getDeclMap()) {
+        const auto &DeclMap =
+            Context.getSymbolTable().getGlobalScope().getDeclMap();
+
+        for (const auto &[Name, Decl] : DeclMap) {
             // We need to be able to reference a function within its body,
             // so this case must be handled differently.
 
             if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
-                const auto Proto = FuncDecl->getPrototype();
+                auto &Proto = FuncDecl->getPrototype();
                 const auto ProtoCodegenOpt =
-                    FunctionPrototypeCodegen(*Proto,
+                    FunctionPrototypeCodegen(Proto,
                                              *this,
                                              getBuilder(),
                                              ValueMap);

@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "Basic/Macros.h"
+#include "Basic/SourceLocation.h"
 
 struct SourceManager;
 namespace Interface {
@@ -31,12 +32,14 @@ namespace Interface {
             return *this;
         }
 
-        __printflike(2, 3) void emitError(const char *Message, ...) noexcept;
-        __printflike(2, 3) void emitWarning(const char *Message, ...) noexcept;
+        __printflike(3, 4)
+        void emitError(SourceLocation Loc, const char *Message, ...) noexcept;
+
+        __printflike(3, 4)
+        void emitWarning(SourceLocation Loc, const char *Message, ...) noexcept;
 
         __printflike(2, 3)
         void emitInternalError(const char *Message, ...) noexcept;
-
     };
 }
 

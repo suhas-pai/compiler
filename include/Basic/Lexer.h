@@ -22,8 +22,7 @@ public:
     }
 
     [[nodiscard]] constexpr auto peek() const noexcept -> char {
-        const auto Index = getIndex();
-        if (Index == 0) {
+        if (Index >= Text.size()) {
             return '\0';
         }
 
@@ -40,7 +39,6 @@ public:
     }
 
     [[nodiscard]] constexpr auto prev() const noexcept -> char {
-        const auto Index = getIndex();
         if (Index >= Text.size()) {
             return '\0';
         }

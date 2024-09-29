@@ -5,6 +5,8 @@
 #include <readline/history.h>
 #include <readline/readline.h>
 
+#include <format>
+
 #include "Interface/ANSI.h"
 #include "Interface/Repl.h"
 #include "Interface/TerminalKind.h"
@@ -48,9 +50,7 @@ namespace Interface {
         rl_set_keymap(rl_make_bare_keymap());
         using_history();
 
-        auto FullPrompt = std::string(Prompt) + "> " + CRESET;
-        FullPrompt.insert(0, BHBLU);
-
+        const auto FullPrompt = std::format(BHBLU "{}> " CRESET, Prompt);
         while (true) {
             const auto InputCStr = readline(FullPrompt.c_str());
             if (InputCStr == nullptr) {

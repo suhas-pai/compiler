@@ -20,7 +20,7 @@ namespace AST {
         ReturnStmt(const SourceLocation ReturnLoc, Expr *const Value) noexcept
         : Stmt(ObjKind), ReturnLoc(ReturnLoc), Value(Value) {}
 
-        constexpr static auto none() noexcept {
+        [[nodiscard]] constexpr static auto none() noexcept {
             return ReturnStmt(SourceLocation::invalid(), /*Value=*/nullptr);
         }
 

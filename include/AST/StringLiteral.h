@@ -22,6 +22,11 @@ namespace AST {
                       const std::string_view Value) noexcept
         : Expr(ObjKind), Loc(Loc), Value(Value) {}
 
+        constexpr explicit
+        StringLiteral(const SourceLocation Loc,
+                      std::string &&Value) noexcept
+        : Expr(ObjKind), Loc(Loc), Value(std::move(Value)) {}
+
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
@@ -35,13 +40,20 @@ namespace AST {
             return Loc;
         }
 
-        [[nodiscard]] constexpr auto getValue() const noexcept {
+        [[nodiscard]]
+        constexpr auto getValue() const noexcept -> std::string_view {
             return Value;
         }
 
         constexpr auto
         setValue(const std::string_view Value) noexcept -> decltype(*this) {
             this->Value = Value;
+            return *this;
+        }
+
+        constexpr
+        auto setValue(std::string &&Value) noexcept -> decltype(*this) {
+            this->Value = std::move(Value);
             return *this;
         }
     };

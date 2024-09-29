@@ -9,8 +9,20 @@
 
 namespace ADT {
     template <typename K, typename V, std::size_t Size>
-    struct SmallMap {
+    struct SmallArrayMap {
+    protected:
         std::array<std::pair<K, V>, Size> Data;
+    public:
+        constexpr SmallArrayMap() noexcept = default;
+        constexpr
+        SmallArrayMap(const std::array<std::pair<K, V>, Size> &List) noexcept
+        : Data(List) {}
+
+        constexpr SmallArrayMap(const SmallArrayMap &Other) noexcept
+        : Data(Other.Data) {}
+
+        constexpr SmallArrayMap(SmallArrayMap &&Other) noexcept
+        : Data(std::move(Other.Data)) {}
 
         [[nodiscard]]
         constexpr auto at(const K &Key) const noexcept -> std::optional<V> {
@@ -28,8 +40,8 @@ namespace ADT {
             return Iter->second;
         }
 
-        [[nodiscard]] constexpr
-        auto keyFor(const V &Val) const noexcept -> std::optional<K> {
+        [[nodiscard]]
+        constexpr auto keyFor(const V &Val) const noexcept -> std::optional<K> {
             const auto Iter =
                 std::find_if(begin(Data),
                              end(Data),

@@ -3,10 +3,9 @@
  */
 
 #pragma once
+#include <string>
 
-#include "Backend/LLVM/Handler.h"
 #include "Basic/SourceLocation.h"
-
 #include "Expr.h"
 
 namespace AST {

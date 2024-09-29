@@ -23,7 +23,7 @@ struct StringHash {
 
     [[nodiscard]]
     constexpr auto operator()(const llvm::StringRef &String) const noexcept {
-        return this->operator()(std::string_view(String));
+        return hash_type{}(std::string_view(String));
     }
 
     [[nodiscard]]
