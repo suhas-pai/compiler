@@ -13,7 +13,7 @@ jobs:
     - name: Install Dependencies
       run: |
         brew update --preinstall
-        brew install llvm ninja cmake
+        brew install llvm ninja cmake lld
         echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
         echo "/opt/homebrew/opt/make/libexec/gnubin" >> $GITHUB_PATH
     - uses: actions/checkout@v4
@@ -25,5 +25,5 @@ jobs:
     - name: Make
       working-directory: build_debug/
       run: |
-        cmake .. -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_CXX_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_LINKER_TYPE=lld
+        cmake .. -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_CXX_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_LINKER_TYPE=lld -DCMAKE_BUILD_TYPE=Debug
         ninja
