@@ -19,8 +19,13 @@ namespace AST {
     public:
         constexpr explicit
         CompoundStmt(const SourceLocation BraceLoc,
-                     std::vector<Stmt *> &&StmtList) noexcept
+                     const std::vector<Stmt *> &StmtList) noexcept
         : Stmt(ObjKind), BraceLoc(BraceLoc), StmtList(StmtList) {}
+
+        constexpr explicit
+        CompoundStmt(const SourceLocation BraceLoc,
+                     std::vector<Stmt *> &&StmtList) noexcept
+        : Stmt(ObjKind), BraceLoc(BraceLoc), StmtList(std::move(StmtList)) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;

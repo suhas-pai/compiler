@@ -4,19 +4,25 @@
 
 #pragma once
 
+#include "AST/Decls/EnumDecl.h"
+#include "AST/Decls/EnumMemberDecl.h"
+#include "AST/Decls/FunctionDecl.h"
+#include "AST/Decls/StructDecl.h"
+#include "AST/Decls/VarDecl.h"
+
+#include "AST/ArraySubscriptExpr.h"
+#include "AST/CallExpr.h"
 #include "AST/CharLiteral.h"
 #include "AST/CompoundStmt.h"
 #include "AST/Context.h"
-#include "AST/FunctionCall.h"
-#include "AST/FunctionDecl.h"
-#include "AST/FunctionProtoype.h"
+#include "AST/FieldExpr.h"
 #include "AST/IfStmt.h"
 #include "AST/NumberLiteral.h"
 #include "AST/ParenExpr.h"
 #include "AST/ReturnStmt.h"
 #include "AST/StringLiteral.h"
+#include "AST/TypeRef.h"
 #include "AST/UnaryOperation.h"
-#include "AST/VarDecl.h"
 
 #include "Basic/SourceManager.h"
 
@@ -43,9 +49,16 @@ namespace Parse {
         auto parseParenExpr(Lex::Token Token) noexcept -> AST::ParenExpr *;
 
         [[nodiscard]]
-        auto
-        parseFunctionCall(Lex::Token NameToken, Lex::Token ParenToken) noexcept
-            -> AST::FunctionCall *;
+        auto parseFieldExpr(Lex::Token Token, AST::Expr *LHS) noexcept
+            -> AST::FieldExpr *;
+
+        [[nodiscard]]
+        auto parseCallExpr(Lex::Token NameToken, Lex::Token ParenToken) noexcept
+            -> AST::CallExpr *;
+
+        [[nodiscard]] auto
+        parseArraySubscriptExpr(AST::Expr *Lhs, Lex::Token BracketToken) noexcept
+            -> AST::ArraySubscriptExpr *;
 
         [[nodiscard]]
         auto parseIdentifierForLhs(Lex::Token Token) noexcept -> AST::Expr *;
@@ -76,15 +89,8 @@ namespace Parse {
         auto parseExpressionAndEnd(bool ExprIsOptional = false) noexcept
             -> AST::Expr *;
 
-        [[nodiscard]] auto parseFuncPrototype() noexcept
-            -> AST::FunctionPrototype *;
-
         [[nodiscard]] auto parseTypeQualifiers() noexcept
             -> std::optional<Sema::TypeQualifiers>;
-
-        [[nodiscard]]
-        auto parsePointerType(Sema::TypeQualifiers Qual) noexcept
-            -> AST::TypeRef::PointerInst *;
 
         [[nodiscard]] auto
         parseTypeExprInstList(
@@ -99,17 +105,40 @@ namespace Parse {
 
         [[nodiscard]] auto parseFuncDecl() noexcept -> AST::FunctionDecl *;
 
-        [[nodiscard]] auto peek() -> std::optional<Lex::Token>;
-        [[nodiscard]] auto prev() -> std::optional<Lex::Token>;
+        [[nodiscard]] auto
+        parseFieldList(Lex::Token NameToken,
+                       std::vector<AST::FieldDecl *> &FieldList) noexcept
+            -> bool;
 
-        auto peekIs(Lex::TokenKind Kind) -> bool;
+        [[nodiscard]] auto
+        parseEnumMemberList(
+            std::vector<AST::EnumMemberDecl *> &FieldList) noexcept -> bool;
+
+        [[nodiscard]] auto parseEnumDecl() noexcept -> AST::EnumDecl *;
+        [[nodiscard]] auto parseStructDecl() noexcept -> AST::StructDecl *;
+
+        [[nodiscard]] auto peek() const noexcept -> std::optional<Lex::Token>;
+        [[nodiscard]] auto prev() const noexcept -> std::optional<Lex::Token>;
+        [[nodiscard]]
+        auto current() const noexcept -> std::optional<Lex::Token>;
+
+        [[nodiscard]] auto peekIs(Lex::TokenKind Kind) const noexcept -> bool;
+        [[nodiscard]]
+        auto peekIsOneOf(
+            const std::initializer_list<Lex::TokenKind> &Kinds) const noexcept
+                -> bool;
+
         auto consumeIfToken(Lex::TokenKind Kind) -> std::optional<Lex::Token>;
 
         [[nodiscard]]
         auto tokenContent(Lex::Token Token) const noexcept -> std::string_view;
 
+        [[nodiscard]]
+        auto tokenKeyword(Lex::Token Token) const noexcept -> Lex::Keyword;
+
         auto consume(uint64_t Skip = 0) -> std::optional<Lex::Token>;
         auto expect(Lex::TokenKind Kind, bool Optional = false) -> bool;
+        auto getCurrOrPrevLoc() const noexcept -> SourceLocation;
 
         const SourceManager &SourceMngr;
         AST::Context &Context;
@@ -132,7 +161,7 @@ namespace Parse {
         auto startParsing() noexcept -> bool;
         auto parseTopLevelExpressionOrStmt() noexcept -> AST::Stmt *;
 
-        [[nodiscard]] constexpr const auto &tokenList() const noexcept {
+        [[nodiscard]] constexpr const auto &getTokenList() const noexcept {
             return TokenList;
         }
 

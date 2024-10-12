@@ -15,7 +15,7 @@ namespace Backend::LLVM {
     {
         if (BinOp.getOperator() == Parse::BinaryOperator::Assignment) {
             const auto VarRef =
-                llvm::dyn_cast<AST::VariableRef>(&BinOp.getLhs());
+                llvm::dyn_cast<AST::DeclRefExpr>(&BinOp.getLhs());
 
             if (VarRef == nullptr) {
                 Handler.getDiag().emitError(
@@ -156,7 +156,7 @@ namespace Backend::LLVM {
             if (const auto ResultOpt =
                     Handler.codegen(*Stmt, Builder, ValueMap))
             {
-                if (const auto Decl = llvm::dyn_cast<AST::Decl>(Stmt)) {
+                if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(Stmt)) {
                     ValueMap.addValue(Decl->getName(), ResultOpt.value());
                     AddedDecls.push_back(Decl->getName());
                 }
@@ -179,10 +179,10 @@ namespace Backend::LLVM {
     }
 
     auto
-    FunctionCallCodegen(AST::FunctionCall &FuncCall,
-                        Handler &Handler,
-                        llvm::IRBuilder<> &Builder,
-                        ValueMap &ValueMap) noexcept
+    CallExprCodegen(AST::CallExpr &FuncCall,
+                    Handler &Handler,
+                    llvm::IRBuilder<> &Builder,
+                    ValueMap &ValueMap) noexcept
         -> std::optional<llvm::Value *>
     {
         const auto FuncValue = ValueMap.getValue(FuncCall.getName());
@@ -212,17 +212,15 @@ namespace Backend::LLVM {
             return std::nullopt;
         }
 
-        const auto FuncProto = FuncDecl->getPrototype();
         const auto FuncLLVM = llvm::cast<llvm::Function>(FuncValue);
-
-        if (FuncCall.getArgs().size() != FuncProto.getParamList().size()) {
+        if (FuncCall.getArgs().size() != FuncDecl->getParamList().size()) {
             Handler.getDiag().emitError(
                 FuncCall.getNameLoc(),
                 "%" PRIdPTR " arguments provided to function \"" SV_FMT "\", "
                 "expected %" PRIdPTR,
                 FuncCall.getArgs().size(),
                 SV_FMT_ARG(FuncCall.getName()),
-                FuncProto.getParamList().size());
+                FuncDecl->getParamList().size());
 
             return std::nullopt;
         }
@@ -245,25 +243,44 @@ namespace Backend::LLVM {
     }
 
     auto
-    FunctionDeclFinishPrototypeCodegen(AST::FunctionDecl &FuncDecl,
-                                       Handler &Handler,
-                                       llvm::IRBuilder<> &Builder,
-                                       ValueMap &ValueMap,
-                                       llvm::Value *const ProtoCodegen,
-                                       llvm::BasicBlock *BB) noexcept
+    FunctionDeclCodegen(AST::FunctionDecl &FuncDecl,
+                        Handler &Handler,
+                        llvm::IRBuilder<> &Builder,
+                        ValueMap &ValueMap) noexcept
         -> std::optional<llvm::Value *>
     {
-        if (FuncDecl.getLinkage() == AST::Decl::Linkage::External) {
-            return ProtoCodegen;
+        auto &Context = Handler.getContext();
+        auto &Module = Handler.getModule();
+
+        const auto DoubleTy = llvm::Type::getDoubleTy(Context);
+        const auto ParamList =
+            std::vector(FuncDecl.getParamList().size(), DoubleTy);
+        const auto FT =
+            llvm::FunctionType::get(DoubleTy, ParamList,/*isVarArg=*/false);
+        const auto FuncDeclCodegen =
+            llvm::Function::Create(FT,
+                                   llvm::Function::ExternalLinkage,
+                                   FuncDecl.getName(),
+                                   Module);
+
+        // Set names for all arguments.
+        auto Idx = unsigned();
+        for (auto &Arg : FuncDeclCodegen->args()) {
+            Arg.setName(FuncDecl.getParamList()[Idx++]->getName());
         }
 
-        const auto Function = llvm::cast<llvm::Function>(ProtoCodegen);
-        if (BB == nullptr) {
-            BB =
-                llvm::BasicBlock::Create(Handler.getContext(),
-                                         "entry",
-                                         Function);
+        // Avoid adding the function to the symbol table if it is external.
+        if (FuncDecl.getLinkage() == AST::ValueDecl::Linkage::External) {
+            return FuncDeclCodegen;
         }
+
+        ValueMap.addValue(FuncDecl.getName(), FuncDeclCodegen);
+
+        const auto Function = llvm::cast<llvm::Function>(FuncDeclCodegen);
+        const auto BB =
+            llvm::BasicBlock::Create(Handler.getContext(),
+                                     "entry",
+                                     Function);
 
         for (auto &Arg : Function->args()) {
             ValueMap.addValue(Arg.getName(), &Arg);
@@ -289,62 +306,7 @@ namespace Backend::LLVM {
         // Run the optimizer on the function.
         Handler.getFPM().run(*Function, Handler.getFAM());
         return Function;
-    }
 
-    auto
-    FunctionPrototypeCodegen(AST::FunctionPrototype &FuncProto,
-                             Handler &Handler,
-                             llvm::IRBuilder<> &Builder,
-                             ValueMap &ValueMap) noexcept
-        -> std::optional<llvm::Value *>
-    {
-        auto &Context = Handler.getContext();
-        auto &Module = Handler.getModule();
-
-        const auto DoubleTy = llvm::Type::getDoubleTy(Context);
-        const auto ParamList =
-            std::vector(FuncProto.getParamList().size(), DoubleTy);
-        const auto FT =
-            llvm::FunctionType::get(DoubleTy, ParamList,/*isVarArg=*/false);
-        const auto F =
-            llvm::Function::Create(FT,
-                                   llvm::Function::ExternalLinkage,
-                                   FuncProto.getName(),
-                                   Module);
-
-        // Set names for all arguments.
-        auto Idx = unsigned();
-        for (auto &Arg : F->args()) {
-            Arg.setName(FuncProto.getParamList()[Idx++].getName());
-        }
-
-        return F;
-    }
-
-    auto
-    FunctionDeclCodegen(AST::FunctionDecl &FuncDecl,
-                        Handler &Handler,
-                        llvm::IRBuilder<> &Builder,
-                        ValueMap &ValueMap) noexcept
-        -> std::optional<llvm::Value *>
-    {
-        const auto ProtoCodegenOpt =
-            FunctionPrototypeCodegen(FuncDecl.getPrototype(),
-                                     Handler,
-                                     Builder,
-                                     ValueMap);
-
-        if (!ProtoCodegenOpt.has_value()) {
-            return std::nullopt;
-        }
-
-        const auto ProtoCodegen = ProtoCodegenOpt.value();
-        return FunctionDeclFinishPrototypeCodegen(FuncDecl,
-                                                  Handler,
-                                                  Builder,
-                                                  ValueMap,
-                                                  ProtoCodegen,
-                                                  /*BB=*/nullptr);
     }
 
     auto
@@ -540,7 +502,7 @@ namespace Backend::LLVM {
     {
         if (ValueMap.getValue(VarDecl.getName()) != nullptr) {
             Handler.getDiag().emitError(
-                VarDecl.getLoc(),
+                VarDecl.getNameLoc(),
                 "Variable \'" SV_FMT "\' is already defined",
                 SV_FMT_ARG(VarDecl.getName()));
 
@@ -608,13 +570,13 @@ namespace Backend::LLVM {
     }
 
     auto
-    VariableRefCodegen(AST::VariableRef &VarRef,
+    DeclRefExprCodegen(AST::DeclRefExpr &DeclRef,
                        Handler &Handler,
                        llvm::IRBuilder<> &Builder,
                        ValueMap &ValueMap) noexcept
         -> std::optional<llvm::Value *>
     {
-        if (const auto Value = ValueMap.getValue(VarRef.getName())) {
+        if (const auto Value = ValueMap.getValue(DeclRef.getName())) {
             if (const auto AllocaInst = llvm::dyn_cast<llvm::AllocaInst>(Value))
             {
                 return
@@ -637,9 +599,9 @@ namespace Backend::LLVM {
             return Value;
         }
 
-        Handler.getDiag().emitError(VarRef.getNameLoc(),
+        Handler.getDiag().emitError(DeclRef.getNameLoc(),
                                     "Variable \"" SV_FMT "\" is not defined",
-                                    SV_FMT_ARG(VarRef.getName()));
+                                    SV_FMT_ARG(DeclRef.getName()));
 
         return std::nullopt;
     }
@@ -684,9 +646,9 @@ namespace Backend::LLVM {
                                          *this,
                                          Builder,
                                          ValueMap);
-            case AST::NodeKind::VariableRef:
+            case AST::NodeKind::DeclRefExpr:
                 return
-                    VariableRefCodegen(llvm::cast<AST::VariableRef>(Stmt),
+                    DeclRefExprCodegen(llvm::cast<AST::DeclRefExpr>(Stmt),
                                        *this,
                                        Builder,
                                        ValueMap);
@@ -708,19 +670,12 @@ namespace Backend::LLVM {
                                         *this,
                                         Builder,
                                         ValueMap);
-            case AST::NodeKind::FunctionPrototype:
+            case AST::NodeKind::CallExpr:
                 return
-                    FunctionPrototypeCodegen(
-                        llvm::cast<AST::FunctionPrototype>(Stmt),
-                        *this,
-                        Builder,
-                        ValueMap);
-            case AST::NodeKind::FunctionCall:
-                return
-                    FunctionCallCodegen(llvm::cast<AST::FunctionCall>(Stmt),
-                                        *this,
-                                        Builder,
-                                        ValueMap);
+                    CallExprCodegen(llvm::cast<AST::CallExpr>(Stmt),
+                                    *this,
+                                    Builder,
+                                    ValueMap);
             case AST::NodeKind::IfStmt:
                 return
                     IfStmtCodegen(llvm::cast<AST::IfStmt>(Stmt),
@@ -739,7 +694,16 @@ namespace Backend::LLVM {
                                         *this,
                                         Builder,
                                         ValueMap);
+            case AST::NodeKind::StructDecl:
+                // FIXME:
+                break;
+            case AST::NodeKind::ArraySubscriptExpr:
+            case AST::NodeKind::FieldDecl:
+            case AST::NodeKind::ParamVarDecl:
             case AST::NodeKind::TypeRef:
+            case AST::NodeKind::FieldExpr:
+            case AST::NodeKind::EnumMemberDecl:
+            case AST::NodeKind::EnumDecl:
                 __builtin_unreachable();
         }
 

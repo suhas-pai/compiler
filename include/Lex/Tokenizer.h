@@ -56,8 +56,8 @@ namespace Lex {
 
         constexpr auto consume(const uint32_t Skip = 0) noexcept -> char {
             uint32_t End = 0;
-            if (__builtin_add_overflow(Index, Skip, &End) ||
-                End >= Text.length())
+            if (__builtin_add_overflow(Index, Skip, &End)
+             || End >= Text.length())
             {
                 return '\0';
             }
@@ -71,7 +71,7 @@ namespace Lex {
                   Interface::DiagnosticsEngine &Diag) noexcept
         : Text(Text), Diag(Diag) {}
 
-        [[nodiscard]] constexpr auto index() const noexcept {
+        [[nodiscard]] constexpr auto getIndex() const noexcept {
             return Index;
         }
 

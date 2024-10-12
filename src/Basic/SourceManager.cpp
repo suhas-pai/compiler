@@ -32,7 +32,7 @@ auto SourceManager::fromFile(const std::string_view Path) noexcept
 }
 
 auto SourceManager::fromAlloc(void *Base, size_t Size) noexcept
-    -> ErrorOr<SourceManager *, Error>
+    -> SourceManager *
 {
     return new SourceManager(Base, Size, DestroyMapKind::Allocated);
 }

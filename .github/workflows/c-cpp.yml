@@ -23,7 +23,6 @@ jobs:
       run: |
         mkdir -p build_debug
     - name: Make
-      working-directory: build_debug/
       run: |
-        cmake .. -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_CXX_USING_LINKER_lld="-fuse-ld=lld" -DCMAKE_LINKER_TYPE=lld -DCMAKE_BUILD_TYPE=Debug
-        ninja
+        cmake --preset debug
+        cd build_debug && ninja

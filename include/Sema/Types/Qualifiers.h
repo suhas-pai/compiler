@@ -10,6 +10,7 @@ namespace Sema {
     enum TypeQualifierKind {
         TypeQualifierMutable,
         TypeQualifierVolatile,
+        TypeQualifierHasExternal,
     };
 
     // Store qualifiers in lower bits of pointers to Type

@@ -11,6 +11,7 @@ namespace Sema {
         Pointer,
         Structure,
         Union,
+        FunctionPrototype,
         Enum
     };
 }

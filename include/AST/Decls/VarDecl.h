@@ -5,49 +5,40 @@
 #pragma once
 
 #include <string>
+#include "AST/Decls/ValueDecl.h"
 
-#include "AST/TypeRef.h"
+#include "AST/Expr.h"
 #include "AST/VarQualifiers.h"
 
-#include "Lex/Token.h"
-#include "Sema/Types/Type.h"
-
-#include "Decl.h"
-
 namespace AST {
-    struct VarDecl : public Decl {
+    struct VarDecl : public ValueDecl {
     public:
         constexpr static auto ObjKind = NodeKind::VarDecl;
     protected:
-        std::string Name;
         Expr *InitExpr;
-
         VarQualifiers Qualifiers;
-        std::variant<Sema::Type *, AST::TypeRef *> TypeOrTypeRef;
 
         bool IsGlobal : 1;
     public:
         constexpr explicit
-        VarDecl(const Lex::Token NameToken,
-                const std::string_view Name,
+        VarDecl(const std::string_view Name,
+                const SourceLocation NameLoc,
                 const VarQualifiers Qualifiers,
-                AST::TypeRef *const TypeRef,
+                TypeRef *const TypeRef,
                 const bool IsGlobal,
                 Expr *const InitExpr = nullptr) noexcept
-        : Decl(ObjKind, NameToken.Loc, Linkage::Private), Name(Name),
-          InitExpr(InitExpr), Qualifiers(Qualifiers), TypeOrTypeRef(TypeRef),
-          IsGlobal(IsGlobal) {}
+        : ValueDecl(ObjKind, Name, NameLoc, Linkage::Private, TypeRef),
+          InitExpr(InitExpr), Qualifiers(Qualifiers), IsGlobal(IsGlobal) {}
 
         constexpr explicit
-        VarDecl(const Lex::Token NameToken,
-                const std::string_view Name,
+        VarDecl(const std::string_view Name,
+                const SourceLocation NameLoc,
                 const VarQualifiers Qualifiers,
                 Sema::Type *const Type,
                 const bool IsGlobal,
                 Expr *const InitExpr = nullptr) noexcept
-        : Decl(ObjKind, NameToken.Loc, Linkage::Private), Name(Name),
-          InitExpr(InitExpr),  Qualifiers(Qualifiers), TypeOrTypeRef(Type),
-          IsGlobal(IsGlobal) {}
+        : ValueDecl(ObjKind, Name, NameLoc, Linkage::Private, Type),
+          InitExpr(InitExpr),  Qualifiers(Qualifiers), IsGlobal(IsGlobal) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
@@ -56,11 +47,6 @@ namespace AST {
         [[nodiscard]]
         static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
-        }
-
-        [[nodiscard]]
-        constexpr std::string_view getName() const noexcept override {
-            return Name;
         }
 
         [[nodiscard]] constexpr auto getInitExpr() const noexcept {
@@ -79,24 +65,6 @@ namespace AST {
             return Qualifiers;
         }
 
-        [[nodiscard]] constexpr auto getSemaType() {
-            return std::get<Sema::Type *>(TypeOrTypeRef);
-        }
-
-        [[nodiscard]] constexpr auto getTypeRef() {
-            return std::get<AST::TypeRef *>(TypeOrTypeRef);
-        }
-
-        [[nodiscard]] constexpr auto hasSemaType() {
-            return std::holds_alternative<Sema::Type *>(TypeOrTypeRef);
-        }
-
-        constexpr
-        auto setName(const std::string_view Name) noexcept -> decltype(*this) {
-            this->Name = Name;
-            return *this;
-        }
-
         constexpr auto setName(std::string &&Name) noexcept -> decltype(*this) {
             this->Name = std::move(Name);
             return *this;
@@ -112,20 +80,6 @@ namespace AST {
             -> decltype(*this)
         {
             this->IsGlobal = IsGlobal;
-            return *this;
-        }
-
-        constexpr auto setSemaType(Sema::Type *const Type) noexcept
-            -> decltype(*this)
-        {
-            TypeOrTypeRef = Type;
-            return *this;
-        }
-
-        constexpr auto setTypeRef(AST::TypeRef *const TypeRef) noexcept
-            -> decltype(*this)
-        {
-            TypeOrTypeRef = TypeRef;
             return *this;
         }
     };

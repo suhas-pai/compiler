@@ -1,5 +1,5 @@
 /*
- * AST/VariableRef.h
+ * AST/DeclRefExpr.h
  */
 
 #pragma once
@@ -9,17 +9,17 @@
 #include "Expr.h"
 
 namespace AST {
-    struct VariableRef : public Expr {
+    struct DeclRefExpr : public Expr {
     public:
-        constexpr static auto ObjKind = NodeKind::VariableRef;
+        constexpr static auto ObjKind = NodeKind::DeclRefExpr;
     protected:
-        SourceLocation NameLoc;
         std::string Name;
+        SourceLocation NameLoc;
     public:
         constexpr explicit
-        VariableRef(const SourceLocation NameLoc,
-                    const std::string_view Name) noexcept
-        : Expr(ObjKind), NameLoc(NameLoc), Name(Name) {}
+        DeclRefExpr(const std::string_view Name,
+                    const SourceLocation NameLoc) noexcept
+        : Expr(ObjKind), Name(Name), NameLoc(NameLoc) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;

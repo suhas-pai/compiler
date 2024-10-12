@@ -8,10 +8,13 @@
 #include <cassert>
 #include <concepts>
 
+#include "Basic/Macros.h"
+
 namespace ADT {
     template <typename T, std::integral IntType, unsigned NumBits>
     struct PointerIntPair {
-        static_assert(NumBits < 64, "NumBits must be less than 64");
+        static_assert(NumBits < sizeof_bits(IntType),
+                      "NumBits must be less than Bit-Size of IntType");
         static_assert(alignof(T) >= (1 << NumBits),
                       "Alignment of T must be >= 2^NumBits");
     protected:
@@ -20,7 +23,7 @@ namespace ADT {
             uintptr_t Value;
         };
 
-        [[nodiscard]] constexpr auto getMask() const noexcept {
+        [[nodiscard]] constexpr static auto getMask() noexcept {
             return (1ull << NumBits) - 1;
         }
     public:
@@ -29,7 +32,7 @@ namespace ADT {
         }
 
         constexpr explicit
-        PointerIntPair(T *const Ptr, const uint64_t Bits) noexcept : Ptr(Ptr) {
+        PointerIntPair(T *const Ptr, const uintptr_t Bits) noexcept : Ptr(Ptr) {
             assert((Value & getMask()) == 0);
             Value |= Bits;
         }

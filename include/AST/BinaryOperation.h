@@ -12,18 +12,18 @@ namespace AST {
     public:
         constexpr static auto ObjKind = NodeKind::BinaryOperation;
     protected:
-        SourceLocation Loc;
         Parse::BinaryOperator Operator;
+        SourceLocation Loc;
 
         Expr *Lhs;
         Expr *Rhs;
     public:
         constexpr explicit
-        BinaryOperation(const SourceLocation Loc,
-                        const Parse::BinaryOperator Operator,
+        BinaryOperation(const Parse::BinaryOperator Operator,
+                        const SourceLocation Loc,
                         Expr *const Lhs,
                         Expr *const Rhs) noexcept
-        : Expr(ObjKind), Loc(Loc), Operator(Operator), Lhs(Lhs), Rhs(Rhs) {}
+        : Expr(ObjKind), Operator(Operator), Loc(Loc), Lhs(Lhs), Rhs(Rhs) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;

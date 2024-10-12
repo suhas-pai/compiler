@@ -4,8 +4,6 @@
 
 #include <memory>
 
-#include "AST/FunctionDecl.h"
-
 #include "Backend/LLVM/Codegen.h"
 #include "Backend/LLVM/Handler.h"
 
@@ -172,35 +170,17 @@ namespace Backend::LLVM {
             // so this case must be handled differently.
 
             if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
-                auto &Proto = FuncDecl->getPrototype();
-                const auto ProtoCodegenOpt =
-                    FunctionPrototypeCodegen(Proto,
-                                             *this,
-                                             getBuilder(),
-                                             ValueMap);
+                const auto FuncDeclCodegenOpt =
+                    FunctionDeclCodegen(*FuncDecl,
+                                        *this,
+                                        getBuilder(),
+                                        ValueMap);
 
-                if (!ProtoCodegenOpt.has_value()) {
+                if (!FuncDeclCodegenOpt.has_value()) {
                     return false;
                 }
 
-                const auto ProtoCodegen = ProtoCodegenOpt.value();
-
-                addASTNode(Name, *Decl);
-                ValueMap.addValue(Name, ProtoCodegen);
-
-                const auto FinishedValueOpt =
-                    FunctionDeclFinishPrototypeCodegen(*FuncDecl,
-                                                       *this,
-                                                       getBuilder(),
-                                                       ValueMap,
-                                                       ProtoCodegen,
-                                                       /*BB=*/nullptr);
-
-                if (!FinishedValueOpt.has_value()) {
-                    return false;
-                }
-
-                ValueMap.setValue(Name, FinishedValueOpt.value());
+                ValueMap.setValue(Name, FuncDeclCodegenOpt.value());
                 continue;
             }
 

@@ -15,9 +15,12 @@
 namespace AST {
     struct TypeRef : public Expr {
     public:
-        enum InstKind {
+        enum class InstKind {
             Pointer,
             Type,
+            Array,
+            Union,
+            Intersect
         };
 
         struct Inst {
@@ -36,12 +39,13 @@ namespace AST {
         public:
             constexpr static auto ObjKind = InstKind::Pointer;
         protected:
-            Sema::TypeQualifiers Qual;
             SourceLocation Loc;
+            Sema::TypeQualifiers Qual;
         public:
             constexpr explicit
-            PointerInst(const Sema::TypeQualifiers Qual) noexcept
-            : Inst(ObjKind), Qual(Qual) {}
+            PointerInst(const SourceLocation Loc,
+                        const Sema::TypeQualifiers Qual) noexcept
+            : Inst(ObjKind), Loc(Loc), Qual(Qual) {}
 
             [[nodiscard]]
             static inline auto IsOfKind(const Inst &Inst) noexcept {
@@ -55,6 +59,10 @@ namespace AST {
 
             [[nodiscard]] constexpr auto getQualifiers() const noexcept {
                 return Qual;
+            }
+
+            [[nodiscard]] constexpr auto getLoc() const noexcept {
+                return Loc;
             }
         };
 
@@ -97,12 +105,86 @@ namespace AST {
             }
         };
 
+        struct ArrayInst : public Inst {
+        public:
+            constexpr static auto ObjKind = InstKind::Array;
+        protected:
+            SourceLocation Loc;
+        public:
+            constexpr explicit ArrayInst(const SourceLocation Loc) noexcept
+            : Inst(ObjKind), Loc(Loc) {}
+
+            [[nodiscard]]
+            static inline auto IsOfKind(const Inst &Inst) noexcept {
+                return Inst.getKind() == ObjKind;
+            }
+
+            [[nodiscard]]
+            static inline auto classof(const Inst *const Inst) noexcept {
+                return IsOfKind(*Inst);
+            }
+
+            [[nodiscard]] constexpr auto getLoc() const noexcept {
+                return Loc;
+            }
+        };
+
+        struct UnionInst : public Inst {
+        public:
+            constexpr static auto ObjKind = InstKind::Type;
+        protected:
+            SourceLocation Loc;
+        public:
+            constexpr explicit UnionInst(const SourceLocation NameLoc) noexcept
+            : Inst(ObjKind), Loc(NameLoc) {}
+
+            [[nodiscard]]
+            static inline auto IsOfKind(const Inst &Inst) noexcept {
+                return Inst.getKind() == ObjKind;
+            }
+
+            [[nodiscard]]
+            static inline auto classof(const Inst *const Inst) noexcept {
+                return IsOfKind(*Inst);
+            }
+
+            [[nodiscard]] constexpr auto getLoc() const noexcept {
+                return Loc;
+            }
+        };
+
+        struct IntersectInst : public Inst {
+        public:
+            constexpr static auto ObjKind = InstKind::Type;
+        protected:
+            SourceLocation Loc;
+        public:
+            constexpr explicit IntersectInst(const SourceLocation Loc) noexcept
+            : Inst(ObjKind), Loc(Loc) {}
+
+            [[nodiscard]]
+            static inline auto IsOfKind(const Inst &Inst) noexcept {
+                return Inst.getKind() == ObjKind;
+            }
+
+            [[nodiscard]]
+            static inline auto classof(const Inst *const Inst) noexcept {
+                return IsOfKind(*Inst);
+            }
+
+            [[nodiscard]] constexpr auto getLoc() const noexcept {
+                return Loc;
+            }
+        };
+
         constexpr static auto ObjKind = NodeKind::TypeRef;
     protected:
         std::vector<Inst *> InstList;
     public:
-        constexpr explicit
-        TypeRef(std::vector<Inst *> &&InstList) noexcept
+        constexpr explicit TypeRef(const std::vector<Inst *> &InstList) noexcept
+        : Expr(ObjKind), InstList(InstList) {}
+
+        constexpr explicit TypeRef(std::vector<Inst *> &&InstList) noexcept
         : Expr(ObjKind), InstList(std::move(InstList)) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {

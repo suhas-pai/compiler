@@ -86,21 +86,19 @@ protected:
                   const DestroyMapKind Kind) noexcept
     : Base(Base), Size(Size), DestroyKind(Kind) {}
 public:
+    [[nodiscard]] static auto fromFile(const std::string_view Path) noexcept
+        -> ErrorOr<SourceManager *, Error>;
+
+    [[nodiscard]] static auto fromAlloc(void *Base, size_t Size) noexcept
+        -> SourceManager *;
+
     [[nodiscard]] static
     auto fromString(const std::string_view Text) noexcept -> SourceManager * {
         const auto Copy = new char[Text.length() + 1]{0};
         memcpy(Copy, Text.data(), Text.length());
 
-        return new SourceManager(const_cast<char *>(Copy),
-                                 Text.length(),
-                                 DestroyMapKind::Allocated);
+        return fromAlloc(Copy, Text.length());
     }
-
-    [[nodiscard]] static auto fromFile(const std::string_view Path) noexcept
-        -> ErrorOr<SourceManager *, Error>;
-
-    [[nodiscard]] static auto fromAlloc(void *Base, size_t Size) noexcept
-        -> ErrorOr<SourceManager *, Error>;
 
     ~SourceManager() noexcept;
 

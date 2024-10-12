@@ -38,8 +38,7 @@ namespace Backend::LLVM {
             -> decltype(*this);
 
         auto getValue(std::string_view Name) const noexcept -> llvm::Value *;
-        auto removeValue(std::string_view Name) noexcept
-            -> decltype(*this);
+        auto removeValue(std::string_view Name) noexcept -> decltype(*this);
 
         auto clear() noexcept -> decltype(*this);
     };

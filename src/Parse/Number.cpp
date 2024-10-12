@@ -37,7 +37,7 @@ namespace Parse {
         }
 
         auto Base = uint8_t(10);
-        if (const auto LeadingZeroChar = Lexer.consumeIf('0')) {
+        if (Lexer.consumeIf('0')) {
             switch (Lexer.peek()) {
                 case '\0':
                     if (Result.Kind == NumberKind::SignedInteger) {

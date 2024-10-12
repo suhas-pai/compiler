@@ -25,33 +25,33 @@ namespace AST {
         Sema::SymbolTable SymbolTable;
 
         void
-        visitStmt(AST::Stmt *const Stmt,
+        visitStmt(Stmt *Stmt,
                   Sema::SymbolTable &ParentSymbolTable,
                   Interface::DiagnosticsEngine &Diag,
                   VisitOptions Options) const noexcept;
 
         void
-        visitCompountStmt(AST::CompoundStmt *const Stmt,
+        visitCompountStmt(CompoundStmt *Stmt,
                           Sema::SymbolTable &ParentSymbolTable,
                           Interface::DiagnosticsEngine &Diag,
                           VisitOptions Options) const noexcept;
 
         void
-        visitFunctionDecl(AST::FunctionDecl *FuncDecl,
+        visitFunctionDecl(FunctionDecl *FuncDecl,
                           Sema::SymbolTable &ParentSymbolTable,
                           Interface::DiagnosticsEngine &Diag,
                           VisitOptions Options) const noexcept;
 
         void
-        visitVarDecl(AST::VarDecl *const VarDecl,
+        visitVarDecl(VarDecl *VarDecl,
                      Sema::SymbolTable &ParentSymbolTable,
                      Interface::DiagnosticsEngine &Diag,
                      const VisitOptions Options) const noexcept;
     public:
         explicit Context() noexcept {}
 
-        auto addDecl(Decl *Decl) noexcept -> decltype(*this);
-        auto removeDecl(Decl *Decl) noexcept -> decltype(*this);
+        auto addDecl(ValueDecl *Decl) noexcept -> decltype(*this);
+        auto removeDecl(ValueDecl *Decl) noexcept -> decltype(*this);
 
         [[nodiscard]] constexpr auto &getSymbolTable() const noexcept {
             return SymbolTable;

@@ -2,10 +2,6 @@
  * Backend/LLVM/JIT.cpp
  */
 
-#include "AST/FunctionDecl.h"
-#include "AST/ReturnStmt.h"
-#include "AST/VarDecl.h"
-
 #include "Backend/LLVM/Codegen.h"
 #include "Backend/LLVM/Handler.h"
 #include "Backend/LLVM/JIT.h"
@@ -15,6 +11,8 @@
 
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
+
+#include "Sema/Types/Builtin.h"
 
 namespace Backend::LLVM {
     JITHandler::JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
@@ -50,37 +48,42 @@ namespace Backend::LLVM {
         // Create a new builder for the module.
         // Create a new pass manager attached to it.
 
-        auto PowFuncProto =
-            new AST::FunctionPrototype(
-                SourceLocation::invalid(),
-                "pow",
-                {
-                    AST::FunctionPrototype::ParamDecl(
-                        SourceLocation::invalid(), /*Name=*/"base"),
-                    AST::FunctionPrototype::ParamDecl(
-                        SourceLocation::invalid(), /*Name=*/"exponent")
-                });
-
         auto PowFunc =
-            new AST::FunctionDecl(PowFuncProto,
-                                  /*Body=*/nullptr,
-                                  AST::Decl::Linkage::External);
+            new AST::FunctionDecl(
+                "pow",
+                SourceLocation::invalid(),
+                {
+                    new AST::ParamVarDecl(
+                        /*Name=*/"base",
+                        SourceLocation::invalid(),
+                        static_cast<AST::TypeRef *>(nullptr)),
+                    new AST::ParamVarDecl(
+                        /*Name=*/"exponent",
+                        SourceLocation::invalid(),
+                        static_cast<AST::TypeRef *>(nullptr))
+                },
+                Sema::BuiltinType::u64(),
+                /*Body=*/nullptr,
+                AST::ValueDecl::Linkage::External);
 
         Context.addDecl(PowFunc);
         const auto &DeclMap =
             Context.getSymbolTable().getGlobalScope().getDeclMap();
 
         for (auto &[Name, Decl] : DeclMap) {
-            if (Decl->getLinkage() == AST::Decl::Linkage::External) {
+            if (Decl->getLinkage() == AST::ValueDecl::Linkage::External) {
                 const auto ValueOpt = codegen(*Decl, getBuilder(), ValueMap);
                 if (!ValueOpt.has_value()) {
                     getDiag().emitInternalError(
                         "Failed to codegen for symbol " SV_FMT,
-                        SV_FMT_ARG(Decl->getName()));
+                        SV_FMT_ARG(
+                            llvm::cast<AST::NamedDecl>(Decl)->getName()));
                     continue;
                 }
 
-                ValueMap.addValue(Decl->getName(), ValueOpt.value());
+                ValueMap.addValue(
+                    llvm::cast<AST::NamedDecl>(Decl)->getName(),
+                    ValueOpt.value());
             }
 
             addASTNode(Name, *Decl);
@@ -145,7 +148,7 @@ namespace Backend::LLVM {
                 .getDeclMap();
 
         for (const auto &[Name, Decl] : DeclMap) {
-            if (Decl->getLinkage() == AST::Decl::Linkage::External) {
+            if (Decl->getLinkage() == AST::ValueDecl::Linkage::External) {
                 continue;
             }
 
@@ -153,33 +156,17 @@ namespace Backend::LLVM {
             // so this case must be handled differently.
 
             if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Decl)) {
-                auto &Proto = FuncDecl->getPrototype();
-                const auto ProtoCodegenOpt =
-                    FunctionPrototypeCodegen(Proto,
-                                             Handler,
-                                             Handler.getBuilder(),
-                                             ValueMap);
+                const auto FuncCodegenOpt =
+                    FunctionDeclCodegen(*FuncDecl,
+                                        Handler,
+                                        Handler.getBuilder(),
+                                        ValueMap);
 
-                if (!ProtoCodegenOpt.has_value()) {
+                if (!FuncCodegenOpt.has_value()) {
                     return false;
                 }
 
-                const auto ProtoCodegen = ProtoCodegenOpt.value();
-                ValueMap.addValue(Proto.getName(), ProtoCodegen);
-
-                const auto FinishedValueOpt =
-                    FunctionDeclFinishPrototypeCodegen(*FuncDecl,
-                                                       Handler,
-                                                       Handler.getBuilder(),
-                                                       ValueMap,
-                                                       ProtoCodegen,
-                                                       /*BB=*/nullptr);
-
-                if (!FinishedValueOpt.has_value()) {
-                    return false;
-                }
-
-                ValueMap.setValue(Proto.getName(), FinishedValueOpt.value());
+                ValueMap.setValue(FuncDecl->getName(), FuncCodegenOpt.value());
                 continue;
             }
 
@@ -222,12 +209,12 @@ namespace Backend::LLVM {
                 }
 
                 auto AssignmentLhs =
-                    AST::VariableRef(/*NameLoc=*/SourceLocation::invalid(),
-                                     VarDecl->getName());
+                    AST::DeclRefExpr(VarDecl->getName(),
+                                     /*NameLoc=*/SourceLocation::invalid());
 
                 auto AssignmentOper =
-                    AST::BinaryOperation(/*Loc=*/SourceLocation::invalid(),
-                                         Parse::BinaryOperator::Assignment,
+                    AST::BinaryOperation(Parse::BinaryOperator::Assignment,
+                                         /*Loc=*/SourceLocation::invalid(),
                                          &AssignmentLhs,
                                          VarDecl->getInitExpr());
 
@@ -256,16 +243,15 @@ namespace Backend::LLVM {
     {
         auto ValueMap = this->ValueMap;
         if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(&Stmt)) {
-            const auto Proto = FuncDecl->getPrototype();
-            if (getNameToASTNodeMap().contains(Proto.getName())) {
-                getDiag().emitError(Proto.getNameLoc(),
+            if (getNameToASTNodeMap().contains(FuncDecl->getName())) {
+                getDiag().emitError(FuncDecl->getNameLoc(),
                                     "\"" SV_FMT "\" is already defined",
-                                    SV_FMT_ARG(Proto.getName()));
+                                    SV_FMT_ARG(FuncDecl->getName()));
 
                 return false;
             }
 
-            addASTNode(Proto.getName(), *FuncDecl);
+            addASTNode(FuncDecl->getName(), *FuncDecl);
             if (PrintIR) {
                 if (!SetupGlobalDecls(*this, ValueMap)) {
                     return false;
@@ -273,7 +259,7 @@ namespace Backend::LLVM {
 
                 getModule().print(llvm::outs(), nullptr);
 
-                const auto FuncValue = ValueMap.getValue(Proto.getName());
+                const auto FuncValue = ValueMap.getValue(FuncDecl->getName());
                 llvm::cast<llvm::Function>(FuncValue)->removeFromParent();
             }
 
@@ -281,7 +267,7 @@ namespace Backend::LLVM {
         }
 
         auto StmtToExecute = &Stmt;
-        if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
+        if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(&Stmt)) {
             const std::string_view Name = Decl->getName();
             if (getNameToASTNodeMap().contains(Name)) {
                 getDiag().emitError(Decl->getLoc(),
@@ -293,14 +279,14 @@ namespace Backend::LLVM {
 
             if (const auto VarDecl = llvm::dyn_cast<AST::VarDecl>(&Stmt)) {
                 StmtToExecute =
-                    new AST::VariableRef(Decl->getLoc(), VarDecl->getName());
+                    new AST::DeclRefExpr(VarDecl->getName(), Decl->getLoc());
             }
 
             addASTNode(Name, *Decl);
         }
 
         if (!SetupGlobalDecls(*this, ValueMap)) {
-            if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
+            if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(&Stmt)) {
                 removeASTNode(Decl->getName());
             }
 
@@ -308,12 +294,6 @@ namespace Backend::LLVM {
         }
 
         const auto Name = llvm::StringRef("__anon_expr");
-        auto Proto =
-            AST::FunctionPrototype(
-                /*NameLoc=*/SourceLocation::invalid(),
-                Name,
-                std::vector<AST::FunctionPrototype::ParamDecl>());
-
         const auto ReturnStmt =
             std::unique_ptr<AST::ReturnStmt>(
                 new AST::ReturnStmt(
@@ -321,45 +301,32 @@ namespace Backend::LLVM {
                     static_cast<AST::Expr *>(StmtToExecute)));
 
         auto FuncDecl =
-            AST::FunctionDecl(&Proto,
-                              ReturnStmt.get(),
-                              AST::Decl::Linkage::Private);
+            AST::FunctionDecl(
+                Name,
+                /*NameLoc=*/SourceLocation::invalid(),
+                std::vector<AST::ParamVarDecl *>(),
+                Sema::BuiltinType::voidType(),
+                ReturnStmt.get(),
+                AST::ValueDecl::Linkage::Private);
 
-        const auto ProtoCodegenOpt =
-            FunctionPrototypeCodegen(FuncDecl.getPrototype(),
-                                     *this,
-                                     getBuilder(),
-                                     ValueMap);
-
-        if (!ProtoCodegenOpt.has_value()) {
-            return false;
-        }
+        const auto FuncDeclCodegenOpt =
+            FunctionDeclCodegen(FuncDecl,
+                                *this,
+                                getBuilder(),
+                                ValueMap);
 
         const auto BB =
             llvm::BasicBlock::Create(
                 getContext(),
                 "entry",
-                llvm::cast<llvm::Function>(ProtoCodegenOpt.value()));
+                llvm::cast<llvm::Function>(FuncDeclCodegenOpt.value()));
 
         auto BBBuilder = llvm::IRBuilder(BB);
         if (!SetupGlobalVarDeclAssigns(*this, ValueMap, BBBuilder)) {
             return false;
         }
 
-        const auto ProtoCodegen = ProtoCodegenOpt.value();
-        const auto FuncProtoValueOpt =
-            FunctionDeclFinishPrototypeCodegen(FuncDecl,
-                                               *this,
-                                               *Builder,
-                                               ValueMap,
-                                               ProtoCodegen,
-                                               BB);
-
-        if (!FuncProtoValueOpt.has_value()) {
-            return false;
-        }
-
-        if (const auto Decl = llvm::dyn_cast<AST::Decl>(&Stmt)) {
+        if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(&Stmt)) {
             addASTNode(Decl->getName(), *Decl);
         }
 

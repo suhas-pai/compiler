@@ -9,7 +9,6 @@ namespace Lex {
         auto State = State::Start;
         auto Result = Token();
 
-        Result.End.Index = Index;
         for (auto Char = this->consume();; Char = this->consume()) {
             if (Char == '\0') {
                 if (State == State::Identifier) {
@@ -338,6 +337,7 @@ namespace Lex {
                             Index--;
                             Column--;
 
+                            Result.End.Index = Index;
                             const auto KeywordOpt =
                                 KeywordToLexemeMap.keyFor(
                                     Result.getString(Text));
@@ -367,6 +367,9 @@ namespace Lex {
                     switch (Char) {
                         case '=':
                             Result.Kind = TokenKind::MinusEqual;
+                            goto done;
+                        case '>':
+                            Result.Kind = TokenKind::ThinArrow;
                             goto done;
                         default:
                             Index--;
@@ -543,6 +546,9 @@ namespace Lex {
                         case '=':
                             Result.Kind = TokenKind::DoubleEqual;
                             goto done;
+                        case '>':
+                            Result.Kind = TokenKind::FatArrow;
+                            goto done;
                         default:
                             Index--;
                             Column--;
@@ -572,8 +578,6 @@ namespace Lex {
             }
 
             Column++;
-            Result.End.Index++;
-
             if (Column > SourceLocation::ColumnLimit) {
                 Diag.emitError(SourceLocation::forLine(Row),
                                "Line is too long");
@@ -586,6 +590,7 @@ namespace Lex {
 
         Result.End.Row = Row;
         Result.End.Column = Column + 1;
+        Result.End.Index = Index;
 
         return Result;
     }

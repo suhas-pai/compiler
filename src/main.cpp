@@ -6,9 +6,7 @@
 #include <cstdio>
 
 #include "AST/BinaryOperation.h"
-#include "AST/CompoundStmt.h"
-#include "AST/NodeKind.h"
-#include "AST/VariableRef.h"
+#include "AST/DeclRefExpr.h"
 
 #include "Backend/LLVM/JIT.h"
 #include "Basic/ArgvLexer.h"
@@ -39,36 +37,47 @@ PrintTypeQualifiers(const char *const Prefix,
 
 static void PrintTypeRefInstInfo(AST::TypeRef::Inst *const Inst) {
     switch (Inst->getKind()) {
-        case AST::TypeRef::Pointer: {
+        case AST::TypeRef::InstKind::Pointer: {
             const auto PtrInst = llvm::cast<AST::TypeRef::PointerInst>(Inst);
             const auto Qual = PtrInst->getQualifiers();
 
             PrintTypeQualifiers("pointer<", Qual, ">");
             break;
         }
-        case AST::TypeRef::Type: {
+        case AST::TypeRef::InstKind::Type: {
             const auto TypeInst = llvm::cast<AST::TypeRef::TypeInst>(Inst);
             const auto Qual = TypeInst->getQualifiers();
 
             PrintTypeQualifiers("type<", Qual, ">");
             break;
         }
+        case AST::TypeRef::InstKind::Array: {
+            printf("array<>");
+            break;
+        }
+        case AST::TypeRef::InstKind::Union: {
+            printf("union<>");
+            break;
+        }
+        case AST::TypeRef::InstKind::Intersect:
+            printf("intersect<>");
+            break;
     }
 }
 
 void
 PrintAST(Backend::LLVM::Handler &Handler,
-         AST::Stmt *const Expr,
+         AST::Stmt *const Stmt,
          const uint8_t Depth) noexcept
 {
-    if (Expr == nullptr) {
+    if (Stmt == nullptr) {
         return;
     }
 
     PrintDepth(Depth);
-    switch (Expr->getKind()) {
+    switch (Stmt->getKind()) {
         case AST::NodeKind::BinaryOperation: {
-            const auto BinaryExpr = llvm::cast<AST::BinaryOperation>(Expr);
+            const auto BinaryExpr = llvm::cast<AST::BinaryOperation>(Stmt);
             const auto Lexeme =
                 Parse::BinaryOperatorToLexemeMap[BinaryExpr->getOperator()];
 
@@ -80,7 +89,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::UnaryOperation: {
-            const auto UnaryExpr = llvm::cast<AST::UnaryOperation>(Expr);
+            const auto UnaryExpr = llvm::cast<AST::UnaryOperation>(Stmt);
             const auto Lexeme =
                 Parse::UnaryOperatorToLexemeMap[UnaryExpr->getOperator()];
 
@@ -90,13 +99,13 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::CharLiteral: {
-            const auto CharLit = llvm::cast<AST::CharLiteral>(Expr);
+            const auto CharLit = llvm::cast<AST::CharLiteral>(Stmt);
             printf("char-literal<%c>\n", CharLit->getValue());
 
             break;
         }
         case AST::NodeKind::NumberLiteral: {
-            const auto IntLit = llvm::cast<AST::NumberLiteral>(Expr);
+            const auto IntLit = llvm::cast<AST::NumberLiteral>(Stmt);
             switch (IntLit->getNumber().Kind) {
                 case Parse::NumberKind::UnsignedInteger:
                     printf("number-literal<%" PRIu64 ", unsigned>\n",
@@ -116,15 +125,16 @@ PrintAST(Backend::LLVM::Handler &Handler,
         case AST::NodeKind::FloatLiteral:
             assert(false && "Got float-literal while printing AST");
         case AST::NodeKind::StringLiteral: {
-            const auto StringLit = llvm::cast<AST::StringLiteral>(Expr);
-            printf("string-literal<%s>\n", StringLit->getValue().data());
+            const auto StringLit = llvm::cast<AST::StringLiteral>(Stmt);
+            printf("string-literal<" SV_FMT ">\n",
+                   SV_FMT_ARG(StringLit->getValue()));
 
             break;
         }
         case AST::NodeKind::VarDecl: {
-            const auto VarDecl = llvm::cast<AST::VarDecl>(Expr);
-
-            printf("var-decl<\"%s\">\n", VarDecl->getName().data());
+            const auto VarDecl = llvm::cast<AST::VarDecl>(Stmt);
+            printf("var-decl<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(VarDecl->getName()));
 
             PrintAST(Handler, VarDecl->getTypeRef(), Depth + 1);
             PrintAST(Handler, VarDecl->getInitExpr(), Depth + 1);
@@ -132,46 +142,44 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::Paren: {
-            const auto ParenExpr = llvm::cast<AST::ParenExpr>(Expr);
+            const auto ParenExpr = llvm::cast<AST::ParenExpr>(Stmt);
 
             printf("paren-expr\n");
             PrintAST(Handler, ParenExpr->getChildExpr(), Depth + 1);
 
             break;
         }
-        case AST::NodeKind::FunctionDecl: {
-            const auto FuncDecl = llvm::cast<AST::FunctionDecl>(Expr);
-            printf("function-decl\n");
+        case AST::NodeKind::ParamVarDecl: {
+            const auto Param = llvm::cast<AST::ParamVarDecl>(Stmt);
+            printf("param-decl<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(Param->getName()));
 
-            PrintAST(Handler, &FuncDecl->getPrototype(), Depth + 1);
-            PrintAST(Handler, &FuncDecl->getBody(), Depth + 2);
-
+            PrintAST(Handler, Param->getTypeRef(), Depth + 1);
             break;
         }
-        case AST::NodeKind::FunctionPrototype: {
-            const auto FuncProt = llvm::cast<AST::FunctionPrototype>(Expr);
-            printf("function-prototype<\"%s\", Args=[",
-                   FuncProt->getName().data());
+        case AST::NodeKind::FunctionDecl: {
+            const auto FuncDecl = llvm::cast<AST::FunctionDecl>(Stmt);
+            printf("function-decl<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(FuncDecl->getName()));
 
-            for (const auto &Param : FuncProt->getParamList()) {
-                printf("\"%s\"", Param.getName().data());
-                if (&Param != &FuncProt->getParamList().back()) {
-                    printf(", ");
-                }
+            const auto &ParamList = FuncDecl->getParamList();;
+            for (const auto &Param : ParamList) {
+                PrintAST(Handler, Param, Depth + 1);
             }
 
-            printf("]>\n");
+            PrintAST(Handler, &FuncDecl->getBody(), Depth + 1);
             break;
         }
-        case AST::NodeKind::VariableRef: {
-            const auto VarRef = llvm::cast<AST::VariableRef>(Expr);
-            printf("var-ref<\"%s\">\n", VarRef->getName().data());
+        case AST::NodeKind::DeclRefExpr: {
+            const auto VarRef = llvm::cast<AST::DeclRefExpr>(Stmt);
+            printf("var-ref<\"" SV_FMT "\">\n", SV_FMT_ARG(VarRef->getName()));
 
             break;
         }
-        case AST::NodeKind::FunctionCall: {
-            const auto FuncCall = llvm::cast<AST::FunctionCall>(Expr);
-            printf("function-call<\"%s\">\n", FuncCall->getName().data());
+        case AST::NodeKind::CallExpr: {
+            const auto FuncCall = llvm::cast<AST::CallExpr>(Stmt);
+            printf("function-call<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(FuncCall->getName()));
 
             for (const auto &Arg : FuncCall->getArgs()) {
                 PrintAST(Handler, Arg, Depth + 1);
@@ -180,7 +188,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::IfStmt: {
-            const auto IfStmt = llvm::cast<AST::IfStmt>(Expr);
+            const auto IfStmt = llvm::cast<AST::IfStmt>(Stmt);
             printf("if-stmt\n");
 
             PrintAST(Handler, IfStmt->getCond(), Depth + 1);
@@ -192,7 +200,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::ReturnStmt: {
-            const auto ReturnStmt = llvm::cast<AST::ReturnStmt>(Expr);
+            const auto ReturnStmt = llvm::cast<AST::ReturnStmt>(Stmt);
 
             printf("return-stmt\n");
             PrintAST(Handler, ReturnStmt->getValue(), Depth + 1);
@@ -200,7 +208,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::CompountStmt: {
-            const auto CompoundStmt = llvm::cast<AST::CompoundStmt>(Expr);
+            const auto CompoundStmt = llvm::cast<AST::CompoundStmt>(Stmt);
 
             printf("compound-stmt\n");
             for (const auto &Stmt : CompoundStmt->getStmtList()) {
@@ -210,7 +218,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::TypeRef: {
-            const auto TypeRef = llvm::cast<AST::TypeRef>(Expr);
+            const auto TypeRef = llvm::cast<AST::TypeRef>(Stmt);
 
             printf("type-ref\n");
             PrintDepth(Depth + 1);
@@ -233,6 +241,68 @@ PrintAST(Backend::LLVM::Handler &Handler,
             } else {
                 printf("] (empty)\n");
             }
+
+            break;
+        }
+        case AST::NodeKind::StructDecl: {
+            const auto StructDecl = llvm::cast<AST::StructDecl>(Stmt);
+            printf("struct-decl<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(StructDecl->getName()));
+
+            for (const auto Field : StructDecl->getFieldList()) {
+                PrintAST(Handler, Field, Depth + 1);
+            }
+
+            break;
+        }
+        case AST::NodeKind::FieldDecl: {
+            const auto FieldDecl = llvm::cast<AST::FieldDecl>(Stmt);
+            printf("field-decl<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(FieldDecl->getName()));
+
+            PrintAST(Handler, FieldDecl->getTypeRef(), Depth + 1);
+            break;
+        }
+        case AST::NodeKind::FieldExpr: {
+            const auto FieldExpr = llvm::cast<AST::FieldExpr>(Stmt);
+            printf("member-access-expr<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(FieldExpr->getMemberName()));
+
+            PrintAST(Handler, FieldExpr->getBase(), Depth + 1);
+            break;
+        }
+        case AST::NodeKind::ArraySubscriptExpr: {
+            const auto ArraySubscriptExpr =
+                llvm::cast<AST::ArraySubscriptExpr>(Stmt);
+
+            printf("array-subscript-expr\n");
+
+            PrintAST(Handler, ArraySubscriptExpr->getBase(), Depth + 1);
+            PrintAST(Handler,
+                     ArraySubscriptExpr->getBracketedExpr(),
+                     Depth + 1);
+
+            break;
+        }
+
+        case AST::NodeKind::EnumMemberDecl: {
+            const auto EnumMemberDecl = llvm::cast<AST::EnumMemberDecl>(Stmt);
+            printf("enum-member-decl<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(EnumMemberDecl->getName()));
+
+            PrintAST(Handler, EnumMemberDecl->getInitExpr(), Depth + 1);
+            break;
+        }
+        case AST::NodeKind::EnumDecl: {
+            const auto EnumDecl = llvm::cast<AST::EnumDecl>(Stmt);
+            printf("enum-decl<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(EnumDecl->getName()));
+
+            for (const auto &EnumMember : EnumDecl->getMemberList()) {
+                PrintAST(Handler, EnumMember, Depth + 1);
+            }
+
+            break;
         }
     }
 }
@@ -272,7 +342,8 @@ HandlePrompt(const std::string_view &Prompt,
     if (ArgOptions.PrintTokens) {
         fputs("Tokens:\n", stdout);
         for (const auto &Token : TokenList) {
-            fprintf(stdout, "\t%s\n", Lex::TokenKindGetName(Token.Kind).data());
+            fprintf(stdout, "\t" SV_FMT "\n",
+                    SV_FMT_ARG(Lex::TokenKindGetName(Token.Kind)));
         }
 
         fputc('\n', stdout);
@@ -301,7 +372,7 @@ HandlePrompt(const std::string_view &Prompt,
                                           "\n");
 
     if (!Result) {
-        if (const auto Decl = llvm::dyn_cast<AST::Decl>(Expr)) {
+        if (const auto Decl = llvm::dyn_cast<AST::ValueDecl>(Expr)) {
             Context.removeDecl(Decl);
         }
     }
@@ -379,9 +450,6 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
             exit(1);
         }
 
-        //Context.visitDecls(Diag, AST::Context::VisitOptions());
-        BackendHandler.evalulate(Context);
-
         if (ArgOptions.PrintAST) {
             const auto &DeclMap =
                 Context.getSymbolTable().getGlobalScope().getDeclMap();
@@ -391,6 +459,8 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
             }
         }
 
+        //Context.visitDecls(Diag, AST::Context::VisitOptions());
+        BackendHandler.evalulate(Context);
         if (ArgOptions.PrintIR) {
             BackendHandler.getModule().print(llvm::outs(), nullptr);
         }
@@ -412,7 +482,7 @@ int main(const int argc, const char *const argv[]) {
         }
 
         if (Arg == "-h" || Arg == "--help"
-            || Arg == "-u" || Arg == "--usage")
+         || Arg == "-u" || Arg == "--usage")
         {
             PrintUsage(argv[0]);
             return 0;

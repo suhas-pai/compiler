@@ -23,8 +23,7 @@ namespace AST {
         : Expr(ObjKind), Loc(Loc), Value(Value) {}
 
         constexpr explicit
-        StringLiteral(const SourceLocation Loc,
-                      std::string &&Value) noexcept
+        StringLiteral(const SourceLocation Loc, std::string &&Value) noexcept
         : Expr(ObjKind), Loc(Loc), Value(std::move(Value)) {}
 
         [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {

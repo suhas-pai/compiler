@@ -18,16 +18,24 @@ namespace Lex {
         Else,
         Return,
         Volatile,
+        Struct,
+        Enum,
+        And,
+        Or
     };
 
     const auto KeywordToLexemeMap =
-        ADT::SmallArrayMap<Keyword, std::string_view, 7>({
+        ADT::SmallArrayMap<Keyword, std::string_view, 11>({
             std::make_pair(Keyword::Let, "let"),
             std::make_pair(Keyword::Mut, "mut"),
             std::make_pair(Keyword::Function, "func"),
             std::make_pair(Keyword::If, "if"),
             std::make_pair(Keyword::Else, "else"),
             std::make_pair(Keyword::Return, "return"),
-            std::make_pair(Keyword::Volatile, "volatile")
+            std::make_pair(Keyword::Volatile, "volatile"),
+            std::make_pair(Keyword::Struct, "struct"),
+            std::make_pair(Keyword::Enum, "enum"),
+            std::make_pair(Keyword::And, "and"),
+            std::make_pair(Keyword::Or, "or")
         });
 }

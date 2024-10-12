@@ -1,15 +1,21 @@
-func b(c) {
-    if (2*3 != 0) {
-        return c+1;
-    } else {
-        let result = c+2;
-        return result;
-    }
+func b(c: *mut volatile int) {
+    a.b = 0;
     return 0;
 }
 
-let d = 3;
-func main(argc, argv) {
-    let c = b(4);
+struct A {
+    a: int;
+    b: *mut f64;
+};
+
+enum B {
+    a = 4,
+    b,
+    c = 6 + 4
+};
+
+let mut d: int = 3;
+func main(argc: int, argv: int) {
+    let c: int = b(4);
     return c;
 }

@@ -9,7 +9,7 @@ struct SourceLocation {
     constexpr static auto RowLimit = (1 << 20) - 1;
     constexpr static auto ColumnLimit = (1 << 12) - 1;
 
-    uint32_t Index = 0;
+    uint32_t Index;
     uint32_t Row : 20;
     uint16_t Column : 12;
 

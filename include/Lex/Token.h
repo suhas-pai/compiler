@@ -86,6 +86,9 @@ namespace Lex {
         Semicolon,
         Dot,
 
+        ThinArrow,
+        FatArrow,
+
         EOFToken,
         Invalid,
     };
@@ -144,6 +147,8 @@ namespace Lex {
             case TokenKind::Colon:
             case TokenKind::Semicolon:
             case TokenKind::Dot:
+            case TokenKind::ThinArrow:
+            case TokenKind::FatArrow:
             case TokenKind::EOFToken:
                 break;
             case TokenKind::Invalid:
@@ -207,6 +212,8 @@ namespace Lex {
             case TokenKind::Colon:
             case TokenKind::Semicolon:
             case TokenKind::Dot:
+            case TokenKind::ThinArrow:
+            case TokenKind::FatArrow:
             case TokenKind::EOFToken:
                 break;
             case TokenKind::Invalid:
@@ -321,6 +328,10 @@ namespace Lex {
                 return "semicolon";
             case TokenKind::Dot:
                 return "dot";
+            case TokenKind::ThinArrow:
+                return "thin-arrow";
+            case TokenKind::FatArrow:
+                return "fat-arrow";
             case TokenKind::EOFToken:
                 return "eof";
             case TokenKind::Invalid:
@@ -393,6 +404,12 @@ namespace Lex {
             [[fallthrough]];
 
             CHECK_KW(Volatile);
+            [[fallthrough]];
+
+            CHECK_KW(Enum)
+            [[fallthrough]];
+
+            CHECK_KW(Struct)
             break;
 
         #undef CHECK_KW

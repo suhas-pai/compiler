@@ -9,26 +9,39 @@ namespace AST {
     enum class NodeKind : uint8_t {
         BinaryOperation,
         UnaryOperation,
+
         CharLiteral,
         NumberLiteral,
         FloatLiteral,
         StringLiteral,
-        VariableRef,
-        TypeRef, // Forward-decl of type
+
+        DeclRefExpr,
+        TypeRef,
 
         Paren,
 
         VarDecl,
-        DeclBase = VarDecl,
+        ParamVarDecl,
         FunctionDecl,
-        DeclLast = FunctionDecl,
+        FieldDecl,
+        StructDecl,
 
-        FunctionPrototype,
-        FunctionCall,
+        EnumMemberDecl,
+        EnumDecl,
+
+        CallExpr,
+        FieldExpr,
+        ArraySubscriptExpr,
 
         IfStmt,
         ReturnStmt,
 
-        CompountStmt
+        CompountStmt,
+
+        DeclBase = VarDecl,
+        DeclLast = EnumDecl,
+
+        NamedDeclBase = VarDecl,
+        NamedDeclLast = EnumDecl,
     };
 }

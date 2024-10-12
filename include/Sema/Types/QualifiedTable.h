@@ -17,7 +17,7 @@ namespace Sema {
     protected:
         std::unordered_map<Type *, QualifiedType> Table;
     public:
-        explicit QualifiedTypeTable() = default;
+        explicit QualifiedTypeTable() noexcept = default;
 
         QualifiedType &
         getQualifiedTypeOrInsert(Type *UnderlyingTy,
