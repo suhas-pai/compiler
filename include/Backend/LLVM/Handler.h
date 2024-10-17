@@ -19,13 +19,6 @@
 #include "llvm/Passes/StandardInstrumentations.h"
 #include "llvm/Support/Error.h"
 
-namespace AST {
-    struct Stmt;
-    struct Decl;
-    struct Expr;
-    struct FunctionDecl;
-}
-
 namespace Backend::LLVM {
     struct ValueMap {
     protected:
@@ -33,7 +26,6 @@ namespace Backend::LLVM {
     public:
         auto addValue(std::string_view Name, llvm::Value *Val) noexcept
             -> decltype(*this);
-
         auto setValue(std::string_view Name, llvm::Value *Val) noexcept
             -> decltype(*this);
 
@@ -62,7 +54,7 @@ namespace Backend::LLVM {
         // This map keeps track of which values are defined in the current scope
 
         ADT::UnorderedStringMap<AST::Stmt *> NameToASTNode;
-        std::vector<AST::Decl *> DeclList;
+        std::vector<AST::LvalueNamedDecl *> DeclList;
 
         std::unique_ptr<llvm::FunctionPassManager> FPM;
         std::unique_ptr<llvm::LoopAnalysisManager> LAM;

@@ -42,9 +42,6 @@ namespace AST {
 
         CompountStmt,
 
-        DeclBase = ArrayDecl,
-        DeclLast = EnumDecl,
-
         NamedDeclBase = LvalueNamedDecl,
         NamedDeclLast = ParamVarDecl,
 

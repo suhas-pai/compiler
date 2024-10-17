@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "AST/Decls/NamedDecl.h"
+#include "AST/Decls/LvalueNamedDecl.h"
 #include "AST/Expr.h"
 
 namespace AST {
-    struct EnumMemberDecl : public NamedDecl {
+    struct EnumMemberDecl : public LvalueNamedDecl {
     public:
         constexpr static auto ObjKind = NodeKind::EnumMemberDecl;
     protected:
@@ -19,7 +19,7 @@ namespace AST {
         EnumMemberDecl(const std::string_view Name,
                        const SourceLocation NameLoc,
                        Expr *const InitExpr) noexcept
-        : NamedDecl(ObjKind, Name, NameLoc), InitExpr(InitExpr) {}
+        : LvalueNamedDecl(ObjKind, Name, NameLoc, InitExpr) {}
 
         [[nodiscard]]
         constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -32,13 +32,13 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getInitExpr() const noexcept {
-            return InitExpr;
+            return getRvalueExpr();
         }
 
         constexpr auto setInitExpr(Expr *const InitExpr) noexcept
             -> decltype(*this)
         {
-            this->InitExpr = InitExpr;
+            setRvalueExpr(InitExpr);
             return *this;
         }
     };

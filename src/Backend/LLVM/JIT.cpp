@@ -262,10 +262,10 @@ namespace Backend::LLVM {
         #endif
 
         auto StmtToExecute = &Stmt;
-        if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(&Stmt)) {
+        if (const auto Decl = llvm::dyn_cast<AST::LvalueNamedDecl>(&Stmt)) {
             const std::string_view Name = Decl->getName();
             if (getNameToASTNodeMap().contains(Name)) {
-                getDiag().emitError(Decl->getLoc(),
+                getDiag().emitError(Decl->getNameLoc(),
                                     "\"" SV_FMT "\" is already defined",
                                     SV_FMT_ARG(Name));
 
@@ -274,14 +274,17 @@ namespace Backend::LLVM {
 
             if (const auto VarDecl = llvm::dyn_cast<AST::VarDecl>(&Stmt)) {
                 StmtToExecute =
-                    new AST::DeclRefExpr(VarDecl->getName(), Decl->getLoc());
+                    new AST::DeclRefExpr(VarDecl->getName(),
+                                         VarDecl->getNameLoc());
             }
 
             addASTNode(Name, *Decl);
         }
 
         if (!SetupGlobalDecls(*this, ValueMap)) {
-            if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(&Stmt)) {
+            if (const auto Decl =
+                    llvm::dyn_cast<AST::LvalueNamedDecl>(&Stmt))
+            {
                 removeASTNode(Decl->getName());
             }
 
@@ -320,7 +323,7 @@ namespace Backend::LLVM {
             return false;
         }
 
-        if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(&Stmt)) {
+        if (const auto Decl = llvm::dyn_cast<AST::LvalueNamedDecl>(&Stmt)) {
             addASTNode(Decl->getName(), *Decl);
         }
 

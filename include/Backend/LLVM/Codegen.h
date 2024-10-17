@@ -20,6 +20,7 @@
 #include "AST/UnaryOperation.h"
 
 #include "llvm/IR/Value.h"
+#include "Handler.h"
 
 namespace Backend::LLVM {
     auto

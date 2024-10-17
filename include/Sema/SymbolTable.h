@@ -8,10 +8,6 @@
 #include "ADT/StringMap.h"
 #include "Sema/Scope.h"
 
-namespace AST {
-    struct Decl;
-}
-
 namespace Sema {
     struct SymbolTable {
     protected:

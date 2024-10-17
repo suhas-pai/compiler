@@ -16,6 +16,7 @@
 #include "Parse/Parser.h"
 #include "Parse/String.h"
 
+#include "llvm/Support/Casting.h"
 #include "Sema/Types/Builtin.h"
 
 namespace Parse {
@@ -1438,7 +1439,8 @@ done:
     auto Parser::startParsing() noexcept -> bool {
         while (const auto Token = this->peek()) {
             if (const auto Stmt = this->parseStmt()) {
-                if (const auto DeclStmt = llvm::dyn_cast<AST::NamedDecl>(Stmt))
+                if (const auto DeclStmt =
+                        llvm::dyn_cast<AST::LvalueNamedDecl>(Stmt))
                 {
                     this->Context.addDecl(DeclStmt);
                     continue;

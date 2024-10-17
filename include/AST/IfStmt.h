@@ -5,7 +5,6 @@
 #pragma once
 
 #include "AST/Expr.h"
-#include "Backend/LLVM/Handler.h"
 #include "Basic/SourceLocation.h"
 
 namespace AST {

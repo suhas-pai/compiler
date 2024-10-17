@@ -156,7 +156,9 @@ namespace Backend::LLVM {
             if (const auto ResultOpt =
                     Handler.codegen(*Stmt, Builder, ValueMap))
             {
-                if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(Stmt)) {
+                if (const auto Decl =
+                        llvm::dyn_cast<AST::LvalueNamedDecl>(Stmt))
+                {
                     ValueMap.addValue(Decl->getName(), ResultOpt.value());
                     AddedDecls.push_back(Decl->getName());
                 }

@@ -6,13 +6,17 @@
 #include "AST/Context.h"
 
 namespace AST {
-    auto Context::addDecl(NamedDecl *const Decl) noexcept -> decltype(*this) {
+    auto Context::addDecl(LvalueNamedDecl *const Decl) noexcept
+        -> decltype(*this)
+    {
         SymbolTable.getGlobalScope().addDecl(Decl);
         return *this;
     }
 
     auto
-    Context::removeDecl(NamedDecl *const Decl) noexcept -> decltype(*this) {
+    Context::removeDecl(LvalueNamedDecl *const Decl) noexcept
+        -> decltype(*this)
+    {
         SymbolTable.getGlobalScope().removeDecl(Decl);
         return *this;
     }

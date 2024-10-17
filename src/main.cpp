@@ -331,11 +331,11 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::LvalueNamedDecl: {
-            const auto LvalueDecl = llvm::cast<AST::LvalueNamedDecl>(Stmt);
+            const auto LvalueNamedDecl = llvm::cast<AST::LvalueNamedDecl>(Stmt);
             printf("LvalueNamedDecl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(LvalueDecl->getName()));
+                   SV_FMT_ARG(LvalueNamedDecl->getName()));
 
-            PrintAST(Handler, LvalueDecl->getRvalueExpr(), Depth + 1);
+            PrintAST(Handler, LvalueNamedDecl->getRvalueExpr(), Depth + 1);
             break;
         }
     }

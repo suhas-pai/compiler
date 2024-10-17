@@ -92,7 +92,7 @@ namespace Backend::LLVM {
                        llvm::Value *const Value) noexcept -> decltype(*this)
     {
         if (const auto Iter = Map.find(Name); Iter != Map.end()) {
-            Iter->second.pop_back();
+            Iter->second.clear();
             Iter->second.push_back(Value);
 
             return *this;
@@ -180,7 +180,7 @@ namespace Backend::LLVM {
                     return false;
                 }
 
-                ValueMap.setValue(Name, FuncDeclCodegenOpt.value());
+                ValueMap.addValue(Name, FuncDeclCodegenOpt.value());
                 continue;
             }
 

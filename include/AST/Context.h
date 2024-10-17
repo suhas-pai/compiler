@@ -10,8 +10,6 @@
 #include "Interface/DiagnosticsEngine.h"
 
 namespace AST {
-    struct Decl;
-    struct Stmt;
     struct CompoundStmt;
     struct FunctionDecl;
     struct VarDecl;
@@ -50,8 +48,8 @@ namespace AST {
     public:
         explicit Context() noexcept {}
 
-        auto addDecl(NamedDecl *Decl) noexcept -> decltype(*this);
-        auto removeDecl(NamedDecl *Decl) noexcept -> decltype(*this);
+        auto addDecl(LvalueNamedDecl *Decl) noexcept -> decltype(*this);
+        auto removeDecl(LvalueNamedDecl *Decl) noexcept -> decltype(*this);
 
         [[nodiscard]] constexpr auto &getSymbolTable() const noexcept {
             return SymbolTable;

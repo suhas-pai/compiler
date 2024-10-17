@@ -2,8 +2,8 @@
  * Backend/LLVM/CreateObjectFile.h
  */
 
-#include "Backend/LLVM/Handler.h"
 #include "Interface/DiagnosticsEngine.h"
+#include "Handler.h"
 
 namespace Backend::LLVM {
     struct CreateObjectFile : public Handler {
