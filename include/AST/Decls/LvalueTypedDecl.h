@@ -54,7 +54,8 @@ namespace AST {
           TypeOrTypeRef(Type) {}
 
         [[nodiscard]] constexpr static inline auto IsOfKind(const Stmt &Stmt) {
-            return Stmt.getKind() == NodeKind::VarDecl;
+            return Stmt.getKind() >= NodeKind::LvalueTypedDeclBase
+                && Stmt.getKind() <= NodeKind::LvalueTypedDeclLast;
         }
 
         [[nodiscard]]

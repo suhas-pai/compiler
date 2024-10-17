@@ -48,7 +48,7 @@ namespace AST {
         NamedDeclBase = LvalueNamedDecl,
         NamedDeclLast = ParamVarDecl,
 
-        ValueDeclBase = FieldDecl,
-        ValueDeclLast = ParamVarDecl
+        LvalueTypedDeclBase = FieldDecl,
+        LvalueTypedDeclLast = ParamVarDecl
     };
 }
