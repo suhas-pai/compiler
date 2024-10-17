@@ -48,9 +48,10 @@ namespace Backend::LLVM {
         // Create a new builder for the module.
         // Create a new pass manager attached to it.
 
+        // FIXME:
+    #if 0
         auto PowFunc =
             new AST::FunctionDecl(
-                "pow",
                 SourceLocation::invalid(),
                 {
                     new AST::ParamVarDecl(
@@ -67,23 +68,14 @@ namespace Backend::LLVM {
                 AST::ValueDecl::Linkage::External);
 
         Context.addDecl(PowFunc);
+    #endif
         const auto &DeclMap =
             Context.getSymbolTable().getGlobalScope().getDeclMap();
 
         for (auto &[Name, Decl] : DeclMap) {
-            if (Decl->getLinkage() == AST::ValueDecl::Linkage::External) {
-                const auto ValueOpt = codegen(*Decl, getBuilder(), ValueMap);
-                if (!ValueOpt.has_value()) {
-                    getDiag().emitInternalError(
-                        "Failed to codegen for symbol " SV_FMT,
-                        SV_FMT_ARG(
-                            llvm::cast<AST::NamedDecl>(Decl)->getName()));
-                    continue;
-                }
-
-                ValueMap.addValue(
-                    llvm::cast<AST::NamedDecl>(Decl)->getName(),
-                    ValueOpt.value());
+            auto ValDecl = llvm::dyn_cast<AST::LvalueNamedDecl>(Decl);
+            if (ValDecl == nullptr) {
+                continue;
             }
 
             addASTNode(Name, *Decl);
@@ -148,7 +140,8 @@ namespace Backend::LLVM {
                 .getDeclMap();
 
         for (const auto &[Name, Decl] : DeclMap) {
-            if (Decl->getLinkage() == AST::ValueDecl::Linkage::External) {
+            const auto ValDecl = llvm::dyn_cast<AST::LvalueNamedDecl>(Decl);
+            if (ValDecl == nullptr) {
                 continue;
             }
 
@@ -166,12 +159,11 @@ namespace Backend::LLVM {
                     return false;
                 }
 
-                ValueMap.setValue(FuncDecl->getName(), FuncCodegenOpt.value());
+                ValueMap.setValue("FIXME_Name", FuncCodegenOpt.value());
                 continue;
             }
 
             if (const auto VarDecl = llvm::dyn_cast<AST::VarDecl>(Decl)) {
-                VarDecl->setIsGlobal(true);
                 const auto CodegenOpt =
                     VarDeclCodegen(*VarDecl,
                                    Handler,
@@ -242,6 +234,8 @@ namespace Backend::LLVM {
                                   const std::string_view Suffix) noexcept
     {
         auto ValueMap = this->ValueMap;
+        // FIXME:
+        #if 0
         if (const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(&Stmt)) {
             if (getNameToASTNodeMap().contains(FuncDecl->getName())) {
                 getDiag().emitError(FuncDecl->getNameLoc(),
@@ -265,6 +259,7 @@ namespace Backend::LLVM {
 
             return true;
         }
+        #endif
 
         auto StmtToExecute = &Stmt;
         if (const auto Decl = llvm::dyn_cast<AST::NamedDecl>(&Stmt)) {
@@ -302,12 +297,11 @@ namespace Backend::LLVM {
 
         auto FuncDecl =
             AST::FunctionDecl(
-                Name,
-                /*NameLoc=*/SourceLocation::invalid(),
+                /*Loc=*/SourceLocation::invalid(),
                 std::vector<AST::ParamVarDecl *>(),
-                Sema::BuiltinType::voidType(),
+                &Sema::BuiltinType::voidType(),
                 ReturnStmt.get(),
-                AST::ValueDecl::Linkage::Private);
+                AST::Linkage::Private);
 
         const auto FuncDeclCodegenOpt =
             FunctionDeclCodegen(FuncDecl,

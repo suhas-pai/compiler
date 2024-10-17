@@ -1,5 +1,6 @@
 /*
  * Sema/Types/FunctionPrototype.h
+ * © suhas pai
  */
 
 #pragma once
@@ -27,12 +28,13 @@ namespace Sema {
         : Type(ObjKind), ReturnType(ReturnType),
           ParamList(std::move(ParamList)) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Type &Ty) noexcept {
+        [[nodiscard]]
+        constexpr static inline auto IsOfKind(const Type &Ty) noexcept {
             return Ty.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Type *const Type) noexcept {
+        constexpr static inline auto classof(const Type *const Type) noexcept {
             return IsOfKind(*Type);
         }
 

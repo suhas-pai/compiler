@@ -50,8 +50,8 @@ namespace AST {
     public:
         explicit Context() noexcept {}
 
-        auto addDecl(ValueDecl *Decl) noexcept -> decltype(*this);
-        auto removeDecl(ValueDecl *Decl) noexcept -> decltype(*this);
+        auto addDecl(NamedDecl *Decl) noexcept -> decltype(*this);
+        auto removeDecl(NamedDecl *Decl) noexcept -> decltype(*this);
 
         [[nodiscard]] constexpr auto &getSymbolTable() const noexcept {
             return SymbolTable;

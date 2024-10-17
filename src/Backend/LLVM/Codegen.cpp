@@ -260,7 +260,7 @@ namespace Backend::LLVM {
         const auto FuncDeclCodegen =
             llvm::Function::Create(FT,
                                    llvm::Function::ExternalLinkage,
-                                   FuncDecl.getName(),
+                                   "FIXME_Name",
                                    Module);
 
         // Set names for all arguments.
@@ -270,11 +270,13 @@ namespace Backend::LLVM {
         }
 
         // Avoid adding the function to the symbol table if it is external.
-        if (FuncDecl.getLinkage() == AST::ValueDecl::Linkage::External) {
+        const auto Body = FuncDecl.getBody();
+        if (Body == nullptr) {
             return FuncDeclCodegen;
         }
 
-        ValueMap.addValue(FuncDecl.getName(), FuncDeclCodegen);
+        // FIXME:
+        // ValueMap.addValue(FuncDecl.getName(), FuncDeclCodegen);
 
         const auto Function = llvm::cast<llvm::Function>(FuncDeclCodegen);
         const auto BB =
@@ -287,8 +289,7 @@ namespace Backend::LLVM {
         }
 
         auto BodyIRBuilder = llvm::IRBuilder(BB);
-        const auto BodyValOpt =
-            Handler.codegen(FuncDecl.getBody(), BodyIRBuilder, ValueMap);
+        const auto BodyValOpt = Handler.codegen(*Body, BodyIRBuilder, ValueMap);
 
         if (!BodyValOpt.has_value()) {
             Function->removeFromParent();
@@ -306,7 +307,6 @@ namespace Backend::LLVM {
         // Run the optimizer on the function.
         Handler.getFPM().run(*Function, Handler.getFAM());
         return Function;
-
     }
 
     auto
@@ -509,7 +509,7 @@ namespace Backend::LLVM {
             return std::nullopt;
         }
 
-        if (VarDecl.getLinkage() == AST::VarDecl::Linkage::External) {
+        if (VarDecl.getInitExpr() == nullptr) {
             const auto Type = llvm::Type::getDoubleTy(Handler.getContext());
             const auto GV =
                 new llvm::GlobalVariable(
@@ -518,32 +518,6 @@ namespace Backend::LLVM {
                     /*isConstant=*/!VarDecl.getQualifiers().isMutable(),
                     llvm::GlobalVariable::LinkageTypes::ExternalLinkage,
                     /*Initializer=*/nullptr,
-                    VarDecl.getName());
-
-            return GV;
-        }
-
-        if (VarDecl.isGlobal()) {
-            // FIXME: Handle other types
-            auto FloatValue = (double)0.0;
-
-            const auto InitExpr = VarDecl.getInitExpr();
-            if (const auto NumLit =
-                    llvm::dyn_cast<AST::NumberLiteral>(InitExpr))
-            {
-                FloatValue = NumLit->getNumber().UInt;
-            }
-
-            const auto Type = llvm::Type::getDoubleTy(Handler.getContext());
-            const auto GV =
-                new llvm::GlobalVariable(
-                    Handler.getModule(),
-                    Type,
-                    /*isConstant=*/!VarDecl.getQualifiers().isMutable(),
-                    llvm::GlobalVariable::LinkageTypes::WeakAnyLinkage,
-                    /*Initializer=*/llvm::ConstantFP::get(
-                        Handler.getContext(),
-                        llvm::APFloat(FloatValue)),
                     VarDecl.getName());
 
             return GV;
@@ -695,8 +669,6 @@ namespace Backend::LLVM {
                                         Builder,
                                         ValueMap);
             case AST::NodeKind::StructDecl:
-                // FIXME:
-                break;
             case AST::NodeKind::ArraySubscriptExpr:
             case AST::NodeKind::FieldDecl:
             case AST::NodeKind::ParamVarDecl:
@@ -704,6 +676,9 @@ namespace Backend::LLVM {
             case AST::NodeKind::FieldExpr:
             case AST::NodeKind::EnumMemberDecl:
             case AST::NodeKind::EnumDecl:
+            case AST::NodeKind::ArrayDecl:
+            case AST::NodeKind::LvalueNamedDecl:
+            case AST::NodeKind::LambdaDecl:
                 __builtin_unreachable();
         }
 

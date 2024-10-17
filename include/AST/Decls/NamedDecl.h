@@ -10,7 +10,6 @@
 #include "Base.h"
 
 namespace AST {
-
     struct NamedDecl : public Decl {
     protected:
         std::string Name;
@@ -23,13 +22,13 @@ namespace AST {
         : Decl(Kind), Name(Name), NameLoc(NameLoc) {}
     public:
         [[nodiscard]]
-        static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() >= NodeKind::NamedDeclBase
                 && Stmt.getKind() <= NodeKind::NamedDeclLast;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 

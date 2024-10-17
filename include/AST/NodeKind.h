@@ -20,14 +20,18 @@ namespace AST {
 
         Paren,
 
+        ArrayDecl,
+        FunctionDecl,
+        LambdaDecl,
+        StructDecl,
+        EnumDecl,
+
+        LvalueNamedDecl,
+        EnumMemberDecl,
+
+        FieldDecl,
         VarDecl,
         ParamVarDecl,
-        FunctionDecl,
-        FieldDecl,
-        StructDecl,
-
-        EnumMemberDecl,
-        EnumDecl,
 
         CallExpr,
         FieldExpr,
@@ -38,10 +42,13 @@ namespace AST {
 
         CompountStmt,
 
-        DeclBase = VarDecl,
+        DeclBase = ArrayDecl,
         DeclLast = EnumDecl,
 
-        NamedDeclBase = VarDecl,
-        NamedDeclLast = EnumDecl,
+        NamedDeclBase = LvalueNamedDecl,
+        NamedDeclLast = ParamVarDecl,
+
+        ValueDeclBase = FieldDecl,
+        ValueDeclLast = ParamVarDecl
     };
 }

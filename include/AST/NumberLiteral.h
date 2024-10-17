@@ -21,12 +21,13 @@ namespace AST {
                       const Parse::ParseNumberResult Number) noexcept
         : Expr(ObjKind), Loc(Loc), Number(Number) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        [[nodiscard]]
+        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 

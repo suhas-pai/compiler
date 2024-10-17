@@ -16,12 +16,13 @@ namespace Sema {
         constexpr explicit PointerType(Type *const PointeeType) noexcept
         : Type(TypeKind::Pointer), PointeeType(PointeeType) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Type &Ty) noexcept {
+        [[nodiscard]]
+        constexpr static inline auto IsOfKind(const Type &Ty) noexcept {
             return Ty.getKind() == TyKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Type *const Type) noexcept {
+        constexpr static inline auto classof(const Type *const Type) noexcept {
             return IsOfKind(*Type);
         }
 

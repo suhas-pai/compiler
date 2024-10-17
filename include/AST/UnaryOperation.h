@@ -14,6 +14,7 @@ namespace AST {
     protected:
         SourceLocation Loc;
         Parse::UnaryOperator Operator;
+
         Expr *Operand;
     public:
         constexpr explicit
@@ -22,12 +23,13 @@ namespace AST {
                        Expr *const Operand = nullptr) noexcept
         : Expr(ObjKind), Loc(Loc), Operator(Operator), Operand(Operand) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        [[nodiscard]]
+        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 

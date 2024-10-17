@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "AST/Decls/EnumDecl.h"
+#include "AST/Decls/ArrayDecl.h"
 #include "AST/Decls/EnumMemberDecl.h"
-#include "AST/Decls/FunctionDecl.h"
-#include "AST/Decls/StructDecl.h"
+#include "AST/Decls/FieldDecl.h"
+#include "AST/Decls/LvalueNamedDecl.h"
 #include "AST/Decls/VarDecl.h"
 
 #include "AST/ArraySubscriptExpr.h"
@@ -103,7 +103,10 @@ namespace Parse {
         [[nodiscard]]
         auto parseVarDecl(Lex::Token Token) noexcept -> AST::VarDecl *;
 
-        [[nodiscard]] auto parseFuncDecl() noexcept -> AST::FunctionDecl *;
+        [[nodiscard]] auto
+        parseArrayDecl(Lex::Token LeftBracketLoc) noexcept -> AST::ArrayDecl *;
+
+        [[nodiscard]] auto parseFuncDecl() noexcept -> AST::LvalueNamedDecl *;
 
         [[nodiscard]] auto
         parseFieldList(Lex::Token NameToken,
@@ -114,8 +117,8 @@ namespace Parse {
         parseEnumMemberList(
             std::vector<AST::EnumMemberDecl *> &FieldList) noexcept -> bool;
 
-        [[nodiscard]] auto parseEnumDecl() noexcept -> AST::EnumDecl *;
-        [[nodiscard]] auto parseStructDecl() noexcept -> AST::StructDecl *;
+        [[nodiscard]] auto parseEnumDecl() noexcept -> AST::LvalueNamedDecl *;
+        [[nodiscard]] auto parseStructDecl() noexcept -> AST::LvalueNamedDecl *;
 
         [[nodiscard]] auto peek() const noexcept -> std::optional<Lex::Token>;
         [[nodiscard]] auto prev() const noexcept -> std::optional<Lex::Token>;

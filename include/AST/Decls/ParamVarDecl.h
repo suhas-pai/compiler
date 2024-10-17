@@ -4,10 +4,10 @@
  */
 
 #pragma once
-#include "AST/Decls/ValueDecl.h"
+#include "AST/Decls/LvalueTypedDecl.h"
 
 namespace AST {
-    struct ParamVarDecl : public ValueDecl {
+    struct ParamVarDecl : public LvalueTypedDecl {
     public:
         constexpr static auto ObjKind = NodeKind::ParamVarDecl;
     public:
@@ -15,21 +15,23 @@ namespace AST {
         ParamVarDecl(const std::string_view Name,
                      const SourceLocation NameLoc,
                      TypeRef *const TypeRef) noexcept
-        : ValueDecl(ObjKind, Name, NameLoc, Linkage::Private, TypeRef) {}
+        : LvalueTypedDecl(ObjKind, Name, NameLoc, /*RvalueExpr=*/nullptr,
+                          TypeRef) {}
 
         constexpr explicit
         ParamVarDecl(const std::string_view Name,
                      const SourceLocation NameLoc,
                      Sema::Type *const Type) noexcept
-        : ValueDecl(ObjKind, Name, NameLoc, Linkage::Private, Type)  {}
+        : LvalueTypedDecl(ObjKind, Name, NameLoc, /*RvalueExpr=*/nullptr,
+                          Type)  {}
 
         [[nodiscard]]
-        static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
     };

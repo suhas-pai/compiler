@@ -5,6 +5,12 @@
 #include "AST/BinaryOperation.h"
 #include "AST/DeclRefExpr.h"
 
+#include "AST/Decls/EnumDecl.h"
+#include "AST/Decls/FunctionDecl.h"
+#include "AST/Decls/LvalueNamedDecl.h"
+#include "AST/Decls/ParamVarDecl.h"
+#include "AST/Decls/StructDecl.h"
+
 #include "Lex/Token.h"
 #include "Parse/OperatorPrecedence.h"
 #include "Parse/Parser.h"
@@ -306,7 +312,11 @@ namespace Parse {
             }
 
             const auto MemberName = this->tokenContent(MemberToken.value());
-            return new AST::FieldExpr(MemberToken->Loc, Lhs, MemberName);
+            const auto IsArrow =
+                MemberToken.value().Kind == Lex::TokenKind::ThinArrow;
+
+            return new AST::FieldExpr(MemberToken->Loc, Lhs, IsArrow,
+                                      MemberName);
         }
 
         Diag.emitError(DotToken.Loc, "Expected member name");
@@ -469,6 +479,9 @@ done:
                         break;
                     case Lex::TokenKind::OpenParen:
                         Expr = this->parseParenExpr(Token);
+                        break;
+                    case Lex::TokenKind::LeftSquareBracket:
+                        Expr = this->parseArrayDecl(Token);
                         break;
                     default:
                         Diag.emitError(Token.Loc,
@@ -731,6 +744,7 @@ done:
             if (this->peekIs(Lex::TokenKind::Semicolon)
              || this->peekIs(Lex::TokenKind::Equal)
              || this->peekIs(Lex::TokenKind::Comma)
+             || this->peekIs(Lex::TokenKind::CloseParen)
              || this->peekIs(Lex::TokenKind::EOFToken))
             {
                 break;
@@ -879,11 +893,52 @@ done:
                                 NameToken.Loc,
                                 QualifiersOpt.value(),
                                 TypeRef,
-                                /*IsGlobal=*/false,
                                 Expr);
     }
 
-    auto Parser::parseFuncDecl() noexcept -> AST::FunctionDecl * {
+    auto Parser::parseArrayDecl(const Lex::Token LeftBracketToken) noexcept
+        -> AST::ArrayDecl *
+    {
+        if (this->consumeIfToken(Lex::TokenKind::Comma)) {
+            Diag.emitError(this->getCurrOrPrevLoc(),
+                           "Expected first array element, found ',' "
+                           "instead");
+            return nullptr;
+        }
+
+        auto ElementList = std::vector<AST::Expr *>();
+        while (true) {
+            const auto Element = this->parseExpression();
+            if (!Element.has_value()) {
+                return nullptr;
+            }
+
+            ElementList.emplace_back(Element.value());
+            if (!this->consumeIfToken(Lex::TokenKind::Comma)) {
+                break;
+            }
+
+            if (this->consumeIfToken(Lex::TokenKind::RightSquareBracket)) {
+                Diag.emitError(this->getCurrOrPrevLoc(),
+                               "Expected an additional array element after "
+                               "comma, but found ']' instead");
+
+                return nullptr;
+            }
+        }
+
+        if (!this->expect(Lex::TokenKind::RightSquareBracket)) {
+            Diag.emitError(this->getCurrOrPrevLoc(),
+                           "Expected either ',' for additional elements, or "
+                           "']' to terminate array declaration");
+
+            return nullptr;
+        }
+
+        return new AST::ArrayDecl(LeftBracketToken.Loc, ElementList);
+    }
+
+    auto Parser::parseFuncDecl() noexcept -> AST::LvalueNamedDecl * {
         const auto NameTokenOpt = this->consume();
         if (!NameTokenOpt.has_value()) {
             Diag.emitError(this->getCurrOrPrevLoc(),
@@ -979,29 +1034,32 @@ done:
             } while (true);
         }
 
-        auto Result = static_cast<AST::FunctionDecl *>(nullptr);
+        auto FuncDecl = static_cast<AST::FunctionDecl *>(nullptr);
         if (this->consumeIfToken(Lex::TokenKind::ThinArrow)) {
             const auto Type = this->parseTypeExpr();
             if (Type == nullptr) {
                 return nullptr;
             }
 
-            Result =
-                new AST::FunctionDecl(this->tokenContent(NameToken),
-                                      NameToken.Loc,
+            FuncDecl =
+                new AST::FunctionDecl(NameToken.Loc,
                                       ParamList,
-                                      *Type,
+                                      Type,
                                       /*Body=*/nullptr,
-                                      AST::ValueDecl::Linkage::Private);
+                                      AST::Linkage::Private);
         } else {
-            Result =
-                new AST::FunctionDecl(this->tokenContent(NameToken),
-                                      NameToken.Loc,
+            FuncDecl =
+                new AST::FunctionDecl(NameToken.Loc,
                                       ParamList,
-                                      Sema::BuiltinType::voidType(),
+                                      &Sema::BuiltinType::voidType(),
                                       /*Body=*/nullptr,
-                                      AST::ValueDecl::Linkage::Private);
+                                      AST::Linkage::Private);
         }
+
+        auto Result =
+            new AST::LvalueNamedDecl(this->tokenContent(NameToken),
+                                     NameToken.Loc,
+                                     /*RvalueExpr=*/FuncDecl);
 
         const auto OpenCurlyOpt = this->peek();
         if (!OpenCurlyOpt.has_value()) {
@@ -1022,7 +1080,7 @@ done:
 
         this->consume();
         if (const auto Body = this->parseCompoundStmt(OpenCurly)) {
-            Result->setBody(Body);
+            FuncDecl->setBody(Body);
             return Result;
         }
 
@@ -1168,7 +1226,7 @@ done:
         }
     }
 
-    auto Parser::parseEnumDecl() noexcept -> AST::EnumDecl * {
+    auto Parser::parseEnumDecl() noexcept -> AST::LvalueNamedDecl * {
         const auto NameTokenOpt = this->consume();
         if (!NameTokenOpt.has_value()) {
             Diag.emitError(this->getCurrOrPrevLoc(),
@@ -1202,11 +1260,16 @@ done:
             return nullptr;
         }
 
-        return new AST::EnumDecl(this->tokenContent(NameToken), NameToken.Loc,
-                                 std::move(FieldList));
+        const auto EnumDecl = new AST::EnumDecl(std::move(FieldList));
+        const auto Result =
+            new AST::LvalueNamedDecl(this->tokenContent(NameToken),
+                                     NameToken.Loc,
+                                     EnumDecl);
+
+        return Result;
     }
 
-    auto Parser::parseStructDecl() noexcept -> AST::StructDecl * {
+    auto Parser::parseStructDecl() noexcept -> AST::LvalueNamedDecl * {
         const auto NameTokenOpt = this->consume();
         if (!NameTokenOpt.has_value()) {
             Diag.emitError(this->getCurrOrPrevLoc(),
@@ -1240,8 +1303,13 @@ done:
             return nullptr;
         }
 
-        return new AST::StructDecl(this->tokenContent(NameToken), NameToken.Loc,
-                                   FieldList);
+        const auto StructDecl = new AST::StructDecl(FieldList);
+        const auto Result =
+            new AST::LvalueNamedDecl(this->tokenContent(NameToken),
+                                     NameToken.Loc,
+                                     StructDecl);
+
+        return Result;
     }
 
     auto Parser::parseIfStmt(const Lex::Token IfToken) noexcept -> AST::IfStmt *
@@ -1370,7 +1438,7 @@ done:
     auto Parser::startParsing() noexcept -> bool {
         while (const auto Token = this->peek()) {
             if (const auto Stmt = this->parseStmt()) {
-                if (const auto DeclStmt = llvm::dyn_cast<AST::ValueDecl>(Stmt))
+                if (const auto DeclStmt = llvm::dyn_cast<AST::NamedDecl>(Stmt))
                 {
                     this->Context.addDecl(DeclStmt);
                     continue;
@@ -1397,7 +1465,9 @@ done:
                 return nullptr;
             }
 
-            if (const auto Decl = llvm::dyn_cast<AST::ValueDecl>(Result)) {
+            if (const auto Decl =
+                    llvm::dyn_cast<AST::LvalueNamedDecl>(Result))
+            {
                 Context.addDecl(Decl);
             }
 

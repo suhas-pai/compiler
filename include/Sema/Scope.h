@@ -6,20 +6,20 @@
 #pragma once
 #include <map>
 
-#include "AST/Decls/ValueDecl.h"
+#include "AST/Decls/NamedDecl.h"
 #include "ADT/StringMap.h"
 
 namespace Sema {
     struct Scope {
     protected:
         Scope *Parent = nullptr;
-        std::map<std::string_view, AST::ValueDecl *> DeclMap;
+        std::map<std::string_view, AST::NamedDecl *> DeclMap;
     public:
         explicit Scope() noexcept = default;
         explicit Scope(Scope *const Parent) noexcept : Parent(Parent) {};
 
-        auto addDecl(AST::ValueDecl *Decl) noexcept -> Scope &;
-        auto removeDecl(AST::ValueDecl *Decl) noexcept -> Scope &;
+        auto addDecl(AST::NamedDecl *Decl) noexcept -> Scope &;
+        auto removeDecl(AST::NamedDecl *Decl) noexcept -> Scope &;
 
         [[nodiscard]] constexpr auto &getDeclMap() const noexcept {
             return DeclMap;
@@ -27,6 +27,6 @@ namespace Sema {
 
         [[nodiscard]]
         auto getDeclByName(std::string_view Name) const noexcept
-            -> AST::ValueDecl *;
+            -> AST::NamedDecl *;
     };
 }

@@ -18,17 +18,23 @@ namespace Sema {
         constexpr explicit BuiltinType(std::string_view Name) noexcept
         : Type(TypeKind::Builtin), Name(Name) {}
     public:
-        [[nodiscard]] static inline auto IsOfKind(const Type &Ty) noexcept {
+        [[nodiscard]]
+        constexpr static inline auto IsOfKind(const Type &Ty) noexcept {
             return Ty.getKind() == TyKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Type *const Type) noexcept {
+        constexpr static inline auto classof(const Type *const Type) noexcept {
             return IsOfKind(*Type);
         }
 
         [[nodiscard]] static auto voidType() noexcept -> BuiltinType & {
             static auto Result = BuiltinType("void");
+            return Result;
+        }
+
+        [[nodiscard]] static auto charType() noexcept -> BuiltinType & {
+            static auto Result = BuiltinType("char");
             return Result;
         }
 
@@ -98,6 +104,10 @@ namespace Sema {
         {
             if (Name == "void") {
                 return &voidType();
+            }
+
+            if (Name == "char") {
+                return &charType();
             }
 
             if (Name == "u8") {

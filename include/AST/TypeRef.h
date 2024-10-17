@@ -47,12 +47,12 @@ namespace AST {
                         const Sema::TypeQualifiers Qual) noexcept
             : Inst(ObjKind), Loc(Loc), Qual(Qual) {}
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto classof(const Inst *const Inst) noexcept {
                 return IsOfKind(*Inst);
             }
@@ -81,12 +81,12 @@ namespace AST {
                      const Sema::TypeQualifiers Qual) noexcept
             : Inst(ObjKind), Name(Name), NameLoc(NameLoc), Qual(Qual) {}
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto classof(const Inst *const Inst) noexcept {
                 return IsOfKind(*Inst);
             }
@@ -114,12 +114,12 @@ namespace AST {
             constexpr explicit ArrayInst(const SourceLocation Loc) noexcept
             : Inst(ObjKind), Loc(Loc) {}
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto classof(const Inst *const Inst) noexcept {
                 return IsOfKind(*Inst);
             }
@@ -138,12 +138,12 @@ namespace AST {
             constexpr explicit UnionInst(const SourceLocation NameLoc) noexcept
             : Inst(ObjKind), Loc(NameLoc) {}
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto classof(const Inst *const Inst) noexcept {
                 return IsOfKind(*Inst);
             }
@@ -162,12 +162,12 @@ namespace AST {
             constexpr explicit IntersectInst(const SourceLocation Loc) noexcept
             : Inst(ObjKind), Loc(Loc) {}
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
-            [[nodiscard]]
+            [[nodiscard]] constexpr
             static inline auto classof(const Inst *const Inst) noexcept {
                 return IsOfKind(*Inst);
             }
@@ -187,12 +187,13 @@ namespace AST {
         constexpr explicit TypeRef(std::vector<Inst *> &&InstList) noexcept
         : Expr(ObjKind), InstList(std::move(InstList)) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        [[nodiscard]]
+        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 

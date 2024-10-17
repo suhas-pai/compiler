@@ -16,6 +16,6 @@ enum B {
 
 let mut d: int = 3;
 func main(argc: int, argv: int) {
-    let c: int = b(4);
+    let e = [1,2,3,4,5];
     return c;
 }

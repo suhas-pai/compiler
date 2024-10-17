@@ -5,6 +5,12 @@
 #include <cassert>
 #include <cstdio>
 
+#include "AST/Decls/EnumDecl.h"
+#include "AST/Decls/FunctionDecl.h"
+#include "AST/Decls/LambdaDecl.h"
+#include "AST/Decls/LvalueNamedDecl.h"
+#include "AST/Decls/StructDecl.h"
+
 #include "AST/BinaryOperation.h"
 #include "AST/DeclRefExpr.h"
 
@@ -159,15 +165,14 @@ PrintAST(Backend::LLVM::Handler &Handler,
         }
         case AST::NodeKind::FunctionDecl: {
             const auto FuncDecl = llvm::cast<AST::FunctionDecl>(Stmt);
-            printf("function-decl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(FuncDecl->getName()));
+            printf("function-decl\n");
 
-            const auto &ParamList = FuncDecl->getParamList();;
+            const auto &ParamList = FuncDecl->getParamList();
             for (const auto &Param : ParamList) {
                 PrintAST(Handler, Param, Depth + 1);
             }
 
-            PrintAST(Handler, &FuncDecl->getBody(), Depth + 1);
+            PrintAST(Handler, FuncDecl->getBody(), Depth + 1);
             break;
         }
         case AST::NodeKind::DeclRefExpr: {
@@ -246,8 +251,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
         }
         case AST::NodeKind::StructDecl: {
             const auto StructDecl = llvm::cast<AST::StructDecl>(Stmt);
-            printf("struct-decl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(StructDecl->getName()));
+            printf("struct-decl\n");
 
             for (const auto Field : StructDecl->getFieldList()) {
                 PrintAST(Handler, Field, Depth + 1);
@@ -265,7 +269,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
         }
         case AST::NodeKind::FieldExpr: {
             const auto FieldExpr = llvm::cast<AST::FieldExpr>(Stmt);
-            printf("member-access-expr<\"" SV_FMT "\">\n",
+            printf("member-access-expr<\'%s\', \"" SV_FMT "\">\n",
+                   FieldExpr->isArrow() ? "->" : ".",
                    SV_FMT_ARG(FieldExpr->getMemberName()));
 
             PrintAST(Handler, FieldExpr->getBase(), Depth + 1);
@@ -295,13 +300,41 @@ PrintAST(Backend::LLVM::Handler &Handler,
         }
         case AST::NodeKind::EnumDecl: {
             const auto EnumDecl = llvm::cast<AST::EnumDecl>(Stmt);
-            printf("enum-decl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(EnumDecl->getName()));
+            printf("enum-decl\n");
 
             for (const auto &EnumMember : EnumDecl->getMemberList()) {
                 PrintAST(Handler, EnumMember, Depth + 1);
             }
 
+            break;
+        }
+        case AST::NodeKind::ArrayDecl: {
+            const auto ArrayDecl = llvm::cast<AST::ArrayDecl>(Stmt);
+            printf("array-decl\n");
+
+            for (const auto &Element : ArrayDecl->getElementList()) {
+                PrintAST(Handler, Element, Depth + 1);
+            }
+
+            break;
+        }
+        case AST::NodeKind::LambdaDecl: {
+            const auto LambdaDecl = llvm::cast<AST::LambdaDecl>(Stmt);
+            printf("lambda-decl\n");
+
+            PrintAST(Handler, LambdaDecl->getCaptureList(), Depth + 1);
+            for (const auto &Param : LambdaDecl->getParamList()) {
+                PrintAST(Handler, Param, Depth + 1);
+            }
+
+            break;
+        }
+        case AST::NodeKind::LvalueNamedDecl: {
+            const auto LvalueDecl = llvm::cast<AST::LvalueNamedDecl>(Stmt);
+            printf("lvalue-named-decl<\"" SV_FMT "\">\n",
+                   SV_FMT_ARG(LvalueDecl->getName()));
+
+            PrintAST(Handler, LvalueDecl->getRvalueExpr(), Depth + 1);
             break;
         }
     }
@@ -372,7 +405,7 @@ HandlePrompt(const std::string_view &Prompt,
                                           "\n");
 
     if (!Result) {
-        if (const auto Decl = llvm::dyn_cast<AST::ValueDecl>(Expr)) {
+        if (const auto Decl = llvm::dyn_cast<AST::LvalueNamedDecl>(Expr)) {
             Context.removeDecl(Decl);
         }
     }

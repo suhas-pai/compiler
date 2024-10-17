@@ -6,33 +6,32 @@
 #pragma once
 
 #include <vector>
+
+#include "AST/Expr.h"
 #include "FieldDecl.h"
 
 namespace AST {
-    struct StructDecl : public NamedDecl {
+    struct StructDecl : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::StructDecl;
     protected:
         std::vector<FieldDecl *> FieldList;
     public:
         constexpr explicit
-        StructDecl(const std::string_view Name,
-                   const SourceLocation NameLoc,
-                   const std::vector<FieldDecl *> &FieldList) noexcept
-        : NamedDecl(ObjKind, Name, NameLoc), FieldList(FieldList) {}
+        StructDecl(const std::vector<FieldDecl *> &FieldList) noexcept
+        : Expr(ObjKind), FieldList(FieldList) {}
 
         constexpr explicit
-        StructDecl(const std::string_view Name,
-                   const SourceLocation NameLoc,
-                   std::vector<FieldDecl *> &&FieldList) noexcept
-        : NamedDecl(ObjKind, Name, NameLoc), FieldList(std::move(FieldList)) {}
+        StructDecl(std::vector<FieldDecl *> &&FieldList) noexcept
+        : Expr(ObjKind), FieldList(std::move(FieldList)) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        [[nodiscard]]
+        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 

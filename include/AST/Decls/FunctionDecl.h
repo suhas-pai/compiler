@@ -6,71 +6,69 @@
 #include <vector>
 
 #include "AST/Decls/ParamVarDecl.h"
-#include "llvm/Support/Casting.h"
-#include "Sema/Types/FunctionProtoype.h"
+
+#include "AST/Expr.h"
+#include "AST/Linkage.h"
+
+#include "Basic/SourceLocation.h"
 
 namespace AST {
-    struct FunctionDecl : public ValueDecl {
+    struct FunctionDecl : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::FunctionDecl;
     protected:
         std::vector<ParamVarDecl *> ParamList;
         std::variant<Sema::Type *, TypeRef *> ReturnTypeOrRef;
 
+        SourceLocation Loc;
+        Linkage Linkage;
+
         Stmt *Body;
     public:
         constexpr explicit
-        FunctionDecl(const std::string_view Name,
-                     const SourceLocation NameLoc,
+        FunctionDecl(const SourceLocation Loc,
                      std::vector<ParamVarDecl *> &&ParamList,
-                     TypeRef &ReturnType,
+                     TypeRef *const ReturnType,
                      Stmt *const Body,
-                     const Linkage Linkage) noexcept
-        : ValueDecl(ObjKind, Name, NameLoc, Linkage,
-                    static_cast<Sema::Type *>(nullptr)),
-          ParamList(std::move(ParamList)), ReturnTypeOrRef(&ReturnType),
+                     const enum Linkage Linkage) noexcept
+        : Expr(ObjKind), ParamList(std::move(ParamList)),
+          ReturnTypeOrRef(ReturnType), Loc(Loc), Linkage(Linkage),
           Body(Body) {}
 
         constexpr explicit
-        FunctionDecl(const std::string_view Name,
-                     const SourceLocation NameLoc,
+        FunctionDecl(const SourceLocation Loc,
                      const std::vector<ParamVarDecl *> &ParamList,
-                     TypeRef &ReturnType,
+                     TypeRef *const ReturnType,
                      Stmt *const Body,
-                     const Linkage Linkage) noexcept
-        : ValueDecl(ObjKind, Name, NameLoc, Linkage,
-                    static_cast<Sema::Type *>(nullptr)),
-          ParamList(ParamList), ReturnTypeOrRef(&ReturnType), Body(Body) {}
+                     const enum Linkage Linkage) noexcept
+        : Expr(ObjKind), ParamList(ParamList), ReturnTypeOrRef(ReturnType),
+          Loc(Loc), Linkage(Linkage), Body(Body) {}
 
         constexpr explicit
-        FunctionDecl(const std::string_view Name,
-                     const SourceLocation NameLoc,
+        FunctionDecl(const SourceLocation Loc,
                      const std::vector<ParamVarDecl *> &ParamList,
-                     Sema::Type &ReturnType,
+                     Sema::Type *const ReturnType,
                      Stmt *const Body,
-                     const Linkage Linkage) noexcept
-        : ValueDecl(ObjKind, Name, NameLoc, Linkage,
-                    static_cast<Sema::Type *>(nullptr)),
-          ParamList(ParamList), ReturnTypeOrRef(&ReturnType), Body(Body) {}
+                     const enum Linkage Linkage) noexcept
+        : Expr(ObjKind), ParamList(ParamList), ReturnTypeOrRef(ReturnType),
+          Loc(Loc), Linkage(Linkage), Body(Body) {}
 
         constexpr explicit
-        FunctionDecl(const std::string_view Name,
-                     const SourceLocation NameLoc,
+        FunctionDecl(const SourceLocation Loc,
                      std::vector<ParamVarDecl *> &&ParamList,
-                     Sema::Type &ReturnType,
+                     Sema::Type *const ReturnType,
                      Stmt *const Body,
-                     const Linkage Linkage) noexcept
-        : ValueDecl(ObjKind, Name, NameLoc, Linkage,
-                    static_cast<Sema::Type *>(nullptr)),
-          ParamList(std::move(ParamList)), ReturnTypeOrRef(&ReturnType),
-          Body(Body) {}
+                     const enum AST::Linkage Linkage) noexcept
+        : Expr(ObjKind), ParamList(std::move(ParamList)),
+          ReturnTypeOrRef(ReturnType), Loc(Loc), Linkage(Linkage), Body(Body) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        [[nodiscard]]
+        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static inline auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
@@ -82,7 +80,7 @@ namespace AST {
             return std::get<TypeRef *>(ReturnTypeOrRef);
         }
 
-        [[nodiscard]] constexpr auto getParamList() const noexcept {
+        [[nodiscard]] constexpr auto &getParamList() const noexcept {
             return ParamList;
         }
 
@@ -90,12 +88,8 @@ namespace AST {
             return ParamList;
         }
 
-        [[nodiscard]] constexpr auto &getBody() const noexcept {
-            return *Body;
-        }
-
-        [[nodiscard]] constexpr auto &getPrototype() const noexcept {
-            return llvm::cast<Sema::FunctionPrototype>(*getSemaType());
+        [[nodiscard]] constexpr auto getBody() const noexcept {
+            return Body;
         }
 
         constexpr auto setBody(Stmt *const Body) noexcept -> decltype(*this) {
