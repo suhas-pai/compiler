@@ -41,8 +41,8 @@ namespace AST {
         : Stmt(ObjKind), Name(Name), NameLoc(NameLoc), RvalueExpr(RvalueExpr) {}
 
         [[nodiscard]] constexpr static inline auto IsOfKind(const Stmt &Stmt) {
-            return Stmt.getKind() == ObjKind
-                || Stmt.getKind() == NodeKind::VarDecl;
+            return Stmt.getKind() >= NodeKind::LvalueNamedDeclBase
+                && Stmt.getKind() <= NodeKind::LvalueNamedDeclLast;
         }
 
         [[nodiscard]]

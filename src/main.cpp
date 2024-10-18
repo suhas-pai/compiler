@@ -87,7 +87,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto Lexeme =
                 Parse::BinaryOperatorToLexemeMap[BinaryExpr->getOperator()];
 
-            printf("BinaryOperation<%s>\n", Lexeme->data());
+            printf("BinaryOperation<\"%s\">\n", Lexeme->data());
 
             PrintAST(Handler, &BinaryExpr->getLhs(), Depth + 1);
             PrintAST(Handler, &BinaryExpr->getRhs(), Depth + 1);

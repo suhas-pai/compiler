@@ -1,5 +1,6 @@
 /*
  * AST/Decls/FunctionDecl.h
+ * © suhas pai
  */
 
 #pragma once
@@ -32,8 +33,7 @@ namespace AST {
                      Stmt *const Body,
                      const enum Linkage Linkage) noexcept
         : Expr(ObjKind), ParamList(std::move(ParamList)),
-          ReturnTypeOrRef(ReturnType), Loc(Loc), Linkage(Linkage),
-          Body(Body) {}
+          ReturnTypeOrRef(ReturnType), Loc(Loc), Linkage(Linkage), Body(Body) {}
 
         constexpr explicit
         FunctionDecl(const SourceLocation Loc,

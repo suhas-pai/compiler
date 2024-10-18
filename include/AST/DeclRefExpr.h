@@ -47,8 +47,9 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto
-        setNameLoc(const SourceLocation NameLoc) noexcept -> decltype(*this) {
+        constexpr auto setNameLoc(const SourceLocation NameLoc) noexcept
+            -> decltype(*this)
+        {
             this->NameLoc = NameLoc;
             return *this;
         }

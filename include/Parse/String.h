@@ -5,5 +5,5 @@
 #pragma once
 
 namespace Parse {
-    auto VerifyEscapeSequence(const char NextChar) noexcept -> char;
+    auto VerifyEscapeSequence(char NextChar) noexcept -> char;
 }

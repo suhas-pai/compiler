@@ -42,8 +42,8 @@ namespace AST {
 
         CompountStmt,
 
-        NamedDeclBase = LvalueNamedDecl,
-        NamedDeclLast = ParamVarDecl,
+        LvalueNamedDeclBase = LvalueNamedDecl,
+        LvalueNamedDeclLast = ParamVarDecl,
 
         LvalueTypedDeclBase = FieldDecl,
         LvalueTypedDeclLast = ParamVarDecl

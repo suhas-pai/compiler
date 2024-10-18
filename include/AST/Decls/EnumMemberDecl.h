@@ -12,8 +12,6 @@ namespace AST {
     struct EnumMemberDecl : public LvalueNamedDecl {
     public:
         constexpr static auto ObjKind = NodeKind::EnumMemberDecl;
-    protected:
-        Expr *InitExpr;
     public:
         constexpr explicit
         EnumMemberDecl(const std::string_view Name,

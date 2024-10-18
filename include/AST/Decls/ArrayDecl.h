@@ -1,5 +1,5 @@
 /*
- * AST/ArrayExpr.h
+ * AST/Decls/ArrayDecl.h
  * © suhas pai
  */
 
@@ -19,12 +19,12 @@ namespace AST {
     public:
         constexpr explicit
         ArrayDecl(const SourceLocation LeftBracketLoc,
-                  std::vector<Expr *> &&ElementList) noexcept
+                  const std::vector<Expr *> &ElementList) noexcept
         : Expr(ObjKind), ElementList(ElementList) {}
 
         constexpr explicit
         ArrayDecl(const SourceLocation LeftBracketLoc,
-                  const std::vector<Expr *> &ElementList) noexcept
+                  std::vector<Expr *> &&ElementList) noexcept
         : Expr(ObjKind), ElementList(ElementList) {}
 
         [[nodiscard]]

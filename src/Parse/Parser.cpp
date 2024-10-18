@@ -203,8 +203,8 @@ namespace Parse {
         const auto TokenString = this->tokenContent(Token);
         if (TokenString.size() == 2) {
             Diag.emitError(Token.Loc,
-                           "Characters cannot be empty. Use \'\'0\' to store a "
-                           "null-character");
+                           "Character Literals cannot be empty. Use \'\'0\' to "
+                           "store a null-character");
             return nullptr;
         }
 

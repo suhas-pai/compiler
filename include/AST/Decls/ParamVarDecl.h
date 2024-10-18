@@ -1,5 +1,5 @@
 /*
- * AST/ParamVarDecl.h
+ * AST/Decls/ParamVarDecl.h
  * © suhas pai
  */
 

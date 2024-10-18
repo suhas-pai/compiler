@@ -1,10 +1,9 @@
 /*
- * AST/StructDecl.h
+ * AST/Decls/StructDecl.h
  * © suhas pai
  */
 
 #pragma once
-
 #include <vector>
 
 #include "AST/Expr.h"
