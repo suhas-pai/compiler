@@ -25,6 +25,7 @@
 #include "AST/UnaryOperation.h"
 
 #include "Basic/SourceManager.h"
+#include "Lex/Token.h"
 
 namespace Parse {
     struct ParserOptions {
@@ -66,7 +67,7 @@ namespace Parse {
         [[nodiscard]] auto parseLhs() noexcept -> AST::Expr *;
 
         [[nodiscard]]
-        auto parseBinOpRhs(AST::Expr *LHS, uint64_t MinPrec) noexcept
+        auto parseBinOpRhs(AST::Expr *LHS, uint32_t MinPrec) noexcept
             -> AST::Expr *;
 
         [[nodiscard]]
@@ -139,8 +140,11 @@ namespace Parse {
         [[nodiscard]]
         auto tokenKeyword(Lex::Token Token) const noexcept -> Lex::Keyword;
 
-        auto consume(uint64_t Skip = 0) -> std::optional<Lex::Token>;
-        auto expect(Lex::TokenKind Kind, bool Optional = false) -> bool;
+        auto goBack(uint32_t Skip = 0) noexcept -> bool;
+        auto consume(uint32_t Skip = 0) noexcept -> std::optional<Lex::Token>;
+        auto expect(Lex::TokenKind Kind, bool Optional = false) noexcept
+            -> bool;
+
         auto getCurrOrPrevLoc() const noexcept -> SourceLocation;
 
         const SourceManager &SourceMngr;
@@ -149,7 +153,7 @@ namespace Parse {
         const std::vector<Lex::Token> &TokenList;
         Interface::DiagnosticsEngine &Diag;
 
-        uint64_t Index = 0;
+        uint32_t Index = 0;
         ParserOptions Options;
     public:
         constexpr explicit

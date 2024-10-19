@@ -239,12 +239,13 @@ namespace Lex {
 
                             goto done;
                         case '.':
+                            State = State::Dot;
                             Result.Kind = TokenKind::Dot;
 
                             Result.Loc.Row = Row;
                             Result.Loc.Column = Column;
 
-                            goto done;
+                            break;
                         case ':':
                             Result.Kind = TokenKind::Colon;
 
@@ -345,6 +346,21 @@ namespace Lex {
                             if (KeywordOpt.has_value()) {
                                 Result.Kind = TokenKind::Keyword;
                             }
+
+                            goto done;
+                    }
+
+                    break;
+                case State::DotIdentifier:
+                    switch (Char) {
+                        case '0'...'9':
+                        case 'a'...'z':
+                        case 'A'...'Z':
+                        case '_':
+                            break;
+                        default:
+                            Index--;
+                            Column--;
 
                             goto done;
                     }
@@ -562,6 +578,24 @@ namespace Lex {
                         case '=':
                             Result.Kind = TokenKind::NotEqual;
                             goto done;
+                        default:
+                            Index--;
+                            Column--;
+
+                            goto done;
+                    }
+
+                    break;
+                case State::Dot:
+                    switch (Char) {
+                        case 'a'...'z':
+                        case 'A'...'Z':
+                        case '0'...'9':
+                        case '_':
+                            Result.Kind = TokenKind::DotIdentifier;
+                            State = State::DotIdentifier;
+
+                            goto next;
                         default:
                             Index--;
                             Column--;

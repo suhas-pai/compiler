@@ -86,6 +86,8 @@ namespace Lex {
         Semicolon,
         Dot,
 
+        DotIdentifier,
+
         ThinArrow,
         FatArrow,
 
@@ -147,6 +149,7 @@ namespace Lex {
             case TokenKind::Colon:
             case TokenKind::Semicolon:
             case TokenKind::Dot:
+            case TokenKind::DotIdentifier:
             case TokenKind::ThinArrow:
             case TokenKind::FatArrow:
             case TokenKind::EOFToken:
@@ -212,6 +215,7 @@ namespace Lex {
             case TokenKind::Colon:
             case TokenKind::Semicolon:
             case TokenKind::Dot:
+            case TokenKind::DotIdentifier:
             case TokenKind::ThinArrow:
             case TokenKind::FatArrow:
             case TokenKind::EOFToken:
@@ -328,6 +332,8 @@ namespace Lex {
                 return "semicolon";
             case TokenKind::Dot:
                 return "dot";
+            case TokenKind::DotIdentifier:
+                return "dot-identifier";
             case TokenKind::ThinArrow:
                 return "thin-arrow";
             case TokenKind::FatArrow:

@@ -160,7 +160,7 @@ namespace Backend::LLVM {
         return *this;
     }
 
-    bool Handler::evalulate(AST::Context &Context) noexcept {
+    bool Handler::evaluate(AST::Context &Context) noexcept {
         auto ValueMap = LLVM::ValueMap();
         const auto &DeclMap =
             Context.getSymbolTable().getGlobalScope().getDeclMap();

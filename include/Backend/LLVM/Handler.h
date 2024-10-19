@@ -146,6 +146,6 @@ namespace Backend::LLVM {
                 llvm::IRBuilder<> &Builder,
                 LLVM::ValueMap &ValueMap) noexcept;
 
-        virtual bool evalulate(AST::Context &Context) noexcept;
+        virtual bool evaluate(AST::Context &Context) noexcept;
     };
 }

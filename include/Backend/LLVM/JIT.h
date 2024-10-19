@@ -81,9 +81,9 @@ namespace Backend::LLVM {
         }
 
         bool
-        evalulateAndPrint(AST::Stmt &Stmt,
-                          bool PrintIR,
-                          std::string_view Prefix = "",
-                          std::string_view Suffix = "") noexcept;
+        evaluateAndPrint(AST::Stmt &Stmt,
+                         bool PrintIR,
+                         std::string_view Prefix = "",
+                         std::string_view Suffix = "") noexcept;
     };
 }

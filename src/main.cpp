@@ -400,7 +400,7 @@ HandlePrompt(const std::string_view &Prompt,
     }
 
     const auto Result =
-        BackendHandler->evalulateAndPrint(*Expr,
+        BackendHandler->evaluateAndPrint(*Expr,
                                           ArgOptions.PrintIR,
                                           BHGRN "Evaluation> " CRESET,
                                           "\n");
@@ -494,7 +494,7 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
         }
 
         //Context.visitDecls(Diag, AST::Context::VisitOptions());
-        BackendHandler.evalulate(Context);
+        BackendHandler.evaluate(Context);
         if (ArgOptions.PrintIR) {
             BackendHandler.getModule().print(llvm::outs(), nullptr);
         }

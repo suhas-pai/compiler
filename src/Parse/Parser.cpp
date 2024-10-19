@@ -44,7 +44,18 @@ namespace Parse {
         return getTokenList().at(position());
     }
 
-    auto Parser::consume(const uint64_t Skip) -> std::optional<Lex::Token> {
+    auto Parser::goBack(const uint32_t Skip) noexcept -> bool {
+        if (position() - 1 - Skip < 0) {
+            return false;
+        }
+
+        this->Index -= Skip + 1;
+        return true;
+    }
+
+    auto Parser::consume(const uint32_t Skip) noexcept
+        -> std::optional<Lex::Token>
+    {
         if (position() + Skip >= getTokenList().size()) {
             return std::nullopt;
         }
@@ -88,7 +99,9 @@ namespace Parse {
     }
 
     auto
-    Parser::expect(const Lex::TokenKind Kind, const bool Optional) -> bool {
+    Parser::expect(const Lex::TokenKind Kind, const bool Optional) noexcept
+        -> bool
+    {
         auto TokenOpt = this->consume();
         if (TokenOpt.has_value()) {
             if (TokenOpt.value().Kind == Kind) {
@@ -223,7 +236,7 @@ namespace Parse {
         if (FirstChar == '\\' && TokenString.size() == 3) {
             Diag.emitError(Token.Loc,
                            "Expected another character to parse "
-                           "escape-sequence. Use \'\\\\\' to store a "
+                           "escape-sequence. Use '\\\\' to store a "
                            "back-slash");
             return nullptr;
         }
@@ -297,13 +310,18 @@ namespace Parse {
     Parser::parseFieldExpr(const Lex::Token DotToken,
                            AST::Expr *const Lhs) noexcept -> AST::FieldExpr *
     {
-        const auto MemberTokenOpt =
-            this->consumeIfToken(Lex::TokenKind::Identifier);
+        auto MemberTokenOpt = std::optional<Lex::Token>();
+        if (DotToken.Kind != Lex::TokenKind::DotIdentifier) {
+            MemberTokenOpt = this->consumeIfToken(Lex::TokenKind::Identifier);
+        } else {
+            MemberTokenOpt = DotToken;
+        }
 
         if (const auto MemberToken = MemberTokenOpt) {
-            if (MemberToken->Kind != Lex::TokenKind::Identifier &&
-                MemberToken->Kind != Lex::TokenKind::IntegerLiteral &&
-                MemberToken->Kind != Lex::TokenKind::Star)
+            if (MemberToken->Kind != Lex::TokenKind::Identifier
+             && MemberToken->Kind != Lex::TokenKind::IntegerLiteral
+             && MemberToken->Kind != Lex::TokenKind::Star
+             && MemberToken->Kind != Lex::TokenKind::DotIdentifier)
             {
                 Diag.emitError(MemberToken.value().Loc,
                                "Expected member name, got '%s' instead",
@@ -312,10 +330,12 @@ namespace Parse {
                 return nullptr;
             }
 
-            const auto MemberName = this->tokenContent(MemberToken.value());
-            const auto IsArrow =
-                MemberToken.value().Kind == Lex::TokenKind::ThinArrow;
+            auto MemberName = this->tokenContent(MemberToken.value());
+            if (MemberToken->Kind == Lex::TokenKind::DotIdentifier) {
+                MemberName = MemberName.substr(1);
+            }
 
+            const auto IsArrow = MemberToken->Kind == Lex::TokenKind::ThinArrow;
             return new AST::FieldExpr(MemberToken->Loc, Lhs, IsArrow,
                                       MemberName);
         }
@@ -399,23 +419,30 @@ done:
             if (Root == nullptr) {
                 return nullptr;
             }
-        } else {
+        } else if (IdentToken.Kind == Lex::TokenKind::Identifier) {
             Root =
                 new AST::DeclRefExpr(this->tokenContent(IdentToken),
                                      IdentToken.Loc);
+        } else if (IdentToken.Kind == Lex::TokenKind::DotIdentifier) {
+            this->goBack();
+        } else {
+            __builtin_unreachable();
         }
 
         const auto TokenList = {
             Lex::TokenKind::Dot,
+            Lex::TokenKind::DotIdentifier,
             Lex::TokenKind::ThinArrow,
             Lex::TokenKind::LeftSquareBracket
         };
 
         while (this->peekIsOneOf(TokenList)) {
-            if (this->consumeIfToken(Lex::TokenKind::Dot)
-             || this->consumeIfToken(Lex::TokenKind::ThinArrow))
+            const auto Token = this->consume().value();
+            if (Token.Kind == Lex::TokenKind::Dot
+             || Token.Kind == Lex::TokenKind::ThinArrow
+             || Token.Kind == Lex::TokenKind::DotIdentifier)
             {
-                Root = this->parseFieldExpr(IdentToken, Root);
+                Root = this->parseFieldExpr(Token, Root);
                 if (Root == nullptr) {
                     return nullptr;
                 }
@@ -423,16 +450,16 @@ done:
                 continue;
             }
 
-            if (const auto TokenOpt =
-                    this->consumeIfToken(Lex::TokenKind::LeftSquareBracket))
-            {
-                Root = this->parseArraySubscriptExpr(Root, TokenOpt.value());
+            if (Token.Kind == Lex::TokenKind::LeftSquareBracket) {
+                Root = this->parseArraySubscriptExpr(Root, Token);
                 if (Root == nullptr) {
                     return nullptr;
                 }
 
                 continue;
             }
+
+            __builtin_unreachable();
         }
 
         return Root;
@@ -457,6 +484,7 @@ done:
             {
                 switch (Token.Kind) {
                     case Lex::TokenKind::Identifier:
+                    case Lex::TokenKind::DotIdentifier:
                         Expr = this->parseIdentifierForLhs(Token);
                         break;
                     case Lex::TokenKind::Keyword:
@@ -515,7 +543,7 @@ done:
         __builtin_unreachable();
     }
 
-    auto Parser::parseBinOpRhs(AST::Expr *Lhs, const uint64_t MinPrec) noexcept
+    auto Parser::parseBinOpRhs(AST::Expr *Lhs, const uint32_t MinPrec) noexcept
         -> AST::Expr *
     {
         do {

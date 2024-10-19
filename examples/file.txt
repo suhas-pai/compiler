@@ -17,5 +17,7 @@ enum B {
 let mut d: int = 3;
 func main(argc: int, argv: int) {
     let mut e = [1,2,3,4,5];
+    let volatile f = .c.d;
+
     return c;
 }

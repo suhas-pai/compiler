@@ -20,6 +20,7 @@ namespace Lex {
             IntegerLiteral,
             FloatLiteral,
             Identifier,
+            DotIdentifier,
 
             Plus,
             Minus,
@@ -36,6 +37,7 @@ namespace Lex {
             ShiftRight,
             Equal,
             Exclamation,
+            Dot,
         };
     protected:
         std::string_view Text;
