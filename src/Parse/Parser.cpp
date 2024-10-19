@@ -345,7 +345,7 @@ namespace Parse {
     }
 
     auto
-    Parser::parseCallExpr(const Lex::Token NameToken,
+    Parser::parseCallExpr(AST::Expr *const Callee,
                           const Lex::Token ParenToken) noexcept
         -> AST::CallExpr *
     {
@@ -367,7 +367,7 @@ namespace Parse {
 
             const auto ArgEndTokenOpt = this->consume();
             if (!ArgEndTokenOpt.has_value()) {
-                Diag.emitError(NameToken.Loc,
+                Diag.emitError(ParenToken.Loc,
                                "Expected end of function parameter list");
                 return nullptr;
             }
@@ -385,8 +385,7 @@ namespace Parse {
         } while (true);
 
 done:
-        return new AST::CallExpr(this->tokenContent(NameToken), NameToken.Loc,
-                                 std::move(ArgList));
+        return new AST::CallExpr(Callee, ParenToken.Loc, std::move(ArgList));
     }
 
     auto
@@ -408,32 +407,17 @@ done:
         return new AST::ArraySubscriptExpr(BracketToken.Loc, Lhs, Expr.value());
     }
 
-    auto Parser::parseIdentifierForLhs(const Lex::Token IdentToken) noexcept
+    auto
+    Parser::parseCallAndFieldExpr(AST::Expr *Root,
+                                  const Lex::Token Token) noexcept
         -> AST::Expr *
     {
-        auto Root = static_cast<AST::Expr *>(nullptr);
-        if (const auto TokenOpt =
-                this->consumeIfToken(Lex::TokenKind::OpenParen))
-        {
-            Root = this->parseCallExpr(IdentToken, TokenOpt.value());
-            if (Root == nullptr) {
-                return nullptr;
-            }
-        } else if (IdentToken.Kind == Lex::TokenKind::Identifier) {
-            Root =
-                new AST::DeclRefExpr(this->tokenContent(IdentToken),
-                                     IdentToken.Loc);
-        } else if (IdentToken.Kind == Lex::TokenKind::DotIdentifier) {
-            this->goBack();
-        } else {
-            __builtin_unreachable();
-        }
-
         const auto TokenList = {
             Lex::TokenKind::Dot,
             Lex::TokenKind::DotIdentifier,
             Lex::TokenKind::ThinArrow,
-            Lex::TokenKind::LeftSquareBracket
+            Lex::TokenKind::LeftSquareBracket,
+            Lex::TokenKind::OpenParen
         };
 
         while (this->peekIsOneOf(TokenList)) {
@@ -459,10 +443,65 @@ done:
                 continue;
             }
 
+            if (Token.Kind == Lex::TokenKind::OpenParen) {
+                Root = this->parseCallExpr(Root, Token);
+                if (Root == nullptr) {
+                    return nullptr;
+                }
+
+                continue;
+            }
+
             __builtin_unreachable();
         }
 
         return Root;
+    }
+
+    auto Parser::parseIdentifierForLhs(const Lex::Token IdentToken) noexcept
+        -> AST::Expr *
+    {
+        auto Root = static_cast<AST::Expr *>(nullptr);
+        if (IdentToken.Kind == Lex::TokenKind::Identifier) {
+            Root =
+                new AST::DeclRefExpr(this->tokenContent(IdentToken),
+                                     IdentToken.Loc);
+        } else if (IdentToken.Kind == Lex::TokenKind::DotIdentifier) {
+            this->goBack();
+        } else {
+            __builtin_unreachable();
+        }
+
+        return this->parseCallAndFieldExpr(Root, IdentToken);
+    }
+
+    auto Parser::parseKeywordForLhs(const Lex::Token KeywordTok) noexcept
+        -> AST::Expr *
+    {
+        auto UnusedNameTokenOpt = std::optional<Lex::Token>();
+        auto Root = static_cast<AST::Expr *>(nullptr);
+
+        const auto Keyword = this->tokenKeyword(KeywordTok);
+        if (Keyword == Lex::Keyword::Struct) {
+            Root = this->parseStructDecl(UnusedNameTokenOpt);
+            if (Root == nullptr) {
+                return nullptr;
+            }
+        } else if (Keyword == Lex::Keyword::Enum) {
+            Root = this->parseEnumDecl(UnusedNameTokenOpt);
+            if (Root == nullptr) {
+                return nullptr;
+            }
+        } else {
+            Diag.emitError(this->getCurrOrPrevLoc(),
+                           "Keyword \"" SV_FMT "\" cannot be used in an "
+                           "expression",
+                           SV_FMT_ARG(this->tokenContent(KeywordTok)));
+
+            return nullptr;
+        }
+
+        return this->parseCallAndFieldExpr(Root, KeywordTok);
     }
 
     auto Parser::parseLhs() noexcept -> AST::Expr * {
@@ -488,11 +527,8 @@ done:
                         Expr = this->parseIdentifierForLhs(Token);
                         break;
                     case Lex::TokenKind::Keyword:
-                        Diag.emitError(Token.Loc,
-                                       "Keyword \"" SV_FMT "\" cannot be used "
-                                       "in an expression",
-                                       SV_FMT_ARG(this->tokenContent(Token)));
-                        return nullptr;
+                        Expr = this->parseKeywordForLhs(Token);
+                        break;
                     case Lex::TokenKind::IntegerLiteral:
                         Expr = this->parseNumberLiteral(Token);
                         break;
@@ -1093,7 +1129,7 @@ done:
         const auto OpenCurlyOpt = this->peek();
         if (!OpenCurlyOpt.has_value()) {
             Diag.emitError(this->getCurrOrPrevLoc(),
-                           "Unexepcted eof after function prototype");
+                           "Unexpected eof after function prototype");
             return nullptr;
         }
 
@@ -1255,27 +1291,34 @@ done:
         }
     }
 
-    auto Parser::parseEnumDecl() noexcept -> AST::LvalueNamedDecl * {
-        const auto NameTokenOpt = this->consume();
-        if (!NameTokenOpt.has_value()) {
-            Diag.emitError(this->getCurrOrPrevLoc(),
-                           "Expected a name for enum declaration");
-            return nullptr;
-        }
+    auto
+    Parser::parseEnumDecl(std::optional<Lex::Token> &NameTokenOptOut) noexcept
+        -> AST::EnumDecl *
+    {
+        if (!this->peekIs(Lex::TokenKind::OpenCurlyBrace)) {
+            const auto NameTokenOpt = this->consume();
+            if (!NameTokenOpt.has_value()) {
+                Diag.emitError(this->getCurrOrPrevLoc(),
+                            "Expected a name for enum declaration");
+                return nullptr;
+            }
 
-        const auto NameToken = NameTokenOpt.value();
-        if (NameToken.Kind == Lex::TokenKind::Keyword) {
-            Diag.emitError(NameToken.Loc,
-                           "Keyword \"" SV_FMT "\" cannot be used as a "
-                           "enum name",
-                           SV_FMT_ARG(this->tokenContent(NameToken)));
-            return nullptr;
-        }
+            const auto NameToken = NameTokenOpt.value();
+            if (NameToken.Kind == Lex::TokenKind::Keyword) {
+                Diag.emitError(NameToken.Loc,
+                            "Keyword \"" SV_FMT "\" cannot be used as a "
+                            "enum name",
+                            SV_FMT_ARG(this->tokenContent(NameToken)));
+                return nullptr;
+            }
 
-        if (NameToken.Kind != Lex::TokenKind::Identifier) {
-            Diag.emitError(NameToken.Loc,
-                           "Expected a name for enum declaration");
-            return nullptr;
+            if (NameToken.Kind != Lex::TokenKind::Identifier) {
+                Diag.emitError(NameToken.Loc,
+                            "Expected a name for enum declaration");
+                return nullptr;
+            }
+
+            NameTokenOptOut = NameToken;
         }
 
         auto FieldList = std::vector<AST::EnumMemberDecl *>();
@@ -1283,60 +1326,100 @@ done:
             return nullptr;
         }
 
+        return new AST::EnumDecl(std::move(FieldList));
+    }
+
+    auto Parser::parseEnumDeclStmt() noexcept -> AST::LvalueNamedDecl * {
+        auto NameTokenOpt = std::optional<Lex::Token>();
+        const auto EnumDecl = this->parseEnumDecl(NameTokenOpt);
+
+        if (EnumDecl == nullptr) {
+            return nullptr;
+        }
+
+        if (!NameTokenOpt.has_value()) {
+            Diag.emitError(this->getCurrOrPrevLoc(),
+                           "Expected a name for enum declaration");
+            return nullptr;
+        }
+
         if (!this->expect(Lex::TokenKind::Semicolon)) {
             Diag.emitError(this->getCurrOrPrevLoc(),
                            "Expected a semicolon after struct declaration");
             return nullptr;
         }
 
-        const auto EnumDecl = new AST::EnumDecl(std::move(FieldList));
+        const auto NameToken = NameTokenOpt.value();
         const auto Result =
             new AST::LvalueNamedDecl(this->tokenContent(NameToken),
-                                     NameToken.Loc,
-                                     EnumDecl);
+                                     NameToken.Loc, EnumDecl);
 
         return Result;
     }
 
-    auto Parser::parseStructDecl() noexcept -> AST::LvalueNamedDecl * {
-        const auto NameTokenOpt = this->consume();
+    auto
+    Parser::parseStructDecl(std::optional<Lex::Token> &NameTokenOptOut) noexcept
+        -> AST::StructDecl *
+    {
+        const auto StructKeywordToken = this->current();
+        if (!this->peekIs(Lex::TokenKind::OpenCurlyBrace)) {
+            const auto NameTokenOpt = this->consume();
+            if (!NameTokenOpt.has_value()) {
+                Diag.emitError(this->getCurrOrPrevLoc(),
+                               "Expected a name for struct declaration");
+                return nullptr;
+            }
+
+            const auto NameToken = NameTokenOpt.value();
+            if (NameToken.Kind == Lex::TokenKind::Keyword) {
+                Diag.emitError(NameToken.Loc,
+                               "Keyword \"" SV_FMT "\" cannot be used as a "
+                               "struct name",
+                               SV_FMT_ARG(this->tokenContent(NameToken)));
+                return nullptr;
+            }
+
+            if (NameToken.Kind != Lex::TokenKind::Identifier) {
+                Diag.emitError(NameToken.Loc,
+                               "Expected a name for struct declaration");
+                return nullptr;
+            }
+
+            NameTokenOptOut = NameToken;
+        }
+
+        auto FieldList = std::vector<AST::FieldDecl *>();
+        if (!this->parseFieldList(StructKeywordToken.value(), FieldList)) {
+            return nullptr;
+        }
+
+        return new AST::StructDecl(FieldList);
+    }
+
+    auto Parser::parseStructDeclStmt() noexcept -> AST::LvalueNamedDecl * {
+        auto NameTokenOpt = std::optional<Lex::Token>();
+        const auto StructDecl = this->parseStructDecl(NameTokenOpt);
+
+        if (StructDecl == nullptr) {
+            return nullptr;
+        }
+
         if (!NameTokenOpt.has_value()) {
             Diag.emitError(this->getCurrOrPrevLoc(),
                            "Expected a name for struct declaration");
             return nullptr;
         }
 
-        const auto NameToken = NameTokenOpt.value();
-        if (NameToken.Kind == Lex::TokenKind::Keyword) {
-            Diag.emitError(NameToken.Loc,
-                           "Keyword \"" SV_FMT "\" cannot be used as a "
-                           "struct name",
-                           SV_FMT_ARG(this->tokenContent(NameToken)));
-            return nullptr;
-        }
-
-        if (NameToken.Kind != Lex::TokenKind::Identifier) {
-            Diag.emitError(NameToken.Loc,
-                           "Expected a name for struct declaration");
-            return nullptr;
-        }
-
-        auto FieldList = std::vector<AST::FieldDecl *>();
-        if (!this->parseFieldList(NameToken, FieldList)) {
-            return nullptr;
-        }
-
         if (!this->expect(Lex::TokenKind::Semicolon)) {
             Diag.emitError(this->getCurrOrPrevLoc(),
                            "Expected a semicolon after struct declaration");
             return nullptr;
         }
 
-        const auto StructDecl = new AST::StructDecl(FieldList);
+        const auto NameToken = NameTokenOpt.value();
         const auto Result =
             new AST::LvalueNamedDecl(this->tokenContent(NameToken),
-                                     NameToken.Loc,
-                                     StructDecl);
+                                     NameToken.Loc, StructDecl);
 
         return Result;
     }
@@ -1441,9 +1524,9 @@ done:
                                        "Unexpected 'volatile' keyword");
                         return nullptr;
                     case Lex::Keyword::Struct:
-                        return this->parseStructDecl();
+                        return this->parseStructDeclStmt();
                     case Lex::Keyword::Enum:
-                        return this->parseEnumDecl();
+                        return this->parseEnumDeclStmt();
                     case Lex::Keyword::And:
                         Diag.emitError(Token.Loc, "Unexpected 'and' keyword");
                         return nullptr;

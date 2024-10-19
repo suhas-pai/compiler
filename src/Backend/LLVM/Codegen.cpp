@@ -114,7 +114,7 @@ namespace Backend::LLVM {
                 if (PowFunc == nullptr) {
                     Handler.getDiag().emitError(
                         BinOp.getLoc(),
-                        "** operator only supprted on JIT");
+                        "** operator only supported on JIT");
 
                     return std::nullopt;
                 }
@@ -142,7 +142,7 @@ namespace Backend::LLVM {
     }
 
     auto
-    CompoundStmtCodegen(AST::CompoundStmt &CompountStmt,
+    CompoundStmtCodegen(AST::CompoundStmt &CompoundStmt,
                         Handler &Handler,
                         llvm::IRBuilder<> &Builder,
                         ValueMap &ValueMap) noexcept
@@ -152,7 +152,7 @@ namespace Backend::LLVM {
         // the end of the function.
 
         auto AddedDecls = std::vector<std::string_view>();
-        for (const auto &Stmt : CompountStmt.getStmtList()) {
+        for (const auto &Stmt : CompoundStmt.getStmtList()) {
             if (const auto ResultOpt =
                     Handler.codegen(*Stmt, Builder, ValueMap))
             {
@@ -187,37 +187,35 @@ namespace Backend::LLVM {
                     ValueMap &ValueMap) noexcept
         -> std::optional<llvm::Value *>
     {
-        const auto FuncValue = ValueMap.getValue(FuncCall.getName());
-        if (FuncValue == nullptr) {
+        auto Callee = FuncCall.getCallee();
+        const auto CalleeCodegen = Handler.codegen(*Callee, Builder, ValueMap);
+
+        if (!CalleeCodegen.has_value()) {
+            return std::nullopt;
+        }
+
+        const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Callee);
+        if (FuncDecl == nullptr) {
             Handler.getDiag().emitError(
-                FuncCall.getNameLoc(),
-                "Function \"" SV_FMT "\" is not defined",
-                SV_FMT_ARG(FuncCall.getName()));
+                FuncCall.getParenLoc(),
+                "Attempting to call a non-function statement");
 
             return std::nullopt;
         }
 
-        const auto Node = Handler.getASTNode(FuncCall.getName());
+        // FIXME:
+        #if 0
+        const auto Node = Handler.getASTNode("func_");
         DIAG_ASSERT(Handler.getDiag(),
                     Node != nullptr,
                     "Function \"" SV_FMT "\" is not in AST, but is in "
                     "ValueMap",
                     SV_FMT_ARG(FuncCall.getName()));
 
-        const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Node);
-        if (FuncDecl == nullptr) {
-            Handler.getDiag().emitError(
-                FuncCall.getNameLoc(),
-                "\"" SV_FMT "\" is not a function",
-                SV_FMT_ARG(FuncCall.getName()));
-
-            return std::nullopt;
-        }
-
         const auto FuncLLVM = llvm::cast<llvm::Function>(FuncValue);
         if (FuncCall.getArgs().size() != FuncDecl->getParamList().size()) {
             Handler.getDiag().emitError(
-                FuncCall.getNameLoc(),
+                FuncCall.getParenLoc(),
                 "%" PRIdPTR " arguments provided to function \"" SV_FMT "\", "
                 "expected %" PRIdPTR,
                 FuncCall.getArgs().size(),
@@ -242,6 +240,8 @@ namespace Backend::LLVM {
         }
 
         return Builder.CreateCall(FuncLLVM, ArgsV, "calltmp");
+    #endif
+        return std::nullopt;
     }
 
     auto
@@ -664,7 +664,7 @@ namespace Backend::LLVM {
                                       *this,
                                       Builder,
                                       ValueMap);
-            case AST::NodeKind::CompountStmt:
+            case AST::NodeKind::CompoundStmt:
                 return
                     CompoundStmtCodegen(llvm::cast<AST::CompoundStmt>(Stmt),
                                         *this,

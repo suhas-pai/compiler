@@ -1,5 +1,5 @@
 /*
- * ADT/Map.h
+ * ADT/SmallArrayMap.h
  */
 
 #pragma once
@@ -14,6 +14,7 @@ namespace ADT {
         std::array<std::pair<K, V>, Size> Data;
     public:
         constexpr SmallArrayMap() noexcept = default;
+
         constexpr
         SmallArrayMap(const std::array<std::pair<K, V>, Size> &List) noexcept
         : Data(List) {}

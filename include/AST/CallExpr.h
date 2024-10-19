@@ -3,8 +3,6 @@
  */
 
 #pragma once
-
-#include <string>
 #include <vector>
 
 #include "Basic/SourceLocation.h"
@@ -15,22 +13,16 @@ namespace AST {
     public:
         constexpr static auto ObjKind = NodeKind::CallExpr;
     protected:
-        std::string Name;
-        SourceLocation NameLoc;
+        AST::Expr *Callee;
+        SourceLocation ParenLoc;
 
         std::vector<Expr *> Args;
     public:
         constexpr explicit
-        CallExpr(const std::string_view Name,
-                 const SourceLocation NameLoc,
+        CallExpr(AST::Expr *const Callee,
+                 const SourceLocation ParenLoc,
                  const std::vector<Expr *> &Args) noexcept
-        : Expr(ObjKind), Name(Name), NameLoc(NameLoc), Args(Args) {}
-
-        constexpr explicit
-        CallExpr(const std::string_view Name,
-                 const SourceLocation NameLoc,
-                 std::vector<Expr *> &&Args) noexcept
-        : Expr(ObjKind), Name(Name), NameLoc(NameLoc), Args(std::move(Args)) {}
+        : Expr(ObjKind), Callee(Callee), ParenLoc(ParenLoc), Args(Args) {}
 
         [[nodiscard]]
         constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -42,13 +34,12 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]]
-        constexpr auto getName() const noexcept -> std::string_view {
-            return Name;
+        [[nodiscard]] constexpr auto getCallee() const noexcept {
+            return this->Callee;
         }
 
-        [[nodiscard]] constexpr auto getNameLoc() const noexcept {
-            return NameLoc;
+        [[nodiscard]] constexpr auto getParenLoc() const noexcept {
+            return ParenLoc;
         }
 
         [[nodiscard]] constexpr auto &getArgs() const noexcept {
@@ -59,21 +50,17 @@ namespace AST {
             return Args;
         }
 
-        constexpr auto setName(std::string &&Name) noexcept -> decltype(*this) {
-            this->Name = std::move(Name);
-            return *this;
-        }
-
-        constexpr auto
-        setName(const std::string_view Name) noexcept -> decltype(*this) {
-            this->Name = Name;
-            return *this;
-        }
-
-        constexpr auto setNameLoc(const SourceLocation NameLoc) noexcept
+        constexpr auto setCallee(AST::Expr *const Callee) noexcept
             -> decltype(*this)
         {
-            this->NameLoc = NameLoc;
+            this->Callee = Callee;
+            return *this;
+        }
+
+        constexpr auto setParenLoc(const SourceLocation ParenLoc) noexcept
+            -> decltype(*this)
+        {
+            this->ParenLoc = ParenLoc;
             return *this;
         }
     };

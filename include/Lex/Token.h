@@ -259,7 +259,7 @@ namespace Lex {
             case TokenKind::Slash:
                 return "slash";
             case TokenKind::SlashEqual:
-                return "slash-equql";
+                return "slash-equal";
             case TokenKind::DoubleStar:
                 return "two-star";
             case TokenKind::Percent:

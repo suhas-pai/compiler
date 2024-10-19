@@ -183,14 +183,14 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::CallExpr: {
-            const auto FuncCall = llvm::cast<AST::CallExpr>(Stmt);
-            printf("CallExpr<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(FuncCall->getName()));
+            const auto CallExpr = llvm::cast<AST::CallExpr>(Stmt);
+            printf("CallExpr\n");
 
-            for (const auto &Arg : FuncCall->getArgs()) {
+            for (const auto &Arg : CallExpr->getArgs()) {
                 PrintAST(Handler, Arg, Depth + 1);
             }
 
+            PrintAST(Handler, CallExpr->getCallee(), Depth + 1);
             break;
         }
         case AST::NodeKind::IfStmt: {
@@ -213,7 +213,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             break;
         }
-        case AST::NodeKind::CompountStmt: {
+        case AST::NodeKind::CompoundStmt: {
             const auto CompoundStmt = llvm::cast<AST::CompoundStmt>(Stmt);
 
             printf("CompoundStmt\n");

@@ -5,9 +5,11 @@
 #pragma once
 
 #include "AST/Decls/ArrayDecl.h"
+#include "AST/Decls/EnumDecl.h"
 #include "AST/Decls/EnumMemberDecl.h"
 #include "AST/Decls/FieldDecl.h"
 #include "AST/Decls/LvalueNamedDecl.h"
+#include "AST/Decls/StructDecl.h"
 #include "AST/Decls/VarDecl.h"
 
 #include "AST/ArraySubscriptExpr.h"
@@ -54,7 +56,7 @@ namespace Parse {
             -> AST::FieldExpr *;
 
         [[nodiscard]]
-        auto parseCallExpr(Lex::Token NameToken, Lex::Token ParenToken) noexcept
+        auto parseCallExpr(AST::Expr *Callee, Lex::Token ParenToken) noexcept
             -> AST::CallExpr *;
 
         [[nodiscard]] auto
@@ -62,7 +64,14 @@ namespace Parse {
             -> AST::ArraySubscriptExpr *;
 
         [[nodiscard]]
+        auto parseCallAndFieldExpr(AST::Expr *Root, Lex::Token Token) noexcept
+            -> AST::Expr *;
+
+        [[nodiscard]]
         auto parseIdentifierForLhs(Lex::Token Token) noexcept -> AST::Expr *;
+
+        [[nodiscard]]
+        auto parseKeywordForLhs(Lex::Token KeywordTok) noexcept -> AST::Expr *;
 
         [[nodiscard]] auto parseLhs() noexcept -> AST::Expr *;
 
@@ -118,8 +127,17 @@ namespace Parse {
         parseEnumMemberList(
             std::vector<AST::EnumMemberDecl *> &FieldList) noexcept -> bool;
 
-        [[nodiscard]] auto parseEnumDecl() noexcept -> AST::LvalueNamedDecl *;
-        [[nodiscard]] auto parseStructDecl() noexcept -> AST::LvalueNamedDecl *;
+        [[nodiscard]]
+        auto parseEnumDecl(std::optional<Lex::Token> &NameTokenOpt) noexcept
+            -> AST::EnumDecl *;
+
+        [[nodiscard]]
+        auto parseStructDecl(std::optional<Lex::Token> &NameTokenOpt) noexcept
+            -> AST::StructDecl *;
+
+        [[nodiscard]] auto parseEnumDeclStmt() noexcept -> AST::LvalueNamedDecl *;
+        [[nodiscard]] auto parseStructDeclStmt() noexcept
+            -> AST::LvalueNamedDecl *;
 
         [[nodiscard]] auto peek() const noexcept -> std::optional<Lex::Token>;
         [[nodiscard]] auto prev() const noexcept -> std::optional<Lex::Token>;

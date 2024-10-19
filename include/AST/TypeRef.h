@@ -47,8 +47,8 @@ namespace AST {
                         const Sema::TypeQualifiers Qual) noexcept
             : Inst(ObjKind), Loc(Loc), Qual(Qual) {}
 
-            [[nodiscard]] constexpr
-            static inline auto IsOfKind(const Inst &Inst) noexcept {
+            [[nodiscard]]
+            constexpr static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
@@ -81,8 +81,8 @@ namespace AST {
                      const Sema::TypeQualifiers Qual) noexcept
             : Inst(ObjKind), Name(Name), NameLoc(NameLoc), Qual(Qual) {}
 
-            [[nodiscard]] constexpr
-            static inline auto IsOfKind(const Inst &Inst) noexcept {
+            [[nodiscard]]
+            constexpr static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
@@ -114,8 +114,8 @@ namespace AST {
             constexpr explicit ArrayInst(const SourceLocation Loc) noexcept
             : Inst(ObjKind), Loc(Loc) {}
 
-            [[nodiscard]] constexpr
-            static inline auto IsOfKind(const Inst &Inst) noexcept {
+            [[nodiscard]]
+            constexpr static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
@@ -138,8 +138,8 @@ namespace AST {
             constexpr explicit UnionInst(const SourceLocation NameLoc) noexcept
             : Inst(ObjKind), Loc(NameLoc) {}
 
-            [[nodiscard]] constexpr
-            static inline auto IsOfKind(const Inst &Inst) noexcept {
+            [[nodiscard]]
+            constexpr static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 
@@ -162,8 +162,8 @@ namespace AST {
             constexpr explicit IntersectInst(const SourceLocation Loc) noexcept
             : Inst(ObjKind), Loc(Loc) {}
 
-            [[nodiscard]] constexpr
-            static inline auto IsOfKind(const Inst &Inst) noexcept {
+            [[nodiscard]]
+            constexpr static inline auto IsOfKind(const Inst &Inst) noexcept {
                 return Inst.getKind() == ObjKind;
             }
 

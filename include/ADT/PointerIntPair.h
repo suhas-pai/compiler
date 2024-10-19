@@ -28,32 +28,32 @@ namespace ADT {
         }
     public:
         constexpr explicit PointerIntPair(T *const Ptr) noexcept : Ptr(Ptr) {
-            assert((Value & getMask()) == 0);
+            assert(this->getBits() == 0);
         }
 
         constexpr explicit
         PointerIntPair(T *const Ptr, const uintptr_t Bits) noexcept : Ptr(Ptr) {
-            assert((Value & getMask()) == 0);
+            assert((Value & this->getMask()) == 0);
             Value |= Bits;
         }
 
         [[nodiscard]] constexpr auto getPointer() const noexcept {
-            const auto PtrValue = Value & ~getMask();
+            const auto PtrValue = Value & ~this->getMask();
             return reinterpret_cast<T *>(PtrValue);
         }
 
         [[nodiscard]] constexpr auto getBits() const noexcept {
-            return Value & getMask();
+            return Value & this->getMask();
         }
 
         [[nodiscard]]
         constexpr auto setBits(const IntType Bits) const noexcept {
-            Ptr = reinterpret_cast<T *>(getPointer() | Bits);
+            Ptr = reinterpret_cast<T *>(this->getPointer() | Bits);
         }
 
         [[nodiscard]] constexpr auto setPointer(T *const Ptr) const noexcept {
             const auto PtrValue = reinterpret_cast<uintptr_t>(Ptr);
-            Ptr = reinterpret_cast<T *>(PtrValue | getBits());
+            Ptr = reinterpret_cast<T *>(PtrValue | this->getBits());
         }
     };
 }

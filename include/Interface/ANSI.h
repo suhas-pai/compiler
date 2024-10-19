@@ -44,7 +44,7 @@
 #define CYNB "\033[46m"
 #define WHTB "\033[47m"
 
-// High intensty background
+// High intensity background
 #define BLKHB "\033[0;100m"
 #define REDHB "\033[0;101m"
 #define GRNHB "\033[0;102m"
@@ -54,7 +54,7 @@
 #define CYNHB "\033[0;106m"
 #define WHTHB "\033[0;107m"
 
-// High intensty text
+// High intensity text
 #define HBLK "\033[0;90m"
 #define HRED "\033[0;91m"
 #define HGRN "\033[0;92m"

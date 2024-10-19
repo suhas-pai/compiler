@@ -30,8 +30,8 @@ public:
     }
 
     [[nodiscard]] constexpr auto consumeIf(const char C) noexcept -> bool {
-        if (peek() == C) {
-            consume();
+        if (this->peek() == C) {
+            this->consume();
             return true;
         }
 
@@ -47,7 +47,7 @@ public:
     }
 
     constexpr auto consume(const uint64_t Skip = 0) noexcept -> char {
-        if (getIndex() + Skip >= Text.size()) {
+        if (this->getIndex() + Skip >= Text.size()) {
             return '\0';
         }
 

@@ -50,7 +50,7 @@ namespace Backend::LLVM {
         // Add transform passes.
         // Do simple "peephole" optimizations and bit-twiddling optzns.
         FPM->addPass(llvm::InstCombinePass());
-        // Reassociate expressions.
+        // Re-associate expressions.
         FPM->addPass(llvm::ReassociatePass());
         // Eliminate Common SubExpressions.
         FPM->addPass(llvm::GVNPass());

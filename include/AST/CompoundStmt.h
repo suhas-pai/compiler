@@ -12,7 +12,7 @@
 namespace AST {
     struct CompoundStmt : public Stmt {
     public:
-        constexpr static auto ObjKind = NodeKind::CompountStmt;
+        constexpr static auto ObjKind = NodeKind::CompoundStmt;
     protected:
         SourceLocation BraceLoc;
         std::vector<Stmt *> StmtList;

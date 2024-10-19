@@ -40,7 +40,7 @@ namespace AST {
         IfStmt,
         ReturnStmt,
 
-        CompountStmt,
+        CompoundStmt,
 
         LvalueNamedDeclBase = LvalueNamedDecl,
         LvalueNamedDeclLast = ParamVarDecl,

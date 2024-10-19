@@ -38,7 +38,7 @@ namespace Backend::LLVM {
         -> std::optional<llvm::Value *>;
 
     auto
-    CompoundStmtCodegen(AST::CompoundStmt &CompountStmt,
+    CompoundStmtCodegen(AST::CompoundStmt &CompoundStmt,
                         Backend::LLVM::Handler &Handler,
                         llvm::IRBuilder<> &Builder,
                         Backend::LLVM::ValueMap &ValueMap) noexcept

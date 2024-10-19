@@ -26,7 +26,7 @@ public:
 
     [[nodiscard]] constexpr auto getError() const noexcept -> std::optional<E> {
         if (hasError()) {
-            return std::optional(std::get<E>(Value));
+            return std::get<E>(Value);
         }
 
         return std::nullopt;
