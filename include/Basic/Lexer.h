@@ -52,6 +52,6 @@ public:
         }
 
         this->Index += Skip + 1;
-        return Text.at(getIndex() - 1);
+        return Text.at(this->getIndex() - 1);
     }
 };

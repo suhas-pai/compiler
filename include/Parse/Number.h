@@ -10,14 +10,11 @@ namespace Parse {
         SignedInteger,
         UnsignedInteger,
 
-        /* Not yet supported */
+        // Not yet supported
+        FloatingPoint8,
+        FloatingPoint16,
         FloatingPoint32,
         FloatingPoint64,
-    };
-
-    struct ParseNumberOptions {
-        bool AllowPositiveSign : 1 = false;
-        bool DontAllowNegativeNumbers : 1 = false;
     };
 
     enum class ParseNumberError : uint8_t {
@@ -37,6 +34,11 @@ namespace Parse {
 
         FloatingPoint,
         Overflow,
+    };
+
+    struct ParseNumberOptions {
+        bool AllowPositiveSign : 1 = false;
+        bool DontAllowNegativeNumbers : 1 = false;
     };
 
     struct ParseNumberResult {

@@ -3,7 +3,6 @@
  */
 
 #pragma once
-
 #include <vector>
 
 #include "AST/Stmt.h"
@@ -28,12 +27,12 @@ namespace AST {
         : Stmt(ObjKind), BraceLoc(BraceLoc), StmtList(std::move(StmtList)) {}
 
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 

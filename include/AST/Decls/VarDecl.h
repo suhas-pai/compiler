@@ -37,17 +37,17 @@ namespace AST {
           Linkage(Linkage::Private), Qualifiers(Qualifiers) {}
 
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
         [[nodiscard]] constexpr auto getInitExpr() const noexcept {
-            return getRvalueExpr();
+            return this->getRvalueExpr();
         }
 
         [[nodiscard]] constexpr auto getQualifiers() const noexcept {
@@ -61,7 +61,7 @@ namespace AST {
         constexpr auto setInitExpr(Expr *const InitExpr) noexcept
             -> decltype(*this)
         {
-            setRvalueExpr(InitExpr);
+            this->setRvalueExpr(InitExpr);
             return *this;
         }
     };

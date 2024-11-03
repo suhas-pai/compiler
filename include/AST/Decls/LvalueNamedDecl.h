@@ -40,13 +40,12 @@ namespace AST {
                         Expr *const RvalueExpr) noexcept
         : Stmt(ObjKind), Name(Name), NameLoc(NameLoc), RvalueExpr(RvalueExpr) {}
 
-        [[nodiscard]] constexpr static inline auto IsOfKind(const Stmt &Stmt) {
+        [[nodiscard]] constexpr static auto IsOfKind(const Stmt &Stmt) {
             return Stmt.getKind() >= NodeKind::LvalueNamedDeclBase
                 && Stmt.getKind() <= NodeKind::LvalueNamedDeclLast;
         }
 
-        [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Stmt) {
+        [[nodiscard]] constexpr static auto classof(const Stmt *const Stmt) {
             return IsOfKind(*Stmt);
         }
 

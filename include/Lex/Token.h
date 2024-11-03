@@ -166,6 +166,16 @@ namespace Lex {
         switch (Kind) {
             case TokenKind::Plus:
             case TokenKind::Minus:
+            case TokenKind::PlusEqual:
+            case TokenKind::MinusEqual:
+            case TokenKind::StarEqual:
+            case TokenKind::SlashEqual:
+            case TokenKind::PercentEqual:
+            case TokenKind::ShiftLeftEqual:
+            case TokenKind::ShiftRightEqual:
+            case TokenKind::CaretEqual:
+            case TokenKind::AmpersandEqual:
+            case TokenKind::DoubleAmpersand:
             case TokenKind::Star:
             case TokenKind::Slash:
             case TokenKind::DoubleStar:
@@ -189,16 +199,6 @@ namespace Lex {
             case TokenKind::StringLiteral:
             case TokenKind::Identifier:
             case TokenKind::Keyword:
-            case TokenKind::PlusEqual:
-            case TokenKind::MinusEqual:
-            case TokenKind::StarEqual:
-            case TokenKind::SlashEqual:
-            case TokenKind::PercentEqual:
-            case TokenKind::ShiftLeftEqual:
-            case TokenKind::ShiftRightEqual:
-            case TokenKind::CaretEqual:
-            case TokenKind::AmpersandEqual:
-            case TokenKind::DoubleAmpersand:
             case TokenKind::PipeEqual:
             case TokenKind::DoublePipe:
             case TokenKind::Tilde:
@@ -412,10 +412,28 @@ namespace Lex {
             CHECK_KW(Volatile);
             [[fallthrough]];
 
+            CHECK_KW(Struct)
+            [[fallthrough]];
+
             CHECK_KW(Enum)
             [[fallthrough]];
 
-            CHECK_KW(Struct)
+            CHECK_KW(And)
+            [[fallthrough]];
+
+            CHECK_KW(Or)
+            [[fallthrough]];
+
+            CHECK_KW(For)
+            [[fallthrough]];
+
+            CHECK_KW(Inline)
+            [[fallthrough]];
+
+            CHECK_KW(Comptime)
+            [[fallthrough]];
+
+            CHECK_KW(NoInline)
             break;
 
         #undef CHECK_KW

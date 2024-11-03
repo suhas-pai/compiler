@@ -18,8 +18,8 @@ namespace Sema {
         explicit Scope() noexcept = default;
         explicit Scope(Scope *const Parent) noexcept : Parent(Parent) {};
 
-        auto addDecl(AST::LvalueNamedDecl *Decl) noexcept -> Scope &;
-        auto removeDecl(AST::LvalueNamedDecl *Decl) noexcept -> Scope &;
+        auto addDecl(AST::LvalueNamedDecl *Decl) noexcept -> decltype(*this);
+        auto removeDecl(AST::LvalueNamedDecl *Decl) noexcept -> decltype(*this);
 
         [[nodiscard]] constexpr auto &getDeclMap() const noexcept {
             return DeclMap;

@@ -6,10 +6,9 @@
 #pragma once
 #include <variant>
 
-#include "AST/Expr.h"
 #include "AST/TypeRef.h"
-
 #include "Sema/Types/Type.h"
+
 #include "LvalueNamedDecl.h"
 
 namespace AST {
@@ -53,13 +52,13 @@ namespace AST {
         : LvalueNamedDecl(ObjKind, Name, NameLoc, RvalueExpr),
           TypeOrTypeRef(Type) {}
 
-        [[nodiscard]] constexpr static inline auto IsOfKind(const Stmt &Stmt) {
+        [[nodiscard]] constexpr static auto IsOfKind(const Stmt &Stmt) {
             return Stmt.getKind() >= NodeKind::LvalueTypedDeclBase
                 && Stmt.getKind() <= NodeKind::LvalueTypedDeclLast;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
@@ -72,7 +71,7 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto hasInferredType() const noexcept {
-            return getTypeRef() == nullptr;
+            return this->getTypeRef() == nullptr;
         }
 
         constexpr auto setTypeRef(TypeRef *const TypeRef) noexcept

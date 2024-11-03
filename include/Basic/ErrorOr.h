@@ -25,7 +25,7 @@ public:
     }
 
     [[nodiscard]] constexpr auto getError() const noexcept -> std::optional<E> {
-        if (hasError()) {
+        if (this->hasError()) {
             return std::get<E>(Value);
         }
 
@@ -33,7 +33,7 @@ public:
     }
 
     [[nodiscard]] constexpr auto getResult() const noexcept {
-        assert(!hasError());
+        assert(!this->hasError());
         return std::get<T>(Value);
     }
 };

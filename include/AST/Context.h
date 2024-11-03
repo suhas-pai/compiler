@@ -29,7 +29,7 @@ namespace AST {
                   VisitOptions Options) const noexcept;
 
         void
-        visitCompountStmt(CompoundStmt *Stmt,
+        visitCompoundStmt(CompoundStmt *Stmt,
                           Sema::SymbolTable &ParentSymbolTable,
                           Interface::DiagnosticsEngine &Diag,
                           VisitOptions Options) const noexcept;

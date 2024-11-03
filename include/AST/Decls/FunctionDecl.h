@@ -6,23 +6,74 @@
 #pragma once
 #include <vector>
 
-#include "AST/Decls/ParamVarDecl.h"
-
-#include "AST/Expr.h"
 #include "AST/Linkage.h"
-
-#include "Basic/SourceLocation.h"
+#include "ParamVarDecl.h"
 
 namespace AST {
     struct FunctionDecl : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::FunctionDecl;
+
+        struct Qualifiers {
+        protected:
+            bool IsInline : 1 = false;
+            bool IsComptime : 1 = false;
+            bool IsNoReturn : 1 = false;
+            bool IsNoInline : 1 = false;
+        public:
+            constexpr explicit Qualifiers() noexcept = default;
+
+            [[nodiscard]] constexpr auto isInline() const noexcept {
+                return IsInline;
+            }
+
+            [[nodiscard]] constexpr auto isComptime() const noexcept {
+                return IsComptime;
+            }
+
+            [[nodiscard]] constexpr auto isNoReturn() const noexcept {
+                return IsNoReturn;
+            }
+
+            [[nodiscard]] constexpr auto isNoInline() const noexcept {
+                return IsNoInline;
+            }
+
+            constexpr auto setIsInline(const bool IsInline) noexcept
+                -> decltype(*this)
+            {
+                this->IsInline = IsInline;
+                return *this;
+            }
+
+            constexpr auto setIsComptime(const bool IsComptime) noexcept
+                -> decltype(*this)
+            {
+                this->IsComptime = IsComptime;
+                return *this;
+            }
+
+            constexpr auto setIsNoReturn(const bool IsNoReturn) noexcept
+                -> decltype(*this)
+            {
+                this->IsNoReturn = IsNoReturn;
+                return *this;
+            }
+
+            constexpr auto setIsNoInline(const bool IsNoInline) noexcept
+                -> decltype(*this)
+            {
+                this->IsNoInline = IsNoInline;
+                return *this;
+            }
+        };
     protected:
         std::vector<ParamVarDecl *> ParamList;
         std::variant<Sema::Type *, TypeRef *> ReturnTypeOrRef;
 
         SourceLocation Loc;
         Linkage Linkage;
+        Qualifiers Quals;
 
         Stmt *Body;
     public:
@@ -58,17 +109,17 @@ namespace AST {
                      std::vector<ParamVarDecl *> &&ParamList,
                      Sema::Type *const ReturnType,
                      Stmt *const Body,
-                     const enum AST::Linkage Linkage) noexcept
+                     const enum Linkage Linkage) noexcept
         : Expr(ObjKind), ParamList(std::move(ParamList)),
           ReturnTypeOrRef(ReturnType), Loc(Loc), Linkage(Linkage), Body(Body) {}
 
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
@@ -90,6 +141,18 @@ namespace AST {
 
         [[nodiscard]] constexpr auto getBody() const noexcept {
             return Body;
+        }
+
+        [[nodiscard]] constexpr auto getLoc() const noexcept {
+            return Loc;
+        }
+
+        [[nodiscard]] constexpr auto getLinkage() const noexcept {
+            return Linkage;
+        }
+
+        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+            return Quals;
         }
 
         constexpr auto setBody(Stmt *const Body) noexcept -> decltype(*this) {

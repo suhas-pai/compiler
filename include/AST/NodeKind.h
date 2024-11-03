@@ -38,14 +38,20 @@ namespace AST {
         ArraySubscriptExpr,
 
         IfStmt,
-        ReturnStmt,
 
         CompoundStmt,
+        ForStmt,
+
+        CommaSepStmtList,
+        ReturnStmt,
 
         LvalueNamedDeclBase = LvalueNamedDecl,
         LvalueNamedDeclLast = ParamVarDecl,
 
         LvalueTypedDeclBase = FieldDecl,
-        LvalueTypedDeclLast = ParamVarDecl
+        LvalueTypedDeclLast = ParamVarDecl,
+
+        ExprBase = BinaryOperation,
+        ExprLast = ForStmt
     };
 }

@@ -25,7 +25,7 @@
 
 static void PrintDepth(const uint8_t Depth) noexcept {
     for (auto I = uint8_t(); I != Depth; ++I) {
-        printf("\t");
+        printf("    ");
     }
 }
 
@@ -121,6 +121,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
                     printf("NumberLiteral<%" PRId64 ", signed>\n",
                            IntLit->getNumber().SInt);
                     break;
+                case Parse::NumberKind::FloatingPoint8:
+                case Parse::NumberKind::FloatingPoint16:
                 case Parse::NumberKind::FloatingPoint32:
                 case Parse::NumberKind::FloatingPoint64:
                     assert(false && "Floating point literals not supported");
@@ -156,11 +158,13 @@ PrintAST(Backend::LLVM::Handler &Handler,
             break;
         }
         case AST::NodeKind::ParamVarDecl: {
-            const auto Param = llvm::cast<AST::ParamVarDecl>(Stmt);
+            const auto ParamDecl = llvm::cast<AST::ParamVarDecl>(Stmt);
             printf("ParamDecl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(Param->getName()));
+                   SV_FMT_ARG(ParamDecl->getName()));
 
-            PrintAST(Handler, Param->getTypeRef(), Depth + 1);
+            PrintAST(Handler, ParamDecl->getTypeRef(), Depth + 1);
+            PrintAST(Handler, ParamDecl->getDefaultExpr(), Depth + 1);
+
             break;
         }
         case AST::NodeKind::FunctionDecl: {
@@ -266,6 +270,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
                    SV_FMT_ARG(FieldDecl->getName()));
 
             PrintAST(Handler, FieldDecl->getTypeRef(), Depth + 1);
+            PrintAST(Handler, FieldDecl->getInitExpr(), Depth + 1);
+
             break;
         }
         case AST::NodeKind::FieldExpr: {
@@ -338,6 +344,28 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintAST(Handler, LvalueNamedDecl->getRvalueExpr(), Depth + 1);
             break;
         }
+        case AST::NodeKind::CommaSepStmtList: {
+            const auto CommaSepStmtList =
+                llvm::cast<AST::CommaSepStmtList>(Stmt);
+
+            printf("CommaSepStmtList\n");
+            for (const auto &Stmt : CommaSepStmtList->getStmtList()) {
+                PrintAST(Handler, Stmt, Depth + 1);
+            }
+
+            break;
+        }
+        case AST::NodeKind::ForStmt: {
+            const auto ForStmt = llvm::cast<AST::ForStmt>(Stmt);
+            printf("ForStmt\n");
+
+            PrintAST(Handler, ForStmt->getInit(), Depth + 1);
+            PrintAST(Handler, ForStmt->getCond(), Depth + 1);
+            PrintAST(Handler, ForStmt->getIncr(), Depth + 1);
+            PrintAST(Handler, ForStmt->getBody(), Depth + 1);
+
+            break;
+        }
     }
 }
 
@@ -346,7 +374,7 @@ struct ArgumentOptions {
     bool PrintAST : 1 = false;
     bool PrintIR : 1 = false;
 
-    uint64_t PrintDepth = 0;
+    uint32_t PrintDepth = 0;
 };
 
 void
@@ -401,9 +429,9 @@ HandlePrompt(const std::string_view &Prompt,
 
     const auto Result =
         BackendHandler->evaluateAndPrint(*Expr,
-                                          ArgOptions.PrintIR,
-                                          BHGRN "Evaluation> " CRESET,
-                                          "\n");
+                                         ArgOptions.PrintIR,
+                                         BHGRN "Evaluation> " CRESET,
+                                         "\n");
 
     if (!Result) {
         if (const auto Decl = llvm::dyn_cast<AST::LvalueNamedDecl>(Expr)) {

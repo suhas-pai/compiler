@@ -29,13 +29,12 @@ namespace Sema {
         constexpr explicit StructType(std::string &&Name) noexcept
         : Type(TypeKind::Structure), Name(std::move(Name)) {}
 
-        [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Type &Ty) noexcept {
+        [[nodiscard]] constexpr static auto IsOfKind(const Type &Ty) noexcept {
             return Ty.getKind() == TyKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Type *const Type) noexcept {
+        constexpr static auto classof(const Type *const Type) noexcept {
             return IsOfKind(*Type);
         }
 

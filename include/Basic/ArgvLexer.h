@@ -6,15 +6,15 @@
 
 struct ArgvLexer {
 protected:
-    int Argc;
     const char *const *Argv;
 
     // Start from 1 to skip program-name.
+    int Argc;
     int Index = 1;
 public:
-    constexpr
-    explicit ArgvLexer(const int Argc, const char *const *const Argv) noexcept
-    : Argc(Argc), Argv(Argv) {}
+    constexpr explicit
+    ArgvLexer(const int Argc, const char *const *const Argv) noexcept
+    : Argv(Argv), Argc(Argc) {}
 
     [[nodiscard]] constexpr auto peek() const noexcept {
         return Argv[Index];

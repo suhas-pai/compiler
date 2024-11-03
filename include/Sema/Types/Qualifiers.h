@@ -22,9 +22,8 @@ namespace Sema {
         uint32_t Bits = 0;
     public:
         constexpr explicit TypeQualifiers() noexcept = default;
-
-        constexpr
-        explicit TypeQualifiers(const uint32_t Bits) noexcept : Bits(Bits) {}
+        constexpr explicit TypeQualifiers(const uint32_t Bits) noexcept
+        : Bits(Bits) {}
 
         [[nodiscard]] constexpr auto getBits() const noexcept {
             return Bits;

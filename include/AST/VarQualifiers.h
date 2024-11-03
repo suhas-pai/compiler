@@ -10,6 +10,7 @@ namespace AST {
     protected:
         bool IsMutable : 1 = false;
         bool IsVolatile : 1 = false;
+        bool IsInline : 1 = false;
         bool IsComptime : 1 = false;
     public:
         constexpr explicit VarQualifiers() noexcept = default;
@@ -20,6 +21,10 @@ namespace AST {
 
         [[nodiscard]] constexpr auto isVolatile() const noexcept {
             return IsVolatile;
+        }
+
+        [[nodiscard]] constexpr auto isInline() const noexcept {
+            return IsInline;
         }
 
         [[nodiscard]] constexpr auto isComptime() const noexcept {
@@ -37,6 +42,13 @@ namespace AST {
             -> decltype(*this)
         {
             this->IsVolatile = IsVolatile;
+            return *this;
+        }
+
+        constexpr auto setIsInline(const bool IsInline) noexcept
+            -> decltype(*this)
+        {
+            this->IsInline = IsInline;
             return *this;
         }
 

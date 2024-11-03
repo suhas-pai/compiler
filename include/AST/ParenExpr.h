@@ -23,12 +23,12 @@ namespace AST {
         : Expr(ObjKind), Loc(Token.Loc), End(Token.End), ChildExpr(ChildExpr) {}
 
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 

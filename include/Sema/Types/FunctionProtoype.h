@@ -28,13 +28,12 @@ namespace Sema {
         : Type(ObjKind), ReturnType(ReturnType),
           ParamList(std::move(ParamList)) {}
 
-        [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Type &Ty) noexcept {
+        [[nodiscard]] constexpr static auto IsOfKind(const Type &Ty) noexcept {
             return Ty.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Type *const Type) noexcept {
+        constexpr static auto classof(const Type *const Type) noexcept {
             return IsOfKind(*Type);
         }
 

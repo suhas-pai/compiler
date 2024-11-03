@@ -20,24 +20,26 @@ namespace AST {
         constexpr explicit
         ArrayDecl(const SourceLocation LeftBracketLoc,
                   const std::vector<Expr *> &ElementList) noexcept
-        : Expr(ObjKind), ElementList(ElementList) {}
+        : Expr(ObjKind), LeftBracketLoc(LeftBracketLoc),
+          ElementList(ElementList) {}
 
         constexpr explicit
         ArrayDecl(const SourceLocation LeftBracketLoc,
                   std::vector<Expr *> &&ElementList) noexcept
-        : Expr(ObjKind), ElementList(ElementList) {}
+        : Expr(ObjKind), LeftBracketLoc(LeftBracketLoc),
+          ElementList(ElementList) {}
 
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Node) noexcept {
-            return Node.getKind() == ObjKind;
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
+            return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] inline auto getLeftBracketLoc() const noexcept {
+        [[nodiscard]] constexpr auto getLeftBracketLoc() const noexcept {
             return LeftBracketLoc;
         }
 

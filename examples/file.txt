@@ -4,8 +4,8 @@ func b(c: *mut volatile int) {
 }
 
 struct A {
-    a: int;
-    b: *mut f64;
+    a: int = 4;
+    b: mut int = 4;
 };
 
 enum B {
@@ -20,6 +20,10 @@ func main(argc: int, argv: int) {
     let volatile f = .c.d;
     let mut volatile g = f();
     let h = struct C { a: int; b: char; }();
+
+    for (let mut i = 0; i != 10; i += 1) {
+        a(i);
+    }
 
     return c;
 }

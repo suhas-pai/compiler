@@ -1,0 +1,50 @@
+func b(c: *mut volatile int) {
+    a.b = 0;
+    return 0;
+}
+
+struct A {
+    a: int = 4;
+    b: mut int = b;
+
+    if (T) {
+        c: bool = false;
+    } else {
+        d: float = 4.0;
+    }
+
+    for (let mut i = 0; i != 10; i++) {
+
+    }
+};
+
+function B<T: struct>(a: int, b: int) type {
+    return struct {
+        a: mut T;
+        if (1) {
+            b: T
+        } else {
+            c: *T
+        }
+    };
+}
+
+enum C {
+    a = 4,
+    b,
+    c = 6 + 4
+};
+
+let mut d: int = 3;
+func main(argc: int, argv: int) {
+    let mut e = [1,2,3,4,5];
+    let mut ea = [...e, 1];
+    let mut eb: [10]int = [...ea, ...2];
+
+    let volatile f = .c.d;
+
+    let mut volatile g = f();
+    let h = struct C { a: int; b: char; }();
+
+    return c;
+}

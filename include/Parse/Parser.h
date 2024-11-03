@@ -18,6 +18,7 @@
 #include "AST/CompoundStmt.h"
 #include "AST/Context.h"
 #include "AST/FieldExpr.h"
+#include "AST/ForStmt.h"
 #include "AST/IfStmt.h"
 #include "AST/NumberLiteral.h"
 #include "AST/ParenExpr.h"
@@ -52,7 +53,7 @@ namespace Parse {
         auto parseParenExpr(Lex::Token Token) noexcept -> AST::ParenExpr *;
 
         [[nodiscard]]
-        auto parseFieldExpr(Lex::Token Token, AST::Expr *LHS) noexcept
+        auto parseFieldExpr(Lex::Token Token, AST::Expr *Lhs) noexcept
             -> AST::FieldExpr *;
 
         [[nodiscard]]
@@ -76,11 +77,17 @@ namespace Parse {
         [[nodiscard]] auto parseLhs() noexcept -> AST::Expr *;
 
         [[nodiscard]]
-        auto parseBinOpRhs(AST::Expr *LHS, uint32_t MinPrec) noexcept
+        auto parseBinOpRhs(AST::Expr *Lhs, uint32_t MinPrec) noexcept
             -> AST::Expr *;
 
         [[nodiscard]]
         auto parseIfStmt(Lex::Token IfToken) noexcept -> AST::IfStmt *;
+
+        [[nodiscard]]
+        auto parseCommaSeparatedStmtList() noexcept -> AST::CommaSepStmtList *;
+
+        [[nodiscard]]
+        auto parseForStmt(Lex::Token ForToken) noexcept -> AST::ForStmt *;
 
         [[nodiscard]]
         auto parseReturnStmt(Lex::Token ReturnToken) noexcept
@@ -90,13 +97,14 @@ namespace Parse {
         auto parseCompoundStmt(Lex::Token CurlyToken) noexcept
             -> AST::CompoundStmt *;
 
-        [[nodiscard]] auto parseStmt() noexcept -> AST::Stmt *;
+        [[nodiscard]] auto parseStmt(bool ParseEnd) noexcept -> AST::Stmt *;
         [[nodiscard]]
         auto parseExpression(bool ExprIsOptional = false) noexcept
             -> std::optional<AST::Expr *>;
 
-        [[nodiscard]]
-        auto parseExpressionAndEnd(bool ExprIsOptional = false) noexcept
+        [[nodiscard]] auto
+        parseExpressionAndEnd(bool ExprIsOptional = false,
+                              bool ParseMultipleSemicolons = true) noexcept
             -> AST::Expr *;
 
         [[nodiscard]] auto parseTypeQualifiers() noexcept
@@ -111,7 +119,8 @@ namespace Parse {
         auto parseVarQualifiers() noexcept -> std::optional<AST::VarQualifiers>;
 
         [[nodiscard]]
-        auto parseVarDecl(Lex::Token Token) noexcept -> AST::VarDecl *;
+        auto parseVarDecl(Lex::Token Token, bool ParseEnd) noexcept
+            -> AST::VarDecl *;
 
         [[nodiscard]] auto
         parseArrayDecl(Lex::Token LeftBracketLoc) noexcept -> AST::ArrayDecl *;

@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include "AST/Decls/LvalueTypedDecl.h"
+#include "LvalueTypedDecl.h"
 
 namespace AST {
     struct FieldDecl : public LvalueTypedDecl {
@@ -14,25 +14,29 @@ namespace AST {
         constexpr explicit
         FieldDecl(const std::string_view Name,
                   const SourceLocation NameLoc,
-                  TypeRef *const Type) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, /*RvalueExpr=*/nullptr,
-                          Type) {}
+                  TypeRef *const Type,
+                  Expr *const InitExpr) noexcept
+        : LvalueTypedDecl(ObjKind, Name, NameLoc, InitExpr, Type) {}
 
         constexpr explicit
         FieldDecl(const std::string_view Name,
                   const SourceLocation NameLoc,
-                  Sema::Type *const Type) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, /*RvalueExpr=*/nullptr,
-                          Type) {}
+                  Sema::Type *const Type,
+                  Expr *const InitExpr) noexcept
+        : LvalueTypedDecl(ObjKind, Name, NameLoc, InitExpr, Type) {}
 
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
+        }
+
+        [[nodiscard]] constexpr auto getInitExpr() const noexcept {
+            return getRvalueExpr();
         }
     };
 }

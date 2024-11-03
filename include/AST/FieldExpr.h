@@ -29,13 +29,21 @@ namespace AST {
         : Expr(ObjKind), Loc(Loc), IsArrow(IsArrow), Base(Base),
           MemberName(MemberName) {}
 
+        constexpr explicit
+        FieldExpr(const SourceLocation Loc,
+                  Expr *const Base,
+                  const bool IsArrow,
+                  std::string &&MemberName)
+        : Expr(ObjKind), Loc(Loc), IsArrow(IsArrow), Base(Base),
+          MemberName(std::move(MemberName)) {}
+
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Node) noexcept {
-            return Node.getKind() == ObjKind;
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
+            return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
@@ -68,8 +76,7 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto
-        setMemberName(const std::string_view MemberName) noexcept
+        constexpr auto setMemberName(const std::string_view MemberName) noexcept
             -> decltype(*this)
         {
             this->MemberName = MemberName;

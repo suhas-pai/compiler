@@ -11,9 +11,9 @@ namespace Parse {
                 const ParseNumberOptions Options) noexcept -> ParseNumberResult
     {
         auto Result = ParseNumberResult();
-        Result.Kind = NumberKind::UnsignedInteger;
-
         auto Lexer = ::Lexer(Text);
+
+        Result.Kind = NumberKind::UnsignedInteger;
         if (const auto SignChar = Lexer.peek()) {
             if (SignChar == '-') {
                 if (Options.DontAllowNegativeNumbers) {
@@ -86,7 +86,7 @@ namespace Parse {
                 auto Digit = uint8_t(0);
                 if (Char >= '0' && Char <= '9') {
                     Digit = Char - '0';
-                } else  if (Char >= 'a' && Char <= 'f') {
+                } else  if (Char >= 'a' && Char <= 'z') {
                     Digit = Char - 'a';
                 } else  if (Char >= 'A' && Char <= 'Z') {
                     Digit = Char - 'A';
@@ -119,9 +119,9 @@ namespace Parse {
                 auto Digit = uint8_t();
                 if (Char >= '0' && Char <= '9') {
                     Digit = Char - '0';
-                } else  if (Char >= 'a' && Char <= 'f') {
+                } else  if (Char >= 'a' && Char <= 'z') {
                     Digit = Char - 'a';
-                } else  if (Char >= 'A' && Char <= 'F') {
+                } else  if (Char >= 'A' && Char <= 'Z') {
                     Digit = Char - 'A';
                 } else {
                     Result.Error = ParseNumberError::UnrecognizedChar;

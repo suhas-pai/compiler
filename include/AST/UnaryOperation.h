@@ -8,7 +8,7 @@
 #include "Parse/Operator.h"
 
 namespace AST {
-    struct UnaryOperation : Expr {
+    struct UnaryOperation : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::UnaryOperation;
     protected:
@@ -24,12 +24,12 @@ namespace AST {
         : Expr(ObjKind), Loc(Loc), Operator(Operator), Operand(Operand) {}
 
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
@@ -52,10 +52,8 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto setOperand(Expr *const Operand) noexcept
-            -> decltype(*this)
-        {
-            this->Operand = Operand;
+        constexpr auto setOperand(Expr &Operand) noexcept -> decltype(*this) {
+            this->Operand = &Operand;
             return *this;
         }
     };

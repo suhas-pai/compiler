@@ -8,7 +8,7 @@
 #include "Basic/SourceLocation.h"
 
 namespace AST {
-    struct IfStmt : public Stmt {
+    struct IfStmt : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::IfStmt;
     protected:
@@ -23,15 +23,15 @@ namespace AST {
                Expr *const Cond,
                Stmt *const Then,
                Stmt *const Else) noexcept
-        : Stmt(ObjKind), IfLoc(IfLoc), Cond(Cond), Then(Then), Else(Else) {}
+        : Expr(ObjKind), IfLoc(IfLoc), Cond(Cond), Then(Then), Else(Else) {}
 
         [[nodiscard]]
-        constexpr static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
@@ -58,10 +58,8 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto setCond(Expr *const Condition) noexcept
-            -> decltype(*this)
-        {
-            this->Cond = Condition;
+        constexpr auto setCond(Expr *const Cond) noexcept -> decltype(*this) {
+            this->Cond = Cond;
             return *this;
         }
 

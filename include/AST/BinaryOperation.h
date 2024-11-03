@@ -8,7 +8,7 @@
 #include "Parse/Operator.h"
 
 namespace AST {
-    struct BinaryOperation : Expr {
+    struct BinaryOperation : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::BinaryOperation;
     protected:
@@ -25,12 +25,13 @@ namespace AST {
                         Expr *const Rhs) noexcept
         : Expr(ObjKind), Operator(Operator), Loc(Loc), Lhs(Lhs), Rhs(Rhs) {}
 
-        [[nodiscard]] static inline auto IsOfKind(const Stmt &Stmt) noexcept {
+        [[nodiscard]]
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
-        constexpr static inline auto classof(const Stmt *const Node) noexcept {
+        constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
 
