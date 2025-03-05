@@ -18,19 +18,19 @@ namespace Sema {
         : TyAndBits(Type, Qual.getBits()) {}
 
         [[nodiscard]] constexpr auto getType() const noexcept {
-            return TyAndBits.getPointer();
+            return this->TyAndBits.getPointer();
         }
 
         [[nodiscard]] constexpr auto getQualifiers() const noexcept {
-            return TypeQualifiers(TyAndBits.getBits());
+            return TypeQualifiers(this->TyAndBits.getBits());
         }
 
         [[nodiscard]] constexpr auto isMutable() const noexcept {
-            return getQualifiers().isMutable();
+            return this->getQualifiers().isMutable();
         }
 
         [[nodiscard]] constexpr auto isVolatile() const noexcept {
-            return getQualifiers().isVolatile();
+            return this->getQualifiers().isVolatile();
         }
     };
 }

@@ -2,7 +2,7 @@
  * Backend/LLVM/CreateObjectFile.h
  */
 
-#include "Interface/DiagnosticsEngine.h"
+#include "Diag/Consumer.h"
 #include "Handler.h"
 
 namespace Backend::LLVM {
@@ -11,7 +11,7 @@ namespace Backend::LLVM {
         std::string OutputFilePath;
     public:
         explicit
-        CreateObjectFile(Interface::DiagnosticsEngine &Diag,
+        CreateObjectFile(DiagnosticConsumer &Diag,
                          std::string_view OutputFilePath) noexcept;
     };
 }

@@ -1,0 +1,7 @@
+1. Type objects are always immutable
+2. Function variables used in types/constraints must be const
+3. Number types must always be provided (i.e. 0u32, 1.0f64), except only when the
+   compiler can make a 100% guess, and except in integer ranges (i.e. 0..<10, 1..=20) where
+   the compiler will infer the smallest integer type possible.
+4. The inferred type for the object type in arrays is the type inferred for the first element.
+5. The inferred type for the return value of a function w/o a specified return type is the type inferred from the earliest return statement.

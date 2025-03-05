@@ -32,11 +32,6 @@ namespace Sema {
             return Result;
         }
 
-        [[nodiscard]] static auto charType() noexcept -> BuiltinType & {
-            static auto Result = BuiltinType("char");
-            return Result;
-        }
-
         [[nodiscard]] static auto u8() noexcept -> BuiltinType & {
             static auto Result = BuiltinType("u8");
             return Result;
@@ -115,10 +110,6 @@ namespace Sema {
                 return &voidType();
             }
 
-            if (Name == "char") {
-                return &charType();
-            }
-
             if (Name == "u8") {
                 return &u8();
             }
@@ -175,4 +166,3 @@ namespace Sema {
         }
     };
 };
-

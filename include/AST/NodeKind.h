@@ -16,15 +16,14 @@ namespace AST {
         StringLiteral,
 
         DeclRefExpr,
-        TypeRef,
-
         Paren,
 
         ArrayDecl,
-        FunctionDecl,
-        LambdaDecl,
-        StructDecl,
+        ArrowFunctionDecl,
+        ClosureDecl,
         EnumDecl,
+        FunctionDecl,
+        StructDecl,
 
         LvalueNamedDecl,
         EnumMemberDecl,
@@ -33,9 +32,16 @@ namespace AST {
         VarDecl,
         ParamVarDecl,
 
+        ArrayDestructuredVarDecl,
+        ObjectDestructuredVarDecl,
+
         CallExpr,
         FieldExpr,
         ArraySubscriptExpr,
+        CastExpr,
+
+        PointerExpr,
+        OptionalExpr,
 
         IfStmt,
 
@@ -51,7 +57,23 @@ namespace AST {
         LvalueTypedDeclBase = FieldDecl,
         LvalueTypedDeclLast = ParamVarDecl,
 
+        DeclStmtBase = ArrayDecl,
+        DeclStmtLast = ObjectDestructuredVarDecl,
+
         ExprBase = BinaryOperation,
-        ExprLast = ForStmt
+        ExprLast = ForStmt,
+
+        ArrayType,
+        OptionalType,
+        StructType,
+        EnumType,
+        FunctionType,
+        LambdaType,
+        PointerType,
+        ShapeType,
+        UnionType,
+
+        TypeBase = ArrayType,
+        TypeLast = UnionType,
     };
 }

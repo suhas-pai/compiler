@@ -9,11 +9,11 @@ namespace AST {
     struct Expr : public Stmt {
     protected:
         constexpr explicit Expr(const NodeKind Kind) noexcept : Stmt(Kind) {}
-
     public:
-        [[nodiscard]] constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
-            return Stmt.getKind() >= NodeKind::ExprBase
-                && Stmt.getKind() <= NodeKind::ExprLast;
+        [[nodiscard]]
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
+            return Stmt.getKind() >= NodeKind::ExprBase &&
+                   Stmt.getKind() <= NodeKind::ExprLast;
         }
 
         [[nodiscard]]

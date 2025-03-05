@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.10)
 project(compiler VERSION 0.1.0 LANGUAGES C CXX)
 
 include(CTest)
@@ -15,7 +15,7 @@ include(CPack)
 
 target_include_directories(compiler PUBLIC include)
 set_target_properties (compiler PROPERTIES
-  CXX_STANDARD 20
+  CXX_STANDARD 23
   CXX_STANDARD_REQUIRED TRUE
   CXX_EXTENSIONS TRUE
 )
@@ -34,6 +34,7 @@ string(REPLACE " " ";" LLVM_LINK_FLAGS ${LLVM_LINK_FLAGS})
 
 target_compile_options(compiler PUBLIC -stdlib=libc++)
 target_compile_options(compiler PUBLIC ${LLVM_CXX_FLAGS})
+target_compile_options(compiler PUBLIC -Wall -Wextra -pedantic -Wsign-conversion -Wredundant-decls -Wstrict-overflow=5 -Wundef -Wnull-dereference -funsigned-char -fno-exceptions -Wno-gnu-case-range -Wno-sign-conversion -Wno-unused-parameter)
 
 target_link_options(compiler PUBLIC ${LLVM_LD_FLAGS} ${LLVM_LINK_FLAGS})
 target_link_options(compiler PUBLIC -stdlib=libc++)
@@ -46,11 +47,14 @@ set(CMAKE_CXX_CLANG_TIDY
     -checks=*;)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(compiler PRIVATE
-                           "-fsanitize=address" "-fsanitize=undefined")
-    target_link_options(compiler PRIVATE
-                        "-fsanitize=address" "-fsanitize=undefined")
+    target_compile_options(compiler PRIVATE -fsanitize=address -fsanitize=undefined)
+    target_link_options(compiler PRIVATE -fsanitize=address -fsanitize=undefined)
+
+    install_files(. FILES compile_commands.json)
+else()
+    if (CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(compiler PRIVATE -flto -O3)
+    endif()
 endif()
 
-install_files(. FILES compile_commands.json)
 install(TARGETS compiler DESTINATION ${CMAKE_INSTALL_PREFIX})

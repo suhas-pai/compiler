@@ -19,9 +19,6 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: 'recursive'
-    - name: Make directory
-      run: |
-        mkdir -p build_debug
     - name: Make
       run: |
         cmake --preset debug

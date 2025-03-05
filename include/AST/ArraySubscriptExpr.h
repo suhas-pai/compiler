@@ -4,9 +4,10 @@
  */
 
 #pragma once
+#include <vector>
 
-#include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
+#include "Expr.h"
 
 namespace AST {
     struct ArraySubscriptExpr : public Expr {
@@ -16,14 +17,14 @@ namespace AST {
         SourceLocation BracketLoc;
 
         Expr *Base;
-        Expr *BracketedExpr;
+        std::vector<Stmt *> DetailList;
     public:
         constexpr explicit
         ArraySubscriptExpr(const SourceLocation BracketLoc,
                            Expr *const Base,
-                           Expr *const BracketExpr) noexcept
+                           std::vector<Stmt *> &&DetailList) noexcept
         : Expr(ObjKind), BracketLoc(BracketLoc), Base(Base),
-          BracketedExpr(BracketExpr) {}
+          DetailList(std::move(DetailList)) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -36,26 +37,23 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getBracketLoc() const noexcept {
-            return BracketLoc;
+            return this->BracketLoc;
         }
 
         [[nodiscard]] constexpr auto getBase() const noexcept {
-            return Base;
+            return this->Base;
         }
 
-        [[nodiscard]] constexpr auto getBracketedExpr() const noexcept {
-            return BracketedExpr;
+        [[nodiscard]] constexpr auto getDetailList() const noexcept {
+            return this->DetailList;
+        }
+
+        [[nodiscard]] constexpr auto &getDetailListRef() noexcept {
+            return this->DetailList;
         }
 
         constexpr auto setBase(Expr *const Base) noexcept -> decltype(*this) {
             this->Base = Base;
-            return *this;
-        }
-
-        constexpr auto setBracketedExpr(Expr *const BracketedExpr) noexcept
-            -> decltype(*this)
-        {
-            this->BracketedExpr = BracketedExpr;
             return *this;
         }
     };

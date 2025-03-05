@@ -26,12 +26,12 @@ namespace Sema {
         }
 
         [[nodiscard]] constexpr auto getPointeeType() const noexcept {
-            return PointeeType;
+            return this->PointeeType;
         }
 
         [[nodiscard]]
         constexpr std::string_view getName() const noexcept override {
-            return PointeeType->getName();
+            return this->PointeeType->getName();
         }
     };
 }

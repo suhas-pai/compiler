@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
+#include "Expr.h"
 
 namespace AST {
     struct CharLiteral : public Expr {
@@ -31,11 +31,11 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
-            return Loc;
+            return this->Loc;
         }
 
         [[nodiscard]] constexpr auto getValue() const noexcept {
-            return Value;
+            return this->Value;
         }
 
         constexpr auto setValue(const char Value) noexcept -> decltype(*this) {

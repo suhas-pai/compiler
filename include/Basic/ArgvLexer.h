@@ -17,22 +17,22 @@ public:
     : Argv(Argv), Argc(Argc) {}
 
     [[nodiscard]] constexpr auto peek() const noexcept {
-        return Argv[Index];
+        return this->Argv[this->Index];
     }
 
     [[nodiscard]] constexpr auto current() noexcept -> const char * {
-        if (Index == 0) {
+        if (this->Index == 0) {
             return nullptr;
         }
 
-        return Argv[Index - 1];
+        return this->Argv[this->Index - 1];
     }
 
     constexpr auto consume() noexcept -> const char * {
-        if (Index == Argc) {
+        if (this->Index == this->Argc) {
             return nullptr;
         }
 
-        return Argv[Index++];
+        return this->Argv[Index++];
     }
 };

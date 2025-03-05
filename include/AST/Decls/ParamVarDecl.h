@@ -9,19 +9,14 @@
 namespace AST {
     struct ParamVarDecl : public LvalueTypedDecl {
     public:
-        constexpr explicit
-        ParamVarDecl(const std::string_view Name,
-                     const SourceLocation NameLoc,
-                     TypeRef *const TypeRef,
-                     Expr *const DefaultExpr) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, DefaultExpr, TypeRef) {}
+        constexpr static auto ObjKind = NodeKind::ParamVarDecl;
 
         constexpr explicit
         ParamVarDecl(const std::string_view Name,
                      const SourceLocation NameLoc,
-                     Sema::Type *const Type,
+                     Expr *const TypeExpr,
                      Expr *const DefaultExpr) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, DefaultExpr, Type)  {}
+        : LvalueTypedDecl(ObjKind, Name, NameLoc, TypeExpr, DefaultExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -35,6 +30,13 @@ namespace AST {
 
         [[nodiscard]] constexpr auto getDefaultExpr() const noexcept {
             return this->getRvalueExpr();
+        }
+
+        constexpr auto setDefaultExpr(Expr *const DefaultExpr) noexcept
+            -> decltype(*this)
+        {
+            this->setRvalueExpr(DefaultExpr);
+            return *this;
         }
     };
 }

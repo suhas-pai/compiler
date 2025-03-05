@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <span>
 #include <vector>
 
 #include "Qualified.h"
@@ -14,7 +15,6 @@ namespace Sema {
     struct StructType : public Type {
     public:
         constexpr static auto TyKind = TypeKind::Structure;
-
         struct Field {
             std::string Name;
             QualifiedType *Type;
@@ -40,15 +40,15 @@ namespace Sema {
 
         [[nodiscard]]
         constexpr std::string_view getName() const noexcept override {
-            return Name;
+            return this->Name;
         }
 
-        [[nodiscard]] constexpr auto &getFieldList() const noexcept {
-            return FieldList;
+        [[nodiscard]] constexpr auto getFieldList() const noexcept {
+            return std::span(this->FieldList);
         }
 
         [[nodiscard]] constexpr auto &getFieldListRef() noexcept {
-            return FieldList;
+            return this->FieldList;
         }
     };
 }

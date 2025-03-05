@@ -17,7 +17,7 @@ namespace Sema {
         constexpr explicit Type(const TypeKind Kind) noexcept : Kind(Kind) {}
     public:
         [[nodiscard]] constexpr auto getKind() const noexcept {
-            return Kind;
+            return this->Kind;
         }
 
         virtual constexpr std::string_view getName() const noexcept = 0;

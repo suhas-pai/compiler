@@ -3,10 +3,13 @@
  */
 
 #pragma once
+#include <span>
 
 #include "ADT/StringMap.h"
-#include "AST/Context.h"
-#include "Interface/DiagnosticsEngine.h"
+#include "AST/Decls/LvalueNamedDecl.h"
+
+#include "Diag/Consumer.h"
+#include "Parse/ParseUnit.h"
 
 #include "llvm/Analysis/CGSCCPassManager.h"
 #include "llvm/Analysis/LoopAnalysisManager.h"
@@ -65,7 +68,7 @@ namespace Backend::LLVM {
         std::unique_ptr<llvm::StandardInstrumentations> SI;
 
         llvm::ExitOnError ExitOnErr;
-        Interface::DiagnosticsEngine &Diag;
+        DiagnosticConsumer &Diag;
 
         static void initializeLLVM() noexcept;
         virtual void allocCoreFields(const llvm::StringRef &Name) noexcept;
@@ -74,65 +77,65 @@ namespace Backend::LLVM {
 
         explicit
         Handler(const llvm::StringRef &ModuleName,
-                Interface::DiagnosticsEngine &Diag) noexcept;
+                DiagnosticConsumer &Diag) noexcept;
     public:
-        explicit Handler(Interface::DiagnosticsEngine &Diag) noexcept;
+        explicit Handler(DiagnosticConsumer &Diag) noexcept;
 
         [[nodiscard]] constexpr auto &getContext() noexcept {
-            return *TheContext;
+            return *this->TheContext;
         }
 
         [[nodiscard]] constexpr auto &getModule() const noexcept {
-            return *TheModule;
+            return *this->TheModule;
         }
 
         [[nodiscard]] constexpr auto &getBuilder() noexcept {
-            return *Builder;
+            return *this->Builder;
         }
 
         [[nodiscard]] constexpr auto &getNameToASTNodeMap() const noexcept {
-            return NameToASTNode;
+            return this->NameToASTNode;
         }
 
         [[nodiscard]] constexpr auto &getNameToASTNodeMapRef() noexcept {
-            return NameToASTNode;
+            return this->NameToASTNode;
         }
 
-        [[nodiscard]] constexpr auto &getDeclList() const noexcept {
-            return DeclList;
+        [[nodiscard]] constexpr auto getDeclList() const noexcept {
+            return std::span(this->DeclList);
         }
 
         [[nodiscard]] constexpr auto &getDeclListRef() noexcept {
-            return DeclList;
+            return this->DeclList;
         }
 
         [[nodiscard]] constexpr auto &getFPM() const noexcept {
-            return *FPM;
+            return *this->FPM;
         }
 
         [[nodiscard]] constexpr auto &getLAM() const noexcept {
-            return *LAM;
+            return *this->LAM;
         }
 
         [[nodiscard]] constexpr auto &getFAM() const noexcept {
-            return *FAM;
+            return *this->FAM;
         }
 
         [[nodiscard]] constexpr auto &getCGAM() const noexcept {
-            return *CGAM;
+            return *this->CGAM;
         }
         [[nodiscard]] constexpr auto &getMAM() const noexcept {
-            return *MAM;
+            return *this->MAM;
         }
         [[nodiscard]] constexpr auto &getPIC() const noexcept {
-            return *PIC;
+            return *this->PIC;
         }
         [[nodiscard]] constexpr auto &getSI() const noexcept {
-            return *SI;
+            return *this->SI;
         }
 
         [[nodiscard]] constexpr auto &getDiag() const noexcept {
-            return Diag;
+            return this->Diag;
         }
 
         auto addASTNode(std::string_view Name, AST::Stmt &Node) noexcept
@@ -146,6 +149,6 @@ namespace Backend::LLVM {
                 llvm::IRBuilder<> &Builder,
                 LLVM::ValueMap &ValueMap) noexcept;
 
-        virtual bool evaluate(AST::Context &Context) noexcept;
+        virtual bool evaluate(Parse::ParseUnit &Context) noexcept;
     };
 }

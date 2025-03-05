@@ -4,57 +4,35 @@
  */
 
 #pragma once
-#include <variant>
-
-#include "AST/TypeRef.h"
-#include "Sema/Types/Type.h"
-
 #include "LvalueNamedDecl.h"
 
 namespace AST {
     struct LvalueTypedDecl : public LvalueNamedDecl {
     protected:
-        std::variant<Sema::Type *, TypeRef *> TypeOrTypeRef;
+        Expr *TypeExpr;
     public:
         constexpr explicit
         LvalueTypedDecl(const NodeKind ObjKind,
                         const std::string_view Name,
                         const SourceLocation NameLoc,
-                        Expr *const RvalueExpr,
-                        TypeRef *const TypeRef) noexcept
+                        Expr *const TypeExpr,
+                        Expr *const RvalueExpr) noexcept
         : LvalueNamedDecl(ObjKind, Name, NameLoc, RvalueExpr),
-          TypeOrTypeRef(TypeRef) {}
-
-        constexpr explicit
-        LvalueTypedDecl(const NodeKind ObjKind,
-                        const std::string_view Name,
-                        const SourceLocation NameLoc,
-                        Expr *const RvalueExpr,
-                        Sema::Type *const Type) noexcept
-        : LvalueNamedDecl(ObjKind, Name, NameLoc, RvalueExpr),
-          TypeOrTypeRef(Type) {}
+          TypeExpr(TypeExpr) {}
 
         constexpr explicit
         LvalueTypedDecl(const NodeKind ObjKind,
                         const std::string &&Name,
                         const SourceLocation NameLoc,
-                        Expr *const RvalueExpr,
-                        TypeRef *const TypeRef) noexcept
+                        Expr *const TypeExpr,
+                        Expr *const RvalueExpr) noexcept
         : LvalueNamedDecl(ObjKind, Name, NameLoc, RvalueExpr),
-          TypeOrTypeRef(TypeRef) {}
+          TypeExpr(TypeExpr) {}
 
-        constexpr explicit
-        LvalueTypedDecl(const NodeKind ObjKind,
-                        const std::string &&Name,
-                        const SourceLocation NameLoc,
-                        Expr *const RvalueExpr,
-                        Sema::Type *const Type) noexcept
-        : LvalueNamedDecl(ObjKind, Name, NameLoc, RvalueExpr),
-          TypeOrTypeRef(Type) {}
-
-        [[nodiscard]] constexpr static auto IsOfKind(const Stmt &Stmt) {
-            return Stmt.getKind() >= NodeKind::LvalueTypedDeclBase
-                && Stmt.getKind() <= NodeKind::LvalueTypedDeclLast;
+        [[nodiscard]]
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
+            return Stmt.getKind() >= NodeKind::LvalueTypedDeclBase &&
+                   Stmt.getKind() <= NodeKind::LvalueTypedDeclLast;
         }
 
         [[nodiscard]]
@@ -62,29 +40,18 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getTypeRef() const noexcept {
-            return std::get<TypeRef *>(TypeOrTypeRef);
-        }
-
-        [[nodiscard]] constexpr auto getType() const noexcept {
-            return std::get<Sema::Type *>(TypeOrTypeRef);
+        [[nodiscard]] constexpr auto getTypeExpr() const noexcept {
+            return this->TypeExpr;
         }
 
         [[nodiscard]] constexpr auto hasInferredType() const noexcept {
-            return this->getTypeRef() == nullptr;
+            return this->getTypeExpr() == nullptr;
         }
 
-        constexpr auto setTypeRef(TypeRef *const TypeRef) noexcept
+        constexpr auto setTypeExpr(Expr *const TypeExpr) noexcept
             -> decltype(*this)
         {
-            this->TypeOrTypeRef = TypeRef;
-            return *this;
-        }
-
-        constexpr auto setType(Sema::Type *const Type) noexcept
-            -> decltype(*this)
-        {
-            this->TypeOrTypeRef = Type;
+            this->TypeExpr = TypeExpr;
             return *this;
         }
     };

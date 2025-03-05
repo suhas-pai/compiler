@@ -5,7 +5,9 @@
 
 #pragma once
 
+#include <span>
 #include <vector>
+
 #include "Sema/Types/Qualified.h"
 
 namespace Sema {
@@ -17,10 +19,10 @@ namespace Sema {
         std::vector<QualifiedType *> ParamList;
     public:
         constexpr explicit
-        FunctionPrototype(
-            QualifiedType *const ReturnType,
-            const std::vector<QualifiedType *> &ParamList) noexcept
-        : Type(ObjKind), ReturnType(ReturnType), ParamList(ParamList) {}
+        FunctionPrototype(QualifiedType *const ReturnType,
+                          const std::span<QualifiedType *> ParamList) noexcept
+        : Type(ObjKind), ReturnType(ReturnType),
+          ParamList(std::vector(ParamList.begin(), ParamList.end())) {}
 
         constexpr explicit
         FunctionPrototype(QualifiedType *const ReturnType,
@@ -38,15 +40,15 @@ namespace Sema {
         }
 
         [[nodiscard]] constexpr auto &getReturnType() const noexcept {
-            return *ReturnType;
+            return *this->ReturnType;
         }
 
-        [[nodiscard]] constexpr auto &getParamList() const noexcept {
-            return ParamList;
+        [[nodiscard]] constexpr auto getParamList() const noexcept {
+            return std::span(this->ParamList);
         }
 
         [[nodiscard]] constexpr auto &getParamListRef() noexcept {
-            return ParamList;
+            return this->ParamList;
         }
     };
 }

@@ -2,18 +2,10 @@
   "version": 2,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 5,
+    "minor": 10,
     "patch": 0
   },
   "configurePresets": [
-    {
-      "name": "base",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build",
-      "environment": {
-        "CXX_FLAGS": "-Wall -Wextra -pedantic -Wall -Wextra -pedantic -Wsign-conversion -Wredundant-decls -Wstrict-overflow=5 -Wundef -Wnull-dereference -funsigned-char -fno-exceptions -Wno-gnu-case-range -Wno-sign-conversion -Wno-unused-parameter"
-      }
-    },
     {
       "name": "debug",
       "displayName": "Debug",
@@ -22,9 +14,10 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "CMAKE_CXX_FLAGS_INIT": "$env{CXX_FLAGS}"
-      },
-      "inherits": ["base"]
+        "CMAKE_C_USING_LINKER_lld": "-fuse-ld=lld",
+        "CMAKE_CXX_USING_LINKER_lld": "-fuse-ld=lld",
+        "CMAKE_LINKER_TYPE": "lld"
+      }
     },
     {
       "name": "release",
@@ -33,9 +26,10 @@
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS_INIT": "$env{CXX_FLAGS} -flto -Ofast"
-      },
-      "inherits": ["base"]
+        "CMAKE_C_USING_LINKER_lld": "-fuse-ld=lld",
+        "CMAKE_CXX_USING_LINKER_lld": "-fuse-ld=lld",
+        "CMAKE_LINKER_TYPE": "lld"
+      }
     }
   ]
 }

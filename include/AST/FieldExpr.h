@@ -6,8 +6,8 @@
 #pragma once
 #include <string>
 
-#include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
+#include "Expr.h"
 
 namespace AST {
     struct FieldExpr : public Expr {
@@ -48,20 +48,20 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
-            return Loc;
+            return this->Loc;
         }
 
         [[nodiscard]] constexpr auto getBase() const noexcept {
-            return Base;
+            return this->Base;
         }
 
         [[nodiscard]] constexpr auto isArrow() const noexcept {
-            return IsArrow;
+            return this->IsArrow;
         }
 
         [[nodiscard]]
         constexpr auto getMemberName() const noexcept -> std::string_view {
-            return MemberName;
+            return this->MemberName;
         }
 
         constexpr auto setBase(Expr *const Base) noexcept -> decltype(*this) {
@@ -80,6 +80,13 @@ namespace AST {
             -> decltype(*this)
         {
             this->MemberName = MemberName;
+            return *this;
+        }
+
+        constexpr auto setMemberName(std::string &&MemberName) noexcept
+            -> decltype(*this)
+        {
+            this->MemberName = std::move(MemberName);
             return *this;
         }
     };

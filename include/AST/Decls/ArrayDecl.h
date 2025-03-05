@@ -4,10 +4,12 @@
  */
 
 #pragma once
+
+#include <span>
 #include <vector>
 
 #include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
 
 namespace AST {
     class ArrayDecl : public Expr {
@@ -15,19 +17,19 @@ namespace AST {
         constexpr static auto ObjKind = NodeKind::ArrayDecl;
     protected:
         SourceLocation LeftBracketLoc;
-        std::vector<Expr *> ElementList;
+        std::vector<Stmt *> ElementList;
     public:
         constexpr explicit
         ArrayDecl(const SourceLocation LeftBracketLoc,
-                  const std::vector<Expr *> &ElementList) noexcept
+                  const std::span<Stmt *> ElementList) noexcept
         : Expr(ObjKind), LeftBracketLoc(LeftBracketLoc),
-          ElementList(ElementList) {}
+          ElementList(std::vector(ElementList.begin(), ElementList.end())) {}
 
         constexpr explicit
         ArrayDecl(const SourceLocation LeftBracketLoc,
-                  std::vector<Expr *> &&ElementList) noexcept
+                  std::vector<Stmt *> &&ElementList) noexcept
         : Expr(ObjKind), LeftBracketLoc(LeftBracketLoc),
-          ElementList(ElementList) {}
+          ElementList(std::move(ElementList)) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -40,15 +42,15 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getLeftBracketLoc() const noexcept {
-            return LeftBracketLoc;
+            return this->LeftBracketLoc;
         }
 
-        [[nodiscard]] constexpr auto &getElementList() const noexcept {
-            return ElementList;
+        [[nodiscard]] constexpr auto getElementList() const noexcept {
+            return std::span(this->ElementList);
         }
 
         [[nodiscard]] constexpr auto &getElementListRef() noexcept {
-            return ElementList;
+            return this->ElementList;
         }
 
         constexpr auto setLeftBracketLoc(const SourceLocation Loc) noexcept

@@ -18,9 +18,11 @@ namespace Backend::LLVM {
                 llvm::dyn_cast<AST::DeclRefExpr>(&BinOp.getLhs());
 
             if (VarRef == nullptr) {
-                Handler.getDiag().emitError(
-                    BinOp.getLoc(),
-                    "Left-side of assignment is not a variable");
+                Handler.getDiag().consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = BinOp.getLoc(),
+                    .Message = "Left-side of assignment is not a variable"
+                });
 
                 return std::nullopt;
             }
@@ -29,10 +31,12 @@ namespace Backend::LLVM {
             const auto VarRefValue = ValueMap.getValue(VarName);
 
             if (VarRefValue == nullptr) {
-                Handler.getDiag().emitError(
-                    VarRef->getNameLoc(),
-                    "Variable \"" SV_FMT "\" is not defined",
-                    SV_FMT_ARG(VarName));
+                Handler.getDiag().consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = VarRef->getNameLoc(),
+                    .Message =
+                        std::format("Variable \"{}\" is not defined", VarName)
+                });
 
                 return std::nullopt;
             }
@@ -41,10 +45,12 @@ namespace Backend::LLVM {
                     llvm::dyn_cast<AST::VarDecl>(Handler.getASTNode(VarName)))
             {
                 if (!VarDecl->getQualifiers().isMutable()) {
-                    Handler.getDiag().emitError(
-                        VarRef->getNameLoc(),
-                        "Variable \"" SV_FMT "\" is constant",
-                        SV_FMT_ARG(VarName));
+                    Handler.getDiag().consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = VarRef->getNameLoc(),
+                        .Message =
+                            std::format("Variable \"{}\" is constant", VarName)
+                    });
 
                     return std::nullopt;
                 }
@@ -95,6 +101,28 @@ namespace Backend::LLVM {
                 return Builder.CreateFRem(Left, Right, /*Name=*/"modtmp");
             case Parse::BinaryOperator::Divide:
                 return Builder.CreateFDiv(Left, Right, /*Name=*/"divtmp");
+            case Parse::BinaryOperator::LogicalAnd:
+                return Builder.CreateAnd(Left, Right, /*Name=*/"andtmp");
+            case Parse::BinaryOperator::LogicalOr:
+                return Builder.CreateOr(Left, Right, /*Name=*/"ortmp");
+            case Parse::BinaryOperator::BitwiseAnd:
+                return Builder.CreateAnd(Left, Right, /*Name=*/"andtmp");
+            case Parse::BinaryOperator::BitwiseOr:
+                return Builder.CreateOr(Left, Right, /*Name=*/"ortmp");
+            case Parse::BinaryOperator::BitwiseXor:
+                return Builder.CreateXor(Left, Right, /*Name=*/"xortmp");
+            case Parse::BinaryOperator::LeftShift:
+                return Builder.CreateShl(Left, Right, /*Name=*/"lshifttmp");
+            case Parse::BinaryOperator::RightShift:
+                return Builder.CreateAShr(Left, Right, /*Name=*/"rshifttmp");
+            case Parse::BinaryOperator::LessThan:
+                return Builder.CreateFCmpOLT(Left, Right, /*Name=*/"lttmp");
+            case Parse::BinaryOperator::GreaterThan:
+                return Builder.CreateFCmpOGT(Left, Right, /*Name=*/"gttmp");
+            case Parse::BinaryOperator::LessThanOrEqual:
+                return Builder.CreateFCmpOLE(Left, Right, /*Name=*/"letmp");
+            case Parse::BinaryOperator::GreaterThanOrEqual:
+                return Builder.CreateFCmpOGE(Left, Right, /*Name=*/"getmp");
             case Parse::BinaryOperator::Equality:
                 return Builder.CreateFCmpOEQ(Left, Right, /*Name=*/"eqtmp");
             case Parse::BinaryOperator::Inequality:
@@ -112,9 +140,11 @@ namespace Backend::LLVM {
                         ValueMap.getValue("pow"));
 
                 if (PowFunc == nullptr) {
-                    Handler.getDiag().emitError(
-                        BinOp.getLoc(),
-                        "** operator only supported on JIT");
+                    Handler.getDiag().consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = BinOp.getLoc(),
+                        .Message = "** operator only supported on JIT"
+                    });
 
                     return std::nullopt;
                 }
@@ -123,6 +153,18 @@ namespace Backend::LLVM {
                                           {LeftDouble, RightDouble},
                                           "powtmp");
             }
+            case Parse::BinaryOperator::AddAssign:
+            case Parse::BinaryOperator::SubtractAssign:
+            case Parse::BinaryOperator::MultiplyAssign:
+            case Parse::BinaryOperator::DivideAssign:
+            case Parse::BinaryOperator::ModuloAssign:
+            case Parse::BinaryOperator::AndAssign:
+            case Parse::BinaryOperator::OrAssign:
+            case Parse::BinaryOperator::XorAssign:
+            case Parse::BinaryOperator::LeftShiftAssign:
+            case Parse::BinaryOperator::RightShiftAssign:
+            case Parse::BinaryOperator::As:
+                __builtin_unreachable();
         }
 
         __builtin_unreachable();
@@ -196,9 +238,11 @@ namespace Backend::LLVM {
 
         const auto FuncDecl = llvm::dyn_cast<AST::FunctionDecl>(Callee);
         if (FuncDecl == nullptr) {
-            Handler.getDiag().emitError(
-                FuncCall.getParenLoc(),
-                "Attempting to call a non-function statement");
+            Handler.getDiag().consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = FuncCall.getParenLoc(),
+                .Message = "Attempting to call a non-function statement"
+            });
 
             return std::nullopt;
         }
@@ -404,7 +448,7 @@ namespace Backend::LLVM {
                                       /*IsSigned=*/true);
         #endif
 
-        const auto FloatVal = (double)NumLit.getNumber().UInt;
+        const auto FloatVal = (double)NumLit.getNumber().Success.UInt;
         return llvm::ConstantFP::get(Context, llvm::APFloat(FloatVal));
     }
 
@@ -446,7 +490,7 @@ namespace Backend::LLVM {
         -> std::optional<llvm::Value *>
     {
         return llvm::ConstantDataArray::getString(Handler.getContext(),
-                                                  StrLit.getValue());
+                                                  StrLit.value());
     }
 
     auto
@@ -483,13 +527,15 @@ namespace Backend::LLVM {
                 return Builder.CreateSub(Operand, Value);
             }
             case Parse::UnaryOperator::AddressOf:
-                Handler.getDiag().emitError(UnaryOp.getLoc(),
-                                            "AddressOf not yet supported");
+                Handler.getDiag().consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = UnaryOp.getLoc(),
+                    .Message = "AddressOf not yet supported"
+                });
+
                 return std::nullopt;
-            case Parse::UnaryOperator::Dereference:
-                Handler.getDiag().emitError(UnaryOp.getLoc(),
-                                            "Dereference not yet supported");
-                return std::nullopt;
+            case Parse::UnaryOperator::Spread:
+                __builtin_unreachable();
         }
 
         __builtin_unreachable();
@@ -503,10 +549,13 @@ namespace Backend::LLVM {
         -> std::optional<llvm::Value *>
     {
         if (ValueMap.getValue(VarDecl.getName()) != nullptr) {
-            Handler.getDiag().emitError(
-                VarDecl.getNameLoc(),
-                "Variable \'" SV_FMT "\' is already defined",
-                SV_FMT_ARG(VarDecl.getName()));
+            Handler.getDiag().consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = VarDecl.getNameLoc(),
+                .Message =
+                    std::format("Variable \'{}\' is already defined",
+                                VarDecl.getName())
+            });
 
             return std::nullopt;
         }
@@ -575,9 +624,12 @@ namespace Backend::LLVM {
             return Value;
         }
 
-        Handler.getDiag().emitError(DeclRef.getNameLoc(),
-                                    "Variable \"" SV_FMT "\" is not defined",
-                                    SV_FMT_ARG(DeclRef.getName()));
+        Handler.getDiag().consume({
+            .Level = DiagnosticLevel::Error,
+            .Location = DeclRef.getNameLoc(),
+            .Message =
+                std::format("Variable \"{}\" is not defined", DeclRef.getName())
+        });
 
         return std::nullopt;
     }
@@ -674,13 +726,28 @@ namespace Backend::LLVM {
             case AST::NodeKind::ArraySubscriptExpr:
             case AST::NodeKind::FieldDecl:
             case AST::NodeKind::ParamVarDecl:
-            case AST::NodeKind::TypeRef:
             case AST::NodeKind::FieldExpr:
             case AST::NodeKind::EnumMemberDecl:
+            case AST::NodeKind::LvalueNamedDecl:
             case AST::NodeKind::EnumDecl:
             case AST::NodeKind::ArrayDecl:
-            case AST::NodeKind::LvalueNamedDecl:
-            case AST::NodeKind::LambdaDecl:
+            case AST::NodeKind::ClosureDecl:
+                __builtin_unreachable();
+            case AST::NodeKind::ArrayDestructuredVarDecl:
+            case AST::NodeKind::ObjectDestructuredVarDecl:
+            case AST::NodeKind::ForStmt:
+            case AST::NodeKind::CommaSepStmtList:
+            case AST::NodeKind::StructType:
+            case AST::NodeKind::EnumType:
+            case AST::NodeKind::FunctionType:
+            case AST::NodeKind::LambdaType:
+            case AST::NodeKind::PointerType:
+            case AST::NodeKind::ShapeType:
+            case AST::NodeKind::UnionType:
+            case AST::NodeKind::ArrowFunctionDecl:
+            case AST::NodeKind::CastExpr:
+            case AST::NodeKind::PointerExpr:
+            case AST::NodeKind::OptionalExpr:
                 __builtin_unreachable();
         }
 

@@ -3,11 +3,10 @@
  */
 
 #pragma once
-
 #include <string>
 
-#include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
+#include "Expr.h"
 
 namespace AST {
     struct StringLiteral : public Expr {
@@ -37,12 +36,12 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
-            return Loc;
+            return this->Loc;
         }
 
         [[nodiscard]]
-        constexpr auto getValue() const noexcept -> std::string_view {
-            return Value;
+        constexpr auto value() const noexcept -> std::string_view {
+            return this->Value;
         }
 
         constexpr auto setValue(const std::string_view Value) noexcept
@@ -52,8 +51,7 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto setValue(std::string &&Value) noexcept
-            -> decltype(*this)
+        constexpr auto setValue(std::string &&Value) noexcept -> decltype(*this)
         {
             this->Value = std::move(Value);
             return *this;

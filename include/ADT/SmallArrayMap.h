@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <optional>
 
@@ -28,11 +29,10 @@ namespace ADT {
         [[nodiscard]]
         constexpr auto at(const K &Key) const noexcept -> std::optional<V> {
             const auto Iter =
-                std::find_if(begin(Data),
-                             end(Data),
-                             [&Key](const auto &Pair) noexcept {
-                                return Pair.first == Key;
-                             });
+                std::ranges::find_if(Data,
+                                     [&Key](const auto &Pair) noexcept {
+                                         return Pair.first == Key;
+                                     });
 
             if (Iter == end(Data)) {
                 return std::nullopt;
@@ -44,11 +44,10 @@ namespace ADT {
         [[nodiscard]]
         constexpr auto keyFor(const V &Val) const noexcept -> std::optional<K> {
             const auto Iter =
-                std::find_if(begin(Data),
-                             end(Data),
-                             [&Val](const auto &Pair) noexcept {
-                                return Pair.second == Val;
-                             });
+                std::ranges::find_if(Data,
+                                     [&Val](const auto &Pair) noexcept {
+                                         return Pair.second == Val;
+                                     });
 
             if (Iter == end(Data)) {
                 return std::nullopt;
@@ -58,7 +57,7 @@ namespace ADT {
         }
 
         [[nodiscard]] constexpr auto operator[](const K &Key) const noexcept {
-            return at(Key);
+            return this->at(Key);
         }
     };
 }

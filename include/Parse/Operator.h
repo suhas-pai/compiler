@@ -47,6 +47,7 @@ namespace Parse {
         Inequality,
 
         Power,
+        As,
     };
 
     enum class UnaryOperator {
@@ -56,7 +57,7 @@ namespace Parse {
         Increment,
         Decrement,
         AddressOf,
-        Dereference,
+        Spread,
     };
 
     constexpr auto
@@ -78,12 +79,20 @@ namespace Parse {
                 case Lex::Keyword::Return:
                 case Lex::Keyword::Volatile:
                 case Lex::Keyword::Struct:
+                case Lex::Keyword::Class:
+                case Lex::Keyword::Interface:
+                case Lex::Keyword::Impl:
                 case Lex::Keyword::Enum:
                 case Lex::Keyword::For:
+                case Lex::Keyword::While:
                 case Lex::Keyword::Inline:
                 case Lex::Keyword::Comptime:
                 case Lex::Keyword::NoInline:
+                case Lex::Keyword::Default:
+                case Lex::Keyword::In:
                     break;
+                case Lex::Keyword::As:
+                    return BinaryOperator::As;
             }
 
             return std::nullopt;
@@ -151,7 +160,9 @@ namespace Parse {
             case Lex::TokenKind::DoubleStar:
                 return BinaryOperator::Power;
             case Lex::TokenKind::IntegerLiteral:
+            case Lex::TokenKind::IntegerLiteralWithSuffix:
             case Lex::TokenKind::FloatLiteral:
+            case Lex::TokenKind::FloatLiteralWithSuffix:
             case Lex::TokenKind::CharLiteral:
             case Lex::TokenKind::StringLiteral:
             case Lex::TokenKind::Identifier:
@@ -160,6 +171,7 @@ namespace Parse {
             case Lex::TokenKind::TildeEqual:
             case Lex::TokenKind::Exclamation:
             case Lex::TokenKind::QuestionMark:
+            case Lex::TokenKind::QuestionColon:
             case Lex::TokenKind::OpenParen:
             case Lex::TokenKind::CloseParen:
             case Lex::TokenKind::OpenCurlyBrace:
@@ -170,6 +182,12 @@ namespace Parse {
             case Lex::TokenKind::Colon:
             case Lex::TokenKind::Semicolon:
             case Lex::TokenKind::Dot:
+            case Lex::TokenKind::DotStar:
+            case Lex::TokenKind::DotDot:
+            case Lex::TokenKind::DotDotLessThan:
+            case Lex::TokenKind::DotDotGreaterThan:
+            case Lex::TokenKind::DotDotEqual:
+            case Lex::TokenKind::DotDotDot:
             case Lex::TokenKind::DotIdentifier:
             case Lex::TokenKind::ThinArrow:
             case Lex::TokenKind::FatArrow:
@@ -216,13 +234,13 @@ namespace Parse {
         });
 
     constexpr auto UnaryOperatorToLexemeMap =
-        ADT::SmallArrayMap<UnaryOperator, std::string_view, 7>({
+        ADT::SmallArrayMap<UnaryOperator, std::string_view, 8>({
             std::make_pair(UnaryOperator::Negate, "-"),
             std::make_pair(UnaryOperator::LogicalNot, "!"),
             std::make_pair(UnaryOperator::BitwiseNot, "~"),
             std::make_pair(UnaryOperator::Increment, "++"),
             std::make_pair(UnaryOperator::Decrement, "--"),
             std::make_pair(UnaryOperator::AddressOf, "&"),
-            std::make_pair(UnaryOperator::Dereference, "*"),
+            std::make_pair(UnaryOperator::Spread, "..."),
         });
 }

@@ -13,20 +13,24 @@ public:
     constexpr explicit Lexer(const std::string_view Text) noexcept
     : Text(Text) {}
 
-    [[nodiscard]] constexpr auto getText() const noexcept {
-        return Text;
+    [[nodiscard]] constexpr auto text() const noexcept {
+        return this->Text;
     }
 
-    [[nodiscard]] constexpr auto getIndex() const noexcept {
-        return Index;
+    [[nodiscard]] constexpr auto index() const noexcept {
+        return this->Index;
+    }
+
+    [[nodiscard]] constexpr auto finished() const noexcept {
+        return this->index() == this->text().size();
     }
 
     [[nodiscard]] constexpr auto peek() const noexcept -> char {
-        if (Index >= Text.size()) {
+        if (this->index() >= this->text().size()) {
             return '\0';
         }
 
-        return Text.at(Index);
+        return this->text().at(this->index());
     }
 
     [[nodiscard]] constexpr auto consumeIf(const char C) noexcept -> bool {
@@ -39,19 +43,19 @@ public:
     }
 
     [[nodiscard]] constexpr auto prev() const noexcept -> char {
-        if (Index >= Text.size()) {
+        if (this->index() >= this->text().size()) {
             return '\0';
         }
 
-        return Text.at(Index);
+        return this->text().at(this->index());
     }
 
-    constexpr auto consume(const uint64_t Skip = 0) noexcept -> char {
-        if (this->getIndex() + Skip >= Text.size()) {
+    constexpr auto consume(const uint32_t Skip = 0) noexcept -> char {
+        if (this->index() + Skip >= this->text().size()) {
             return '\0';
         }
 
         this->Index += Skip + 1;
-        return Text.at(this->getIndex() - 1);
+        return this->text().at(this->index() - 1);
     }
 };

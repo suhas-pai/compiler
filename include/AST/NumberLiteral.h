@@ -4,9 +4,10 @@
 
 #pragma once
 
-#include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
-#include "Parse/Number.h"
+#include "Parse/ParseNumber.h"
+#include "Source/SourceLocation.h"
+
+#include "Expr.h"
 
 namespace AST {
     struct NumberLiteral : public Expr {

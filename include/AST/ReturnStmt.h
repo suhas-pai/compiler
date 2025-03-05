@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
+#include "Expr.h"
 
 namespace AST {
     struct ReturnStmt : public Stmt {
@@ -34,11 +34,11 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getReturnLoc() const noexcept {
-            return ReturnLoc;
+            return this->ReturnLoc;
         }
 
         [[nodiscard]] constexpr auto getValue() const noexcept {
-            return Value;
+            return this->Value;
         }
 
         constexpr auto setReturnLoc(const SourceLocation ReturnLoc) noexcept

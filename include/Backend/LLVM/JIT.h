@@ -3,16 +3,21 @@
  */
 
 #pragma once
+
+#include <expected>
 #include <memory>
 
-#include "AST/Context.h"
 #include "Backend/LLVM/Handler.h"
-#include "Interface/DiagnosticsEngine.h"
+#include "Diag/Consumer.h"
+#include "Parse/ParseUnit.h"
+
 #include "llvm/ADT/StringRef.h"
 
 #include "llvm/ExecutionEngine/Orc/Core.h"
+#include "llvm/ExecutionEngine/Orc/EPCIndirectionUtils.h"
 #include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
 #include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
+#include "llvm/ExecutionEngine/Orc/IRTransformLayer.h"
 #include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
 #include "llvm/ExecutionEngine/Orc/Shared/ExecutorSymbolDef.h"
@@ -24,43 +29,47 @@ namespace Backend::LLVM {
     struct JITHandler : public Handler {
     protected:
         std::unique_ptr<llvm::orc::ExecutionSession> ES;
+        std::unique_ptr<llvm::orc::EPCIndirectionUtils> EPCIU;
 
         llvm::DataLayout DL;
         llvm::orc::MangleAndInterner Mangle;
 
         llvm::orc::RTDyldObjectLinkingLayer ObjectLayer;
         llvm::orc::IRCompileLayer CompileLayer;
+        llvm::orc::IRTransformLayer OptimizeLayer;
 
         llvm::orc::JITDylib &MainJD;
-        AST::Context &Context;
+        const Parse::ParseUnit &Unit;
 
         ValueMap ValueMap;
 
         explicit
-        JITHandler(std::unique_ptr<llvm::orc::ExecutionSession> ES,
+        JITHandler(DiagnosticConsumer &Diag,
+                   const Parse::ParseUnit &Unit,
+                   std::unique_ptr<llvm::orc::ExecutionSession> ES,
+                   std::unique_ptr<llvm::orc::EPCIndirectionUtils> EPCIU,
                    llvm::orc::JITTargetMachineBuilder JTMB,
-                   llvm::DataLayout DL,
-                   AST::Context &Context,
-                   Interface::DiagnosticsEngine &Diag) noexcept;
+                   llvm::DataLayout DL) noexcept;
 
         void allocCoreFields(const llvm::StringRef &Name) noexcept override;
     public:
         static auto
-        create(Interface::DiagnosticsEngine &Diag,
-               AST::Context &Context) noexcept -> std::unique_ptr<JITHandler>;
+        create(DiagnosticConsumer &Diag,
+               const Parse::ParseUnit &Unit) noexcept
+            -> std::expected<std::unique_ptr<JITHandler>, llvm::Error>;
 
         virtual ~JITHandler() noexcept;
 
         [[nodiscard]] constexpr auto &getDataLayout() const noexcept {
-            return DL;
+            return this->DL;
         }
 
         [[nodiscard]] constexpr auto &getMainJITDylib() const noexcept {
-            return MainJD;
+            return this->MainJD;
         }
 
-        [[nodiscard]] constexpr auto &getASTContext() noexcept {
-            return Context;
+        [[nodiscard]] constexpr auto &getUnit() const noexcept {
+            return this->Unit;
         }
 
         [[nodiscard]] auto
@@ -68,16 +77,16 @@ namespace Backend::LLVM {
                   llvm::orc::ResourceTrackerSP RT = nullptr) noexcept
         {
             if (RT == nullptr) {
-                RT = MainJD.getDefaultResourceTracker();
+                RT = this->MainJD.getDefaultResourceTracker();
             }
 
-            return CompileLayer.add(RT, std::move(TSM));
+            return this->CompileLayer.add(RT, std::move(TSM));
         }
 
         [[nodiscard]] auto lookup(const llvm::StringRef Name) noexcept
             -> llvm::Expected<llvm::orc::ExecutorSymbolDef>
         {
-            return ES->lookup({&MainJD}, Mangle(Name.str()));
+            return this->ES->lookup({&this->MainJD}, Mangle(Name.str()));
         }
 
         bool

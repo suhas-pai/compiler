@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "AST/Expr.h"
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
+#include "Expr.h"
 
 namespace AST {
     struct IfStmt : public Expr {
@@ -20,10 +20,10 @@ namespace AST {
     public:
         constexpr explicit
         IfStmt(const SourceLocation IfLoc,
-               Expr *const Cond,
+               Expr &Cond,
                Stmt *const Then,
                Stmt *const Else) noexcept
-        : Expr(ObjKind), IfLoc(IfLoc), Cond(Cond), Then(Then), Else(Else) {}
+        : Expr(ObjKind), IfLoc(IfLoc), Cond(&Cond), Then(Then), Else(Else) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -36,19 +36,19 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getIfLoc() const noexcept {
-            return IfLoc;
+            return this->IfLoc;
         }
 
         [[nodiscard]] constexpr auto getCond() const noexcept {
-            return Cond;
+            return this->Cond;
         }
 
         [[nodiscard]] constexpr auto getThen() const noexcept {
-            return Then;
+            return this->Then;
         }
 
         [[nodiscard]] constexpr auto getElse() const noexcept {
-            return Else;
+            return this->Else;
         }
 
         constexpr auto setIfLoc(const SourceLocation IfLoc) noexcept
@@ -58,8 +58,8 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto setCond(Expr *const Cond) noexcept -> decltype(*this) {
-            this->Cond = Cond;
+        constexpr auto setCond(Expr &Cond) noexcept -> decltype(*this) {
+            this->Cond = &Cond;
             return *this;
         }
 

@@ -3,57 +3,19 @@
  */
 
 #pragma once
+
+#include <span>
 #include <vector>
 
-#include "Basic/SourceLocation.h"
+#include "AST/Qualifiers.h"
+#include "Source/SourceLocation.h"
+
 #include "Expr.h"
 
 namespace AST {
     struct CallExpr : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::CallExpr;
-
-        struct Qualifiers {
-        protected:
-            bool IsInline : 1 = false;
-            bool IsComptime : 1 = false;
-            bool IsNoInline : 1 = false;
-        public:
-            constexpr explicit Qualifiers() noexcept = default;
-
-            [[nodiscard]] constexpr auto isInline() const noexcept {
-                return IsInline;
-            }
-
-            [[nodiscard]] constexpr auto isComptime() const noexcept {
-                return IsComptime;
-            }
-
-            [[nodiscard]] constexpr auto isNoInline() const noexcept {
-                return IsNoInline;
-            }
-
-            constexpr auto setIsInline(const bool IsInline) noexcept
-                -> decltype(*this)
-            {
-                this->IsInline = IsInline;
-                return *this;
-            }
-
-            constexpr auto setIsComptime(const bool IsComptime) noexcept
-                -> decltype(*this)
-            {
-                this->IsComptime = IsComptime;
-                return *this;
-            }
-
-            constexpr auto setIsNoInline(const bool IsNoInline) noexcept
-                -> decltype(*this)
-            {
-                this->IsNoInline = IsNoInline;
-                return *this;
-            }
-        };
     protected:
         Expr *Callee;
 
@@ -62,13 +24,21 @@ namespace AST {
 
         std::vector<Expr *> Args;
     public:
-        constexpr explicit
+        explicit
         CallExpr(Expr *const Callee,
                  const SourceLocation ParenLoc,
                  const Qualifiers Quals,
-                 const std::vector<Expr *> &Args) noexcept
+                 const std::span<Expr *> Args) noexcept
         : Expr(ObjKind), Callee(Callee), ParenLoc(ParenLoc), Quals(Quals),
-          Args(Args) {}
+          Args(std::vector(Args.begin(), Args.end())) {}
+
+        explicit
+        CallExpr(Expr *const Callee,
+                 const SourceLocation ParenLoc,
+                 const Qualifiers Quals,
+                 std::vector<Expr *> &&Args) noexcept
+        : Expr(ObjKind), Callee(Callee), ParenLoc(ParenLoc), Quals(Quals),
+          Args(std::move(Args)) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -81,19 +51,19 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getCallee() const noexcept {
-            return Callee;
+            return this->Callee;
         }
 
         [[nodiscard]] constexpr auto getParenLoc() const noexcept {
-            return ParenLoc;
+            return this->ParenLoc;
         }
 
-        [[nodiscard]] constexpr auto &getArgs() const noexcept {
-            return Args;
+        [[nodiscard]] constexpr auto getArgs() const noexcept {
+            return std::span(this->Args);
         }
 
         [[nodiscard]] constexpr auto &getArgsRef() noexcept {
-            return Args;
+            return this->Args;
         }
 
         constexpr auto setCallee(Expr *const Callee) noexcept -> decltype(*this)

@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
 
 #include "CommaSepStmtList.h"
 #include "Expr.h"
@@ -27,7 +27,7 @@ namespace AST {
                 CommaSepStmtList *const Init,
                 Expr *const Cond,
                 CommaSepStmtList *const Step,
-                Stmt *const Body)
+                Stmt *const Body) noexcept
         : Expr(ObjKind), ForLoc(ForLoc), Init(Init), Cond(Cond), Step(Step),
           Body(Body) {}
 
@@ -42,23 +42,23 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getForLoc() const noexcept {
-            return ForLoc;
+            return this->ForLoc;
         }
 
         [[nodiscard]] constexpr auto getInit() const noexcept {
-            return Init;
+            return this->Init;
         }
 
         [[nodiscard]] constexpr auto getCond() const noexcept {
-            return Cond;
+            return this->Cond;
         }
 
-        [[nodiscard]] constexpr auto getIncr() const noexcept {
-            return Step;
+        [[nodiscard]] constexpr auto getStep() const noexcept {
+            return this->Step;
         }
 
         [[nodiscard]] constexpr auto getBody() const noexcept {
-            return Body;
+            return this->Body;
         }
 
         constexpr auto setInit(CommaSepStmtList *const Init) noexcept

@@ -5,8 +5,7 @@
 
 #pragma once
 
-#include "AST/Linkage.h"
-#include "AST/VarQualifiers.h"
+#include "AST/Qualifiers.h"
 
 #include "LvalueTypedDecl.h"
 
@@ -15,26 +14,16 @@ namespace AST {
     public:
         constexpr static auto ObjKind = NodeKind::VarDecl;
     protected:
-        Linkage Linkage;
-        VarQualifiers Qualifiers;
+        Qualifiers Qualifiers;
     public:
-        constexpr explicit
+        explicit
         VarDecl(const std::string_view Name,
                 const SourceLocation NameLoc,
-                const VarQualifiers Qualifiers,
-                TypeRef *const TypeRef,
+                const struct Qualifiers Qualifiers,
+                Expr *const TypeExpr,
                 Expr *const InitExpr = nullptr) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, InitExpr, TypeRef),
-          Linkage(Linkage::Private), Qualifiers(Qualifiers) {}
-
-        constexpr explicit
-        VarDecl(const std::string_view Name,
-                const SourceLocation NameLoc,
-                const VarQualifiers Qualifiers,
-                Sema::Type *const Type,
-                Expr *const InitExpr = nullptr) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, InitExpr, Type),
-          Linkage(Linkage::Private), Qualifiers(Qualifiers) {}
+        : LvalueTypedDecl(ObjKind, Name, NameLoc, TypeExpr, InitExpr),
+          Qualifiers(Qualifiers) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -50,12 +39,12 @@ namespace AST {
             return this->getRvalueExpr();
         }
 
-        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
-            return Qualifiers;
+        [[nodiscard]] inline auto &getQualifiers() const noexcept {
+            return this->Qualifiers;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
-            return Qualifiers;
+        [[nodiscard]] constexpr auto &getQualifiers() noexcept {
+            return this->Qualifiers;
         }
 
         constexpr auto setInitExpr(Expr *const InitExpr) noexcept

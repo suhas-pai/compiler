@@ -3,6 +3,8 @@
  */
 
 #pragma once
+
+#include <span>
 #include <vector>
 
 #include "ADT/StringMap.h"
@@ -16,8 +18,8 @@ namespace Sema {
         explicit SymbolTable() noexcept;
 
         constexpr explicit
-        SymbolTable(const std::vector<Scope *> &ScopeList) noexcept
-        : ScopeList(ScopeList) {}
+        SymbolTable(const std::span<Scope *> ScopeList) noexcept
+        : ScopeList(std::vector(ScopeList.begin(), ScopeList.end())) {}
 
         constexpr explicit
         SymbolTable(std::vector<Scope *> &&ScopeList) noexcept

@@ -6,10 +6,11 @@
 #include "Sema/Types/QualifiedTable.h"
 
 namespace Sema {
-    QualifiedType &
+    auto
     QualifiedTypeTable::getQualifiedTypeOrInsert(
         Type *const UnderlyingTy,
         const TypeQualifiers Qual) noexcept
+            -> QualifiedType &
     {
         if (const auto It = Table.find(UnderlyingTy); It != Table.end()) {
             return It->second;

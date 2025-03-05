@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "AST/Expr.h"
 #include "Parse/Operator.h"
+#include "Expr.h"
 
 namespace AST {
     struct BinaryOperation : public Expr {
@@ -21,9 +21,9 @@ namespace AST {
         constexpr explicit
         BinaryOperation(const Parse::BinaryOperator Operator,
                         const SourceLocation Loc,
-                        Expr *const Lhs,
-                        Expr *const Rhs) noexcept
-        : Expr(ObjKind), Operator(Operator), Loc(Loc), Lhs(Lhs), Rhs(Rhs) {}
+                        Expr &Lhs,
+                        Expr &Rhs) noexcept
+        : Expr(ObjKind), Operator(Operator), Loc(Loc), Lhs(&Lhs), Rhs(&Rhs) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -36,28 +36,28 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
-            return Loc;
+            return this->Loc;
         }
 
         [[nodiscard]] constexpr auto getOperator() const noexcept {
-            return Operator;
+            return this->Operator;
         }
 
         [[nodiscard]] constexpr auto &getLhs() const noexcept {
-            return *Lhs;
+            return *this->Lhs;
         }
 
         [[nodiscard]] constexpr auto &getRhs() const noexcept {
-            return *Rhs;
+            return *this->Rhs;
         }
 
-        constexpr auto setLhs(Expr *const Lhs) noexcept -> decltype(*this) {
-            this->Lhs = Lhs;
+        constexpr auto setLhs(Expr &Lhs) noexcept -> decltype(*this) {
+            this->Lhs = &Lhs;
             return *this;
         }
 
-        constexpr auto setRhs(Expr *const Rhs) noexcept -> decltype(*this) {
-            this->Rhs = Rhs;
+        constexpr auto setRhs(Expr &Rhs) noexcept -> decltype(*this) {
+            this->Rhs = &Rhs;
             return *this;
         }
     };

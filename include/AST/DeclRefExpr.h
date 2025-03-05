@@ -5,7 +5,7 @@
 #pragma once
 #include <string>
 
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
 #include "Expr.h"
 
 namespace AST {
@@ -32,18 +32,23 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getNameLoc() const noexcept {
-            return NameLoc;
+            return this->NameLoc;
         }
 
         [[nodiscard]]
         constexpr auto getName() const noexcept -> std::string_view {
-            return Name;
+            return this->Name;
         }
 
         constexpr auto setName(const std::string_view Name) noexcept
             -> decltype(*this)
         {
             this->Name = Name;
+            return *this;
+        }
+
+        constexpr auto setName(std::string &&Name) noexcept -> decltype(*this) {
+            this->Name = std::move(Name);
             return *this;
         }
 

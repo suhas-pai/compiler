@@ -5,22 +5,24 @@
 
 #pragma once
 
+#include <span>
 #include <vector>
-#include "FieldDecl.h"
+
+#include "AST/Expr.h"
 
 namespace AST {
     struct StructDecl : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::StructDecl;
     protected:
-        std::vector<FieldDecl *> FieldList;
+        std::vector<Stmt *> FieldList;
     public:
         constexpr explicit
-        StructDecl(const std::vector<FieldDecl *> &FieldList) noexcept
-        : Expr(ObjKind), FieldList(FieldList) {}
+        StructDecl(const std::span<Stmt *> FieldList) noexcept
+        : Expr(ObjKind),
+          FieldList(std::vector(FieldList.begin(), FieldList.end())) {}
 
-        constexpr explicit
-        StructDecl(std::vector<FieldDecl *> &&FieldList) noexcept
+        constexpr explicit StructDecl(std::vector<Stmt *> &&FieldList) noexcept
         : Expr(ObjKind), FieldList(std::move(FieldList)) {}
 
         [[nodiscard]]
@@ -33,12 +35,12 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto &getFieldList() const noexcept {
-            return FieldList;
+        [[nodiscard]] constexpr auto getFieldList() const noexcept {
+            return std::span(this->FieldList);
         }
 
         [[nodiscard]] constexpr auto &getFieldListRef() noexcept {
-            return FieldList;
+            return this->FieldList;
         }
     };
 }

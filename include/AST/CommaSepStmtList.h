@@ -5,8 +5,10 @@
 
 #pragma once
 
+#include <span>
 #include <vector>
-#include "AST/Stmt.h"
+
+#include "Stmt.h"
 
 namespace AST {
     class CommaSepStmtList : public Stmt {
@@ -16,8 +18,9 @@ namespace AST {
         std::vector<Stmt *> StmtList;
     public:
         constexpr explicit
-        CommaSepStmtList(const std::vector<Stmt *> &StmtList) noexcept
-        : Stmt(ObjKind), StmtList(StmtList) {}
+        CommaSepStmtList(const std::span<Stmt *> StmtList) noexcept
+        : Stmt(ObjKind),
+          StmtList(std::vector(StmtList.begin(), StmtList.end())) {}
 
         constexpr explicit
         CommaSepStmtList(std::vector<Stmt *> &&StmtList) noexcept
@@ -33,12 +36,12 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto &getStmtList() const noexcept {
-            return StmtList;
+        [[nodiscard]] constexpr auto getStmtList() const noexcept {
+            return std::span(this->StmtList);
         }
 
         [[nodiscard]] constexpr auto &getStmtListRef() noexcept {
-            return StmtList;
+            return this->StmtList;
         }
     };
 }

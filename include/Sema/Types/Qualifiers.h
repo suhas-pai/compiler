@@ -26,28 +26,28 @@ namespace Sema {
         : Bits(Bits) {}
 
         [[nodiscard]] constexpr auto getBits() const noexcept {
-            return Bits;
+            return this->Bits;
         }
 
         [[nodiscard]] constexpr auto isMutable() const noexcept {
-            return Bits & (1 << TypeQualifierMutable);
+            return this->Bits & (1 << TypeQualifierMutable);
         }
 
         [[nodiscard]] constexpr auto isVolatile() const noexcept {
-            return Bits & (1 << TypeQualifierVolatile);
+            return this->Bits & (1 << TypeQualifierVolatile);
         }
 
         constexpr auto setIsMutable(const bool IsMutable) noexcept
             -> decltype(*this)
         {
-            Bits |= 1 << TypeQualifierMutable;
+            this->Bits |= 1 << TypeQualifierMutable;
             return *this;
         }
 
         constexpr auto setIsVolatile(const bool IsVolatile) noexcept
             -> decltype(*this)
         {
-            Bits |= 1 << TypeQualifierVolatile;
+            this->Bits |= 1 << TypeQualifierVolatile;
             return *this;
         }
     };

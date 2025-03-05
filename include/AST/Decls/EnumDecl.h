@@ -4,24 +4,25 @@
  */
 
 #pragma once
+
+#include <span>
 #include <vector>
 
 #include "AST/Expr.h"
-#include "EnumMemberDecl.h"
+#include "AST/Stmt.h"
 
 namespace AST {
     class EnumDecl : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::EnumDecl;
     protected:
-        std::vector<EnumMemberDecl *> MemberList;
+        std::vector<Stmt *> MemberList;
     public:
-        constexpr explicit
-        EnumDecl(const std::vector<EnumMemberDecl *> &MemberList) noexcept
-        : Expr(ObjKind), MemberList(MemberList) {}
+        constexpr explicit EnumDecl(const std::span<Stmt *> MemberList) noexcept
+        : Expr(ObjKind),
+          MemberList(std::vector(MemberList.begin(), MemberList.end())) {}
 
-        constexpr explicit
-        EnumDecl(std::vector<EnumMemberDecl *> &&MemberList) noexcept
+        constexpr explicit EnumDecl(std::vector<Stmt *> &&MemberList) noexcept
         : Expr(ObjKind), MemberList(std::move(MemberList)) {}
 
         [[nodiscard]]
@@ -34,12 +35,12 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto &getMemberList() const noexcept {
-            return MemberList;
+        [[nodiscard]] constexpr auto getMemberList() const noexcept {
+            return std::span(this->MemberList);
         }
 
         [[nodiscard]] constexpr auto &getMemberListRef() noexcept {
-            return MemberList;
+            return this->MemberList;
         }
     };
 }

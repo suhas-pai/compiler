@@ -6,13 +6,14 @@
 #pragma once
 #include <string>
 
+#include "AST/Decls/DeclStmt.h"
 #include "AST/Expr.h"
 #include "AST/NodeKind.h"
 
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
 
 namespace AST {
-    struct LvalueNamedDecl : public Stmt {
+    struct LvalueNamedDecl : public DeclStmt {
     public:
         constexpr static auto ObjKind = NodeKind::LvalueNamedDecl;
     protected:
@@ -26,23 +27,27 @@ namespace AST {
                         const std::string_view Name,
                         const SourceLocation NameLoc,
                         Expr *const RvalueExpr) noexcept
-        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc), RvalueExpr(RvalueExpr) {}
+        : DeclStmt(ObjKind), Name(Name), NameLoc(NameLoc),
+          RvalueExpr(RvalueExpr) {}
     public:
         constexpr
         LvalueNamedDecl(const std::string_view Name,
                         const SourceLocation NameLoc,
                         Expr *const RvalueExpr) noexcept
-        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc), RvalueExpr(RvalueExpr) {}
+        : DeclStmt(ObjKind), Name(Name), NameLoc(NameLoc),
+          RvalueExpr(RvalueExpr) {}
 
         constexpr
         LvalueNamedDecl(std::string &&Name,
                         const SourceLocation NameLoc,
                         Expr *const RvalueExpr) noexcept
-        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc), RvalueExpr(RvalueExpr) {}
+        : DeclStmt(ObjKind), Name(Name), NameLoc(NameLoc),
+          RvalueExpr(RvalueExpr) {}
 
-        [[nodiscard]] constexpr static auto IsOfKind(const Stmt &Stmt) {
-            return Stmt.getKind() >= NodeKind::LvalueNamedDeclBase
-                && Stmt.getKind() <= NodeKind::LvalueNamedDeclLast;
+        [[nodiscard]]
+        constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
+            return Stmt.getKind() >= NodeKind::LvalueNamedDeclBase &&
+                   Stmt.getKind() <= NodeKind::LvalueNamedDeclLast;
         }
 
         [[nodiscard]] constexpr static auto classof(const Stmt *const Stmt) {
@@ -51,21 +56,28 @@ namespace AST {
 
         [[nodiscard]]
         constexpr auto getName() const noexcept -> std::string_view {
-            return Name;
+            return this->Name;
         }
 
         [[nodiscard]] constexpr auto getNameLoc() const noexcept {
-            return NameLoc;
+            return this->NameLoc;
         }
 
         [[nodiscard]] constexpr auto getRvalueExpr() const noexcept {
-            return RvalueExpr;
+            return this->RvalueExpr;
         }
 
         constexpr auto setName(const std::string_view Name) noexcept
             -> decltype(*this)
         {
             this->Name = Name;
+            return *this;
+        }
+
+        constexpr auto setName(std::string &&Name) noexcept
+            -> decltype(*this)
+        {
+            this->Name = std::move(Name);
             return *this;
         }
 

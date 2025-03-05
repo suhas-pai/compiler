@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "AST/Expr.h"
 #include "Lex/Token.h"
+#include "Expr.h"
 
 namespace AST {
     struct ParenExpr : public Expr {
@@ -33,15 +33,15 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
-            return Loc;
+            return this->Loc;
         }
 
         [[nodiscard]] constexpr auto getEnd() const noexcept {
-            return End;
+            return this->End;
         }
 
         [[nodiscard]] constexpr auto getChildExpr() const noexcept {
-            return ChildExpr;
+            return this->ChildExpr;
         }
 
         constexpr auto setChildExpr(Expr *const ChildExpr) noexcept

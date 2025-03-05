@@ -13,7 +13,7 @@ namespace AST {
         constexpr explicit Stmt(const NodeKind Kind) noexcept : Kind(Kind) {}
     public:
         [[nodiscard]] constexpr auto getKind() const noexcept {
-            return Kind;
+            return this->Kind;
         }
     };
 }

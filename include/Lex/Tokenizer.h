@@ -3,10 +3,11 @@
  */
 
 #pragma once
-
 #include <vector>
 
-#include "Interface/DiagnosticsEngine.h"
+#include "Diag/Consumer.h"
+#include "Lex/Infos.h"
+
 #include "Token.h"
 
 namespace Lex {
@@ -18,6 +19,7 @@ namespace Lex {
             CharLiteral,
             StringLiteral,
             IntegerLiteral,
+            IntegerLiteralWithSuffix,
             FloatLiteral,
             Identifier,
             DotIdentifier,
@@ -37,61 +39,62 @@ namespace Lex {
             ShiftRight,
             Equal,
             Exclamation,
+
             Dot,
+            DotDot,
         };
     protected:
         std::string_view Text;
 
-        uint32_t Row = 0;
-        uint32_t Index = 0;
-        uint16_t Column = 0;
+        SourceLocation Loc;
+        DiagnosticConsumer &Diag;
 
-        Interface::DiagnosticsEngine &Diag;
+        LineInfo CurrentLineInfo;
 
         [[nodiscard]] constexpr auto peek() const noexcept -> char {
-            if (Index >= Text.length()) {
+            if (this->Loc.Index >= this->Text.length()) {
                 return '\0';
             }
 
-            return Text.at(Index);
+            return this->Text.at(this->Loc.Index);
         }
 
         constexpr auto consume(const uint32_t Skip = 0) noexcept -> char {
             uint32_t End = 0;
-            if (__builtin_add_overflow(Index, Skip, &End)
-             || End >= Text.length())
-            {
+            if (__builtin_add_overflow(this->Loc.Index, Skip, &End)) {
                 return '\0';
             }
 
-            Index += Skip + 1;
-            return Text.at(Index - 1);
+            if (End >= this->Text.length()) {
+                return '\0';
+            }
+
+            this->Loc.Index += Skip + 1;
+            return this->Text.at(this->Loc.Index - 1);
         }
     public:
         constexpr explicit
         Tokenizer(const std::string_view Text,
-                  Interface::DiagnosticsEngine &Diag) noexcept
-        : Text(Text), Diag(Diag) {}
+                  DiagnosticConsumer &DiagConsumer) noexcept
+        : Text(Text), Diag(DiagConsumer), CurrentLineInfo() {}
 
         [[nodiscard]] constexpr auto getIndex() const noexcept {
-            return Index;
+            return this->Loc.Index;
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
-            return SourceLocation {
-                .Index = Index,
-                .Row = Row,
-                .Column = Column
-            };
+            return this->Loc;
         }
 
-        [[nodiscard]] auto next() noexcept -> Lex::Token;
+        [[nodiscard]] auto next() noexcept
+            -> std::pair<Lex::Token, Lex::LineInfo>;
+
         [[nodiscard]] auto createList() noexcept
             -> std::optional<std::vector<Lex::Token>>
         {
             auto Result = std::vector<Lex::Token>();
             while (true) {
-                const auto Token = this->next();
+                const auto [Token, LineInfo] = this->next();
                 if (Token.Kind == TokenKind::EOFToken) {
                     return Result;
                 }

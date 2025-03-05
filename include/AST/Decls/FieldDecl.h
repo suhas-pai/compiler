@@ -14,16 +14,9 @@ namespace AST {
         constexpr explicit
         FieldDecl(const std::string_view Name,
                   const SourceLocation NameLoc,
-                  TypeRef *const Type,
+                  Expr *const TypeExpr,
                   Expr *const InitExpr) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, InitExpr, Type) {}
-
-        constexpr explicit
-        FieldDecl(const std::string_view Name,
-                  const SourceLocation NameLoc,
-                  Sema::Type *const Type,
-                  Expr *const InitExpr) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, InitExpr, Type) {}
+        : LvalueTypedDecl(ObjKind, Name, NameLoc, TypeExpr, InitExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -36,7 +29,14 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getInitExpr() const noexcept {
-            return getRvalueExpr();
+            return this->getRvalueExpr();
+        }
+
+        constexpr auto setInitExpr(Expr *const InitExpr) noexcept
+            -> decltype(*this)
+        {
+            this->setRvalueExpr(InitExpr);
+            return *this;
         }
     };
 }

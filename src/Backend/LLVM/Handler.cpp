@@ -3,9 +3,9 @@
  */
 
 #include <memory>
-
-#include "Backend/LLVM/Codegen.h"
 #include "Backend/LLVM/Handler.h"
+#include "AST/Decls/FunctionDecl.h"
+#include "Backend/LLVM/Codegen.h"
 
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/TargetSelect.h"
@@ -24,64 +24,64 @@ namespace Backend::LLVM {
 
     void Handler::allocCoreFields(const llvm::StringRef &Name) noexcept {
         // Open a new context and module.
-        TheContext = std::make_unique<llvm::LLVMContext>();
-        TheModule =
+        this->TheContext = std::make_unique<llvm::LLVMContext>();
+        this->TheModule =
             std::make_unique<llvm::Module>("KaleidoscopeJIT", *TheContext);
     }
 
     void Handler::initialize(const llvm::StringRef &Name) noexcept {
-        allocCoreFields("Compiler");
-        Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
+        this->allocCoreFields("Compiler");
+        this->Builder = std::make_unique<llvm::IRBuilder<>>(*TheContext);
 
         // Create new pass and analysis managers.
-        FPM = std::make_unique<llvm::FunctionPassManager>();
-        FPM = std::make_unique<llvm::FunctionPassManager>();
-        LAM = std::make_unique<llvm::LoopAnalysisManager>();
-        FAM = std::make_unique<llvm::FunctionAnalysisManager>();
-        CGAM = std::make_unique<llvm::CGSCCAnalysisManager>();
-        MAM = std::make_unique<llvm::ModuleAnalysisManager>();
-        PIC = std::make_unique<llvm::PassInstrumentationCallbacks>();
-        SI =
+        this->FPM = std::make_unique<llvm::FunctionPassManager>();
+        this->LAM = std::make_unique<llvm::LoopAnalysisManager>();
+        this->FAM = std::make_unique<llvm::FunctionAnalysisManager>();
+        this->CGAM = std::make_unique<llvm::CGSCCAnalysisManager>();
+        this->MAM = std::make_unique<llvm::ModuleAnalysisManager>();
+        this->PIC = std::make_unique<llvm::PassInstrumentationCallbacks>();
+        this->SI =
             std::make_unique<llvm::StandardInstrumentations>(
                 *TheContext,
                 /*DebugLogging*/true);
 
-        SI->registerCallbacks(*PIC, MAM.get());
+        this->SI->registerCallbacks(*PIC, MAM.get());
         // Add transform passes.
         // Do simple "peephole" optimizations and bit-twiddling optzns.
-        FPM->addPass(llvm::InstCombinePass());
+        this->FPM->addPass(llvm::InstCombinePass());
         // Re-associate expressions.
-        FPM->addPass(llvm::ReassociatePass());
+        this->FPM->addPass(llvm::ReassociatePass());
         // Eliminate Common SubExpressions.
-        FPM->addPass(llvm::GVNPass());
+        this->FPM->addPass(llvm::GVNPass());
         // Simplify the control flow graph (deleting unreachable blocks, etc).
-        FPM->addPass(llvm::SimplifyCFGPass());
+        this->FPM->addPass(llvm::SimplifyCFGPass());
 
         // Register analysis passes used in these transform passes.
-        llvm::PassBuilder PB;
+        auto PB = llvm::PassBuilder();
+
         PB.registerModuleAnalyses(*MAM);
         PB.registerFunctionAnalyses(*FAM);
         PB.crossRegisterProxies(*LAM, *FAM, *CGAM, *MAM);
     }
 
     Handler::Handler(const llvm::StringRef &Name,
-                     Interface::DiagnosticsEngine &Diag) noexcept
+                     DiagnosticConsumer &Diag) noexcept
     : Diag(Diag)
     {
-        initialize("Compiler");
+        this->initialize("Compiler");
     }
 
-    Handler::Handler(Interface::DiagnosticsEngine &Diag) noexcept
+    Handler::Handler(DiagnosticConsumer  &Diag) noexcept
     : Handler("Compiler", Diag) {}
 
     auto
     ValueMap::addValue(const std::string_view Name,
                        llvm::Value *const Value) noexcept -> decltype(*this)
     {
-        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
+        if (const auto Iter = this->Map.find(Name); Iter != this->Map.end()) {
             Iter->second.push_back(Value);
         } else {
-            Map.insert({ std::string(Name), std::vector({Value}) });
+            this->Map.insert({ std::string(Name), std::vector({Value}) });
         }
 
         return *this;
@@ -91,21 +91,21 @@ namespace Backend::LLVM {
     ValueMap::setValue(const std::string_view Name,
                        llvm::Value *const Value) noexcept -> decltype(*this)
     {
-        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
+        if (const auto Iter = this->Map.find(Name); Iter != this->Map.end()) {
             Iter->second.clear();
             Iter->second.push_back(Value);
 
             return *this;
         }
 
-        Map.insert({ std::string(Name), std::vector({Value}) });
+        this->Map.insert({ std::string(Name), std::vector({Value}) });
         return *this;
     }
 
     auto ValueMap::getValue(const std::string_view Name) const noexcept
         -> llvm::Value *
     {
-        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
+        if (const auto Iter = this->Map.find(Name); Iter != this->Map.end()) {
             return Iter->second.back();
         }
 
@@ -115,7 +115,7 @@ namespace Backend::LLVM {
     auto ValueMap::removeValue(const std::string_view Name) noexcept
         -> decltype(*this)
     {
-        if (const auto Iter = Map.find(Name); Iter != Map.end()) {
+        if (const auto Iter = this->Map.find(Name); Iter != this->Map.end()) {
             Iter->second.pop_back();
             if (Iter->second.empty()) {
                 Map.erase(Iter);
@@ -126,7 +126,7 @@ namespace Backend::LLVM {
     }
 
     auto ValueMap::clear() noexcept -> decltype(*this) {
-        Map.clear();
+        this->Map.clear();
         return *this;
     }
 
@@ -134,15 +134,15 @@ namespace Backend::LLVM {
     Handler::addASTNode(const std::string_view Name, AST::Stmt &Node) noexcept
         -> decltype(*this)
     {
-        getNameToASTNodeMapRef().insert({ std::string(Name), &Node });
+        this->getNameToASTNodeMapRef().insert({ std::string(Name), &Node });
         return *this;
     }
 
     auto Handler::getASTNode(const std::string_view Name) noexcept
         -> AST::Stmt *
     {
-        const auto Iter = getNameToASTNodeMap().find(Name);
-        if (Iter == getNameToASTNodeMap().end()) {
+        const auto Iter = this->getNameToASTNodeMap().find(Name);
+        if (Iter == this->getNameToASTNodeMap().end()) {
             return nullptr;
         }
 
@@ -152,7 +152,7 @@ namespace Backend::LLVM {
     auto Handler::removeASTNode(const std::string_view Name) noexcept
         -> decltype(*this)
     {
-        auto &Map = getNameToASTNodeMapRef();
+        auto &Map = this->getNameToASTNodeMapRef();
         if (const auto Iter = Map.find(Name); Iter != Map.end()) {
             Map.erase(Iter);
         }
@@ -160,12 +160,9 @@ namespace Backend::LLVM {
         return *this;
     }
 
-    bool Handler::evaluate(AST::Context &Context) noexcept {
+    bool Handler::evaluate(Parse::ParseUnit &Unit) noexcept {
         auto ValueMap = LLVM::ValueMap();
-        const auto &DeclMap =
-            Context.getSymbolTable().getGlobalScope().getDeclMap();
-
-        for (const auto &[Name, Decl] : DeclMap) {
+        for (const auto &[Name, Decl] : Unit.getTopLevelDeclList()) {
             // We need to be able to reference a function within its body,
             // so this case must be handled differently.
 
@@ -184,7 +181,9 @@ namespace Backend::LLVM {
                 continue;
             }
 
-            if (const auto ValueOpt = codegen(*Decl, getBuilder(), ValueMap)) {
+            if (const auto ValueOpt =
+                    this->codegen(*Decl, this->getBuilder(), ValueMap))
+            {
                 addASTNode(Name, *Decl);
                 ValueMap.addValue(Name, ValueOpt.value());
 

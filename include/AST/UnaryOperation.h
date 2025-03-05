@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "AST/Expr.h"
 #include "Parse/Operator.h"
+#include "Expr.h"
 
 namespace AST {
     struct UnaryOperation : public Expr {
@@ -34,15 +34,15 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getLoc() const noexcept {
-            return Loc;
+            return this->Loc;
         }
 
         [[nodiscard]] constexpr auto getOperator() const noexcept {
-            return Operator;
+            return this->Operator;
         }
 
         [[nodiscard]] constexpr auto &getOperand() const noexcept {
-            return *Operand;
+            return *this->Operand;
         }
 
         constexpr auto setOperator(const Parse::UnaryOperator Operator) noexcept

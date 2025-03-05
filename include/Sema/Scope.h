@@ -22,7 +22,7 @@ namespace Sema {
         auto removeDecl(AST::LvalueNamedDecl *Decl) noexcept -> decltype(*this);
 
         [[nodiscard]] constexpr auto &getDeclMap() const noexcept {
-            return DeclMap;
+            return this->DeclMap;
         }
 
         [[nodiscard]]

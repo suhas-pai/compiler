@@ -5,73 +5,206 @@
 #include <cassert>
 #include <cstdio>
 
-#include "AST/Decls/EnumDecl.h"
-#include "AST/Decls/FunctionDecl.h"
-#include "AST/Decls/LambdaDecl.h"
-#include "AST/Decls/LvalueNamedDecl.h"
-#include "AST/Decls/StructDecl.h"
-
+#include "AST/ArraySubscriptExpr.h"
 #include "AST/BinaryOperation.h"
+#include "AST/CallExpr.h"
+#include "AST/CastExpr.h"
+#include "AST/CharLiteral.h"
+#include "AST/CommaSepStmtList.h"
+#include "AST/CompoundStmt.h"
 #include "AST/DeclRefExpr.h"
+#include "AST/Decls/ArrayDecl.h"
+#include "AST/Decls/ArrayDestructredVarDecl.h"
+#include "AST/Decls/ArrowFunctionDecl.h"
+#include "AST/Decls/ClosureDecl.h"
+#include "AST/Decls/ObjectDestructuredVarDecl.h"
+#include "AST/Decls/EnumDecl.h"
+#include "AST/Decls/EnumMemberDecl.h"
+#include "AST/Decls/FieldDecl.h"
+#include "AST/Decls/FunctionDecl.h"
+#include "AST/Decls/ParamVarDecl.h"
+#include "AST/Decls/StructDecl.h"
+#include "AST/Decls/VarDecl.h"
+#include "AST/FieldExpr.h"
+#include "AST/ForStmt.h"
+#include "AST/IfStmt.h"
+#include "AST/NumberLiteral.h"
+#include "AST/OptionalExpr.h"
+#include "AST/ParenExpr.h"
+#include "AST/PointerExpr.h"
+#include "AST/ReturnStmt.h"
+#include "AST/StringLiteral.h"
+#include "AST/UnaryOperation.h"
 
+#include "Backend/LLVM/Handler.h"
 #include "Backend/LLVM/JIT.h"
+
 #include "Basic/ArgvLexer.h"
+#include "Diag/Consumer.h"
+#include "Lex/TokenBuffer.h"
 
-#include "Interface/ANSI.h"
-#include "Interface/Repl.h"
-
-#include "Lex/Tokenizer.h"
-#include "Parse/Parser.h"
+#include "Misc/Repl.h"
+#include "Parse/ParseUnit.h"
+#include "Source/SourceBuffer.h"
 
 static void PrintDepth(const uint8_t Depth) noexcept {
     for (auto I = uint8_t(); I != Depth; ++I) {
-        printf("    ");
+        std::print("    ");
     }
 }
 
 static void
-PrintTypeQualifiers(const char *const Prefix,
-                    const Sema::TypeQualifiers Qual,
-                    const char *const Suffix) noexcept
+PrintAST(Backend::LLVM::Handler &Handler,
+         AST::Stmt *const Stmt,
+         const uint8_t Depth) noexcept;
+
+static void
+PrintArrayDestructureItemIndex(Backend::LLVM::Handler &Handler,
+                               const AST::ArrayDestructureIndex &Item,
+                               const uint8_t Depth) noexcept
 {
-    printf("%s%s, %s%s",
-           Prefix,
-           Qual.isMutable() ? "mutable" : "immutable",
-           Qual.isVolatile() ? "volatile" : "non-volatile",
-           Suffix);
+    PrintDepth(Depth);
+    std::print("ArrayDestructureIndex\n");
+
+    PrintAST(Handler, Item.IndexExpr, Depth + 1);
 }
 
-static void PrintTypeRefInstInfo(AST::TypeRef::Inst *const Inst) {
-    switch (Inst->getKind()) {
-        case AST::TypeRef::InstKind::Pointer: {
-            const auto PtrInst = llvm::cast<AST::TypeRef::PointerInst>(Inst);
-            const auto Qual = PtrInst->getQualifiers();
+static void
+PrintObjectDestructureFieldList(
+    Backend::LLVM::Handler &Handler,
+    const std::span<AST::ObjectDestructureField *const> FieldList,
+    const uint8_t Depth) noexcept;
 
-            PrintTypeQualifiers("Pointer<", Qual, ">");
-            break;
-        }
-        case AST::TypeRef::InstKind::Type: {
-            const auto TypeInst = llvm::cast<AST::TypeRef::TypeInst>(Inst);
-            const auto Qual = TypeInst->getQualifiers();
+static void
+PrintArrayDestructureItemList(
+    Backend::LLVM::Handler &Handler,
+    const std::span<AST::ArrayDestructureItem *const> ItemList,
+    const uint8_t Depth) noexcept
+{
+    for (const auto Item : ItemList) {
+        PrintDepth(Depth);
+        switch (Item->getKind()) {
+            case AST::ArrayDestructureItemKind::Identifier: {
+                const auto IdentifierItem =
+                    llvm::cast<AST::ArrayDestructureItemIdentifier>(Item);
 
-            PrintTypeQualifiers("Type<", Qual, ">");
-            break;
+                std::print("ArrayDestructureItemIdentifier<\"{}\">\n",
+                           IdentifierItem->Name);
+
+                if (Item->Index.has_value()) {
+                    PrintArrayDestructureItemIndex(Handler, Item->Index.value(),
+                                                   Depth + 1);
+                }
+
+                continue;
+            }
+            case AST::ArrayDestructureItemKind::Array: {
+                const auto ArrayItem =
+                    llvm::cast<AST::ArrayDestructureItemArray>(Item);
+
+                std::print("ArrayDestructureItemArray\n");
+                PrintArrayDestructureItemList(Handler, ArrayItem->ItemList,
+                                              Depth + 1);
+
+                if (const auto Index = Item->Index) {
+                    PrintArrayDestructureItemIndex(Handler, Index.value(),
+                                                   Depth + 1);
+                }
+
+                continue;
+            }
+            case AST::ArrayDestructureItemKind::Object: {
+                const auto ObjectItem =
+                    llvm::cast<AST::ArrayDestructureItemObject>(Item);
+
+                std::print("ArrayDestructureItemObject\n");
+                PrintObjectDestructureFieldList(Handler, ObjectItem->FieldList,
+                                                Depth + 1);
+
+                if (const auto Index = Item->Index) {
+                    PrintArrayDestructureItemIndex(Handler, Index.value(),
+                                                   Depth + 1);
+                }
+
+                continue;
+            }
+            case AST::ArrayDestructureItemKind::Spread: {
+                const auto SpreadItem =
+                    llvm::cast<AST::ArrayDestructureItemSpread>(Item);
+
+                std::print("ArrayDestructureItemSpread<\"{}\">\n",
+                           SpreadItem->Name);
+
+                if (const auto Index = Item->Index) {
+                    PrintArrayDestructureItemIndex(Handler, Index.value(),
+                                                   Depth + 1);
+                }
+
+                continue;
+            }
         }
-        case AST::TypeRef::InstKind::Array: {
-            printf("Array<>");
-            break;
-        }
-        case AST::TypeRef::InstKind::Union: {
-            printf("Union<>");
-            break;
-        }
-        case AST::TypeRef::InstKind::Intersect:
-            printf("Intersect<>");
-            break;
+
+        __builtin_unreachable();
     }
 }
 
-void
+static void
+PrintObjectDestructureFieldList(
+    Backend::LLVM::Handler &Handler,
+    const std::span<AST::ObjectDestructureField *const> FieldList,
+    const uint8_t Depth) noexcept
+{
+    for (const auto Item : FieldList) {
+        PrintDepth(Depth);
+        switch (Item->getKind()) {
+            case AST::ObjectDestructureFieldKind::Identifier: {
+                const auto ObjectDestructureIdentifier =
+                    llvm::cast<AST::ObjectDestructureFieldIdentifier>(Item);
+
+                std::print("ObjectDestructureItemIdentifier<\"{}\">\n",
+                           ObjectDestructureIdentifier->Name);
+
+                continue;
+            }
+            case AST::ObjectDestructureFieldKind::Array: {
+                const auto ObjectDestructureArray =
+                    llvm::cast<AST::ObjectDestructureFieldArray>(Item);
+
+                std::print("ObjectDestructureItemArray<\"{}\">\n",
+                           ObjectDestructureArray->Key);
+
+                PrintArrayDestructureItemList(Handler,
+                                              ObjectDestructureArray->ItemList,
+                                              Depth + 1);
+
+                continue;
+            }
+            case AST::ObjectDestructureFieldKind::Object: {
+                const auto ObjectDestructureObject =
+                    llvm::cast<AST::ObjectDestructureFieldObject>(Item);
+
+                std::print("ObjectDestructureItemObject\n");
+                PrintObjectDestructureFieldList(
+                    Handler, ObjectDestructureObject->FieldList, Depth + 1);
+
+                continue;
+            }
+            case AST::ObjectDestructureFieldKind::Spread: {
+                const auto ObjectDestructureSpread =
+                    llvm::cast<AST::ObjectDestructureFieldSpread>(Item);
+
+                std::print("ObjectDestructureItemSpread<\"{}\">\n",
+                           ObjectDestructureSpread->Key);
+
+                continue;
+            }
+        }
+
+        __builtin_unreachable();
+    }
+}
+
+static void
 PrintAST(Backend::LLVM::Handler &Handler,
          AST::Stmt *const Stmt,
          const uint8_t Depth) noexcept
@@ -87,286 +220,364 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto Lexeme =
                 Parse::BinaryOperatorToLexemeMap[BinaryExpr->getOperator()];
 
-            printf("BinaryOperation<\"%s\">\n", Lexeme->data());
+            std::print("BinaryOperation<\"{}\">\n", Lexeme.value());
 
             PrintAST(Handler, &BinaryExpr->getLhs(), Depth + 1);
             PrintAST(Handler, &BinaryExpr->getRhs(), Depth + 1);
 
-            break;
+            return;
         }
         case AST::NodeKind::UnaryOperation: {
             const auto UnaryExpr = llvm::cast<AST::UnaryOperation>(Stmt);
             const auto Lexeme =
                 Parse::UnaryOperatorToLexemeMap[UnaryExpr->getOperator()];
 
-            printf("UnaryOperation<%s>\n", Lexeme->data());
+            std::print("UnaryOperation<{}>\n", Lexeme.value());
             PrintAST(Handler, &UnaryExpr->getOperand(), Depth + 1);
 
-            break;
+            return;
         }
         case AST::NodeKind::CharLiteral: {
             const auto CharLit = llvm::cast<AST::CharLiteral>(Stmt);
-            printf("CharLiteral<%c>\n", CharLit->getValue());
+            std::print("CharLiteral<{}>\n", CharLit->getValue());
 
-            break;
+            return;
         }
         case AST::NodeKind::NumberLiteral: {
             const auto IntLit = llvm::cast<AST::NumberLiteral>(Stmt);
-            switch (IntLit->getNumber().Kind) {
+            switch (IntLit->getNumber().Success.Kind) {
                 case Parse::NumberKind::UnsignedInteger:
-                    printf("NumberLiteral<%" PRIu64 ", unsigned>\n",
-                           IntLit->getNumber().UInt);
-                    break;
+                    std::print("NumberLiteral<{}, unsigned>\n",
+                               IntLit->getNumber().Success.UInt);
+                    return;
                 case Parse::NumberKind::SignedInteger:
-                    printf("NumberLiteral<%" PRId64 ", signed>\n",
-                           IntLit->getNumber().SInt);
-                    break;
-                case Parse::NumberKind::FloatingPoint8:
-                case Parse::NumberKind::FloatingPoint16:
-                case Parse::NumberKind::FloatingPoint32:
-                case Parse::NumberKind::FloatingPoint64:
+                    std::print("NumberLiteral<{}, signed>\n",
+                               IntLit->getNumber().Success.SInt);
+                    return;
+                case Parse::NumberKind::FloatingPoint:
                     assert(false && "Floating point literals not supported");
             }
 
-            break;
+            return;
         }
         case AST::NodeKind::FloatLiteral:
             assert(false && "Got float-literal while printing AST");
         case AST::NodeKind::StringLiteral: {
             const auto StringLit = llvm::cast<AST::StringLiteral>(Stmt);
-            printf("StringLiteral<" SV_FMT ">\n",
-                   SV_FMT_ARG(StringLit->getValue()));
+            std::print("StringLiteral<\"{}\">\n", StringLit->value());
 
-            break;
+            return;
         }
         case AST::NodeKind::VarDecl: {
             const auto VarDecl = llvm::cast<AST::VarDecl>(Stmt);
-            printf("VarDecl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(VarDecl->getName()));
+            std::print("VarDecl<\"{}\">\n", VarDecl->getName());
 
-            PrintAST(Handler, VarDecl->getTypeRef(), Depth + 1);
+            PrintAST(Handler, VarDecl->getTypeExpr(), Depth + 1);
             PrintAST(Handler, VarDecl->getInitExpr(), Depth + 1);
 
-            break;
+            return;
         }
         case AST::NodeKind::Paren: {
             const auto ParenExpr = llvm::cast<AST::ParenExpr>(Stmt);
 
-            printf("ParenExpr\n");
+            std::print("ParenExpr\n");
             PrintAST(Handler, ParenExpr->getChildExpr(), Depth + 1);
 
-            break;
+            return;
         }
         case AST::NodeKind::ParamVarDecl: {
             const auto ParamDecl = llvm::cast<AST::ParamVarDecl>(Stmt);
-            printf("ParamDecl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(ParamDecl->getName()));
+            std::print("ParamDecl<\"{}\">\n", ParamDecl->getName());
 
-            PrintAST(Handler, ParamDecl->getTypeRef(), Depth + 1);
+            PrintAST(Handler, ParamDecl->getTypeExpr(), Depth + 1);
             PrintAST(Handler, ParamDecl->getDefaultExpr(), Depth + 1);
 
-            break;
+            return;
         }
         case AST::NodeKind::FunctionDecl: {
             const auto FuncDecl = llvm::cast<AST::FunctionDecl>(Stmt);
-            printf("FunctionDecl\n");
+            std::print("FunctionDecl\n");
+
+            PrintDepth(Depth + 1);
+            std::print("Args\n");
 
             const auto &ParamList = FuncDecl->getParamList();
             for (const auto &Param : ParamList) {
-                PrintAST(Handler, Param, Depth + 1);
+                PrintAST(Handler, Param, Depth + 2);
             }
 
-            PrintAST(Handler, FuncDecl->getBody(), Depth + 1);
-            break;
+            PrintDepth(Depth + 1);
+            std::print("Body\n");
+
+            PrintAST(Handler, FuncDecl->getBody(), Depth + 2);
+            return;
         }
         case AST::NodeKind::DeclRefExpr: {
             const auto VarRef = llvm::cast<AST::DeclRefExpr>(Stmt);
-            printf("DeclRefExpr<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(VarRef->getName()));
+            std::print("DeclRefExpr<\"{}\">\n", VarRef->getName());
 
-            break;
+            return;
         }
         case AST::NodeKind::CallExpr: {
             const auto CallExpr = llvm::cast<AST::CallExpr>(Stmt);
-            printf("CallExpr\n");
+
+            std::print("CallExpr\n");
+            PrintAST(Handler, CallExpr->getCallee(), Depth + 1);
+
+            PrintDepth(Depth + 1);
+            std::print("Args\n");
 
             for (const auto &Arg : CallExpr->getArgs()) {
-                PrintAST(Handler, Arg, Depth + 1);
+                PrintAST(Handler, Arg, Depth + 2);
             }
 
-            PrintAST(Handler, CallExpr->getCallee(), Depth + 1);
-            break;
+            return;
         }
         case AST::NodeKind::IfStmt: {
             const auto IfStmt = llvm::cast<AST::IfStmt>(Stmt);
-            printf("IfStmt\n");
 
+            std::print("IfStmt\n");
             PrintAST(Handler, IfStmt->getCond(), Depth + 1);
+
+            std::print("\tThen\n");
             PrintAST(Handler, IfStmt->getThen(), Depth + 2);
 
-            printf("\tElseStmt\n");
+            std::print("\tElseStmt\n");
             PrintAST(Handler, IfStmt->getElse(), Depth + 2);
 
-            break;
+            return;
         }
         case AST::NodeKind::ReturnStmt: {
             const auto ReturnStmt = llvm::cast<AST::ReturnStmt>(Stmt);
 
-            printf("ReturnStmt\n");
+            std::print("ReturnStmt\n");
             PrintAST(Handler, ReturnStmt->getValue(), Depth + 1);
 
-            break;
+            return;
         }
         case AST::NodeKind::CompoundStmt: {
             const auto CompoundStmt = llvm::cast<AST::CompoundStmt>(Stmt);
+            std::print("CompoundStmt\n");
 
-            printf("CompoundStmt\n");
             for (const auto &Stmt : CompoundStmt->getStmtList()) {
                 PrintAST(Handler, Stmt, Depth + 1);
             }
 
-            break;
-        }
-        case AST::NodeKind::TypeRef: {
-            const auto TypeRef = llvm::cast<AST::TypeRef>(Stmt);
-
-            printf("TypeRef\n");
-            PrintDepth(Depth + 1);
-
-            const auto &InstList = TypeRef->getInstList();
-            printf("Instructions: [");
-
-            if (!InstList.empty()) {
-                PrintTypeRefInstInfo(InstList.front());
-                for (auto It = std::next(InstList.begin()),
-                        End = InstList.end();
-                     It != End;
-                     ++It)
-                {
-                    printf(", ");
-                    PrintTypeRefInstInfo(*It);
-                }
-
-                printf("]\n");
-            } else {
-                printf("] (empty)\n");
-            }
-
-            break;
+            return;
         }
         case AST::NodeKind::StructDecl: {
             const auto StructDecl = llvm::cast<AST::StructDecl>(Stmt);
-            printf("StructDecl\n");
+            std::print("StructDecl\n");
 
             for (const auto Field : StructDecl->getFieldList()) {
                 PrintAST(Handler, Field, Depth + 1);
             }
 
-            break;
+            return;
         }
         case AST::NodeKind::FieldDecl: {
             const auto FieldDecl = llvm::cast<AST::FieldDecl>(Stmt);
-            printf("FieldDecl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(FieldDecl->getName()));
+            std::print("FieldDecl<\"{}\">\n", FieldDecl->getName());
 
-            PrintAST(Handler, FieldDecl->getTypeRef(), Depth + 1);
+            PrintAST(Handler, FieldDecl->getTypeExpr(), Depth + 1);
             PrintAST(Handler, FieldDecl->getInitExpr(), Depth + 1);
 
-            break;
+            return;
         }
         case AST::NodeKind::FieldExpr: {
             const auto FieldExpr = llvm::cast<AST::FieldExpr>(Stmt);
-            printf("MemberAccessExpr<\'%s\', \"" SV_FMT "\">\n",
-                   FieldExpr->isArrow() ? "->" : ".",
-                   SV_FMT_ARG(FieldExpr->getMemberName()));
+            std::print("MemberAccessExpr<'{}', \"{}\">\n",
+                       FieldExpr->isArrow() ? "->" : ".",
+                       FieldExpr->getMemberName());
 
             PrintAST(Handler, FieldExpr->getBase(), Depth + 1);
-            break;
+            return;
         }
         case AST::NodeKind::ArraySubscriptExpr: {
             const auto ArraySubscriptExpr =
                 llvm::cast<AST::ArraySubscriptExpr>(Stmt);
 
-            printf("ArraySubscriptExpr\n");
-
+            std::print("ArraySubscriptExpr\n");
             PrintAST(Handler, ArraySubscriptExpr->getBase(), Depth + 1);
-            PrintAST(Handler,
-                     ArraySubscriptExpr->getBracketedExpr(),
-                     Depth + 1);
 
-            break;
-        }
+            PrintDepth(Depth + 1);
+            std::print("DetailList\n");
 
-        case AST::NodeKind::EnumMemberDecl: {
-            const auto EnumMemberDecl = llvm::cast<AST::EnumMemberDecl>(Stmt);
-            printf("EnumMemberDecl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(EnumMemberDecl->getName()));
-
-            PrintAST(Handler, EnumMemberDecl->getInitExpr(), Depth + 1);
-            break;
-        }
-        case AST::NodeKind::EnumDecl: {
-            const auto EnumDecl = llvm::cast<AST::EnumDecl>(Stmt);
-            printf("EnumDecl\n");
-
-            for (const auto &EnumMember : EnumDecl->getMemberList()) {
-                PrintAST(Handler, EnumMember, Depth + 1);
+            for (const auto Stmt : ArraySubscriptExpr->getDetailList()) {
+                PrintAST(Handler, Stmt, Depth + 2);
             }
 
-            break;
-        }
-        case AST::NodeKind::ArrayDecl: {
-            const auto ArrayDecl = llvm::cast<AST::ArrayDecl>(Stmt);
-            printf("ArrayDecl\n");
-
-            for (const auto &Element : ArrayDecl->getElementList()) {
-                PrintAST(Handler, Element, Depth + 1);
-            }
-
-            break;
-        }
-        case AST::NodeKind::LambdaDecl: {
-            const auto LambdaDecl = llvm::cast<AST::LambdaDecl>(Stmt);
-            printf("LambdaDecl\n");
-
-            PrintAST(Handler, LambdaDecl->getCaptureList(), Depth + 1);
-            for (const auto &Param : LambdaDecl->getParamList()) {
-                PrintAST(Handler, Param, Depth + 1);
-            }
-
-            break;
+            return;
         }
         case AST::NodeKind::LvalueNamedDecl: {
             const auto LvalueNamedDecl = llvm::cast<AST::LvalueNamedDecl>(Stmt);
-            printf("LvalueNamedDecl<\"" SV_FMT "\">\n",
-                   SV_FMT_ARG(LvalueNamedDecl->getName()));
+            std::print("LvalueNamedDecl<\"{}\">\n", LvalueNamedDecl->getName());
 
             PrintAST(Handler, LvalueNamedDecl->getRvalueExpr(), Depth + 1);
-            break;
+            return;
+        }
+        case AST::NodeKind::EnumMemberDecl: {
+            const auto EnumMemberDecl = llvm::cast<AST::EnumMemberDecl>(Stmt);
+            std::print("EnumMemberDecl<\"{}\">\n", EnumMemberDecl->getName());
+
+            PrintAST(Handler, EnumMemberDecl->getInitExpr(), Depth + 1);
+            return;
+        }
+        case AST::NodeKind::EnumDecl: {
+            const auto EnumDecl = llvm::cast<AST::EnumDecl>(Stmt);
+            std::print("EnumDecl\n");
+
+            for (const auto EnumMember : EnumDecl->getMemberList()) {
+                PrintAST(Handler, EnumMember, Depth + 1);
+            }
+
+            return;
+        }
+        case AST::NodeKind::ArrayDecl: {
+            const auto ArrayDecl = llvm::cast<AST::ArrayDecl>(Stmt);
+            std::print("ArrayDecl\n");
+
+            for (const auto Element : ArrayDecl->getElementList()) {
+                PrintAST(Handler, Element, Depth + 1);
+            }
+
+            return;
+        }
+        case AST::NodeKind::ClosureDecl: {
+            const auto LambdaDecl = llvm::cast<AST::ClosureDecl>(Stmt);
+            std::print("LambdaDecl\n");
+
+            PrintDepth(Depth + 1);
+            std::print("CaptureList\n");
+
+            for (const auto Capture : LambdaDecl->getCaptureList()) {
+                PrintAST(Handler, Capture, Depth + 2);
+            }
+
+            PrintDepth(Depth + 1);
+            std::print("Arguments\n");
+
+            for (const auto Param : LambdaDecl->getParamList()) {
+                PrintAST(Handler, Param, Depth + 2);
+            }
+
+            PrintDepth(Depth + 1);
+            std::print("Body\n");
+
+            PrintAST(Handler, LambdaDecl->getBody(), Depth + 2);
+            return;
         }
         case AST::NodeKind::CommaSepStmtList: {
             const auto CommaSepStmtList =
                 llvm::cast<AST::CommaSepStmtList>(Stmt);
 
-            printf("CommaSepStmtList\n");
-            for (const auto &Stmt : CommaSepStmtList->getStmtList()) {
+            std::print("CommaSepStmtList\n");
+            for (const auto Stmt : CommaSepStmtList->getStmtList()) {
                 PrintAST(Handler, Stmt, Depth + 1);
             }
 
-            break;
+            return;
         }
         case AST::NodeKind::ForStmt: {
             const auto ForStmt = llvm::cast<AST::ForStmt>(Stmt);
-            printf("ForStmt\n");
+            std::print("ForStmt\n");
 
             PrintAST(Handler, ForStmt->getInit(), Depth + 1);
             PrintAST(Handler, ForStmt->getCond(), Depth + 1);
-            PrintAST(Handler, ForStmt->getIncr(), Depth + 1);
+            PrintAST(Handler, ForStmt->getStep(), Depth + 1);
             PrintAST(Handler, ForStmt->getBody(), Depth + 1);
+
+            return;
+        }
+        case AST::NodeKind::ArrayDestructuredVarDecl: {
+            const auto ArrayDestructuredVarDecl =
+                llvm::cast<AST::ArrayDestructuredVarDecl>(Stmt);
+
+            std::print("ArrayDestructuredVarDecl\n");
+            PrintArrayDestructureItemList(
+                Handler, ArrayDestructuredVarDecl->getItemList(), Depth + 1);
+
+            PrintDepth(Depth + 1);
+            std::print("InitExpr\n");
+
+            PrintAST(Handler, ArrayDestructuredVarDecl->getInitExpr(),
+                     Depth + 2);
+
+            return;
+        }
+        case AST::NodeKind::ObjectDestructuredVarDecl: {
+            auto ObjectDestructuredVarDecl =
+                llvm::cast<AST::ObjectDestructuredVarDecl>(Stmt);
+
+            std::print("ObjectDestructuredVarDecl\n");
+            PrintObjectDestructureFieldList(
+                Handler, ObjectDestructuredVarDecl->getFieldList(), Depth + 1);
+
+            PrintAST(Handler, ObjectDestructuredVarDecl->getInitExpr(),
+                     Depth + 1);
+
+            return;
+        }
+        case AST::NodeKind::ArrowFunctionDecl: {
+            const auto ArrowFuncDecl = llvm::cast<AST::ArrowFunctionDecl>(Stmt);
+            std::print("ArrowFunctionDecl\n");
+
+            PrintDepth(Depth + 1);
+            std::print("Args\n");
+
+            const auto ParamList = ArrowFuncDecl->getParamList();
+            for (const auto Param : ParamList) {
+                PrintAST(Handler, Param, Depth + 2);
+            }
+
+            PrintDepth(Depth + 1);
+            std::print("Body\n");
+
+            PrintAST(Handler, ArrowFuncDecl->getBodyExpr(), Depth + 1);
+            break;
+        }
+        case AST::NodeKind::CastExpr: {
+            const auto CastExpr = llvm::cast<AST::CastExpr>(Stmt);
+            std::print("CastExpr\n");
+
+            PrintDepth(Depth + 1);
+            std::print("Type\n");
+
+            PrintAST(Handler, CastExpr->getTypeExpr(), Depth + 2);
+            PrintDepth(Depth + 1);
+
+            std::print("Operand\n");
+            PrintAST(Handler, CastExpr->getOperand(), Depth + 2);
 
             break;
         }
+        case AST::NodeKind::PointerExpr: {
+            const auto PointerExpr = llvm::cast<AST::PointerExpr>(Stmt);
+
+            std::print("PointerExpr\n");
+            PrintAST(Handler, PointerExpr->getOperand(), Depth + 1);
+
+            break;
+        }
+        case AST::NodeKind::OptionalExpr: {
+            const auto OptionalExpr = llvm::cast<AST::OptionalExpr>(Stmt);
+
+            std::print("OptionalExpr\n");
+            PrintAST(Handler, OptionalExpr->getOperand(), Depth + 1);
+
+            break;
+        }
+        case AST::NodeKind::StructType:
+        case AST::NodeKind::EnumType:
+        case AST::NodeKind::FunctionType:
+        case AST::NodeKind::LambdaType:
+        case AST::NodeKind::PointerType:
+        case AST::NodeKind::ShapeType:
+        case AST::NodeKind::UnionType:
+            return;
     }
+
+    __builtin_unreachable();
 }
 
 struct ArgumentOptions {
@@ -378,151 +589,131 @@ struct ArgumentOptions {
 };
 
 void
-HandlePrompt(const std::string_view &Prompt,
-             AST::Context &Context,
-             const Parse::ParserOptions &ParseOptions,
+HandlePrompt(DiagnosticConsumer &Diag,
+             const std::string_view &Prompt,
              const ArgumentOptions ArgOptions) noexcept
 {
-    auto Diag = Interface::DiagnosticsEngine();
-    auto BackendHandler = Backend::LLVM::JITHandler::create(Diag, Context);
-    auto Tokenizer = Lex::Tokenizer(Prompt, Diag);
-    auto TokenList = std::vector<Lex::Token>();
-
-    while (true) {
-        const auto Token = Tokenizer.next();
-        if (Token.Kind == Lex::TokenKind::EOFToken) {
-            break;
-        }
-
-        if (Token.Kind == Lex::TokenKind::Invalid) {
-            return;
-        }
-
-        TokenList.emplace_back(std::move(Token));
+    auto SrcBuffer = ADT::SourceBuffer::fromString(Prompt);
+    if (SrcBuffer == nullptr) {
+        std::print("Failed to open source-buffer from input");
+        return;
     }
 
+    auto TokenBuffer = Lex::TokenBuffer::Create(*SrcBuffer, Diag);
     if (ArgOptions.PrintTokens) {
+        auto TokenList = TokenBuffer->getTokenList();
         fputs("Tokens:\n", stdout);
+
         for (const auto &Token : TokenList) {
-            fprintf(stdout, "\t" SV_FMT "\n",
-                    SV_FMT_ARG(Lex::TokenKindGetName(Token.Kind)));
+            std::print("\t{}\n", Lex::TokenKindGetName(Token.Kind));
         }
 
         fputc('\n', stdout);
     }
 
-    auto SourceMngr = SourceManager::fromString(Prompt);
-    Diag.setSourceManager(SourceMngr);
+    const auto Options = Parse::ParseOptions({ .DontRequireSemicolons = true });
+    auto Unit = Parse::ParseUnit::Create(*TokenBuffer, Diag, Options);
 
-    auto Parser =
-        Parse::Parser(*SourceMngr, Context, TokenList, Diag, ParseOptions);
-
-    auto Expr = Parser.parseTopLevelExpressionOrStmt();
-    if (Expr == nullptr) {
+    if (Unit.getTopLevelStmtList().empty()) {
         return;
     }
+
+    auto BackendHandlerExp = Backend::LLVM::JITHandler::create(Diag, Unit);
+    if (!BackendHandlerExp.has_value()) {
+        return;
+    }
+
+    const auto BackendHandler = BackendHandlerExp->get();
+    const auto Expr = Unit.getTopLevelStmtList().back();
 
     if (ArgOptions.PrintAST) {
         PrintAST(*BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
         fputc('\n', stdout);
     }
 
-    const auto Result =
-        BackendHandler->evaluateAndPrint(*Expr,
-                                         ArgOptions.PrintIR,
-                                         BHGRN "Evaluation> " CRESET,
-                                         "\n");
-
-    if (!Result) {
-        if (const auto Decl = llvm::dyn_cast<AST::LvalueNamedDecl>(Expr)) {
-            Context.removeDecl(Decl);
-        }
-    }
+#if 0
+    BackendHandler->evaluateAndPrint(*Expr,
+                                     ArgOptions.PrintIR,
+                                     BHGRN "Evaluation> " CRESET,
+                                     "\n");
+#endif
 }
 
 void PrintUsage(const char *const Name) noexcept {
-    fprintf(stdout,
-            "Usage: %s [<prompt>] [-h/--help/-u/--usage] [--print-tokens] "
-            "[--print-ast]\n",
-            Name);
+    std::print("Usage: {} [<prompt>] [-h/--help/-u/--usage] [--print-tokens] "
+               "[--print-ast]\n",
+               Name);
 }
 
 void HandleReplOption(const ArgumentOptions ArgOptions) {
-    auto Context = AST::Context();
-    auto Diag = Interface::DiagnosticsEngine();
-    auto ParserOptions = Parse::ParserOptions();
-
-    ParserOptions.DontRequireSemicolons = true;
+    auto Diag = SourceFileDiagnosticConsumer("<input>");
     Interface::SetupRepl("Compiler",
                          [&](const std::string_view Input) noexcept {
-                            HandlePrompt(Input,
-                                         Context,
-                                         ParserOptions,
-                                         ArgOptions);
+                            HandlePrompt(Diag, Input, ArgOptions);
                             return true;
                          });
 }
 
 void
 HandleFileOptions(const ArgumentOptions ArgOptions,
-                  const std::vector<std::string_view> &FilePaths) noexcept
+                  const std::span<std::string_view> FilePaths) noexcept
 {
-    auto Diag = Interface::DiagnosticsEngine();
     for (const auto Path : FilePaths) {
-        const auto SrcMngrOpt = SourceManager::fromFile(Path);
-        if (const auto SrcMngrError = SrcMngrOpt.getError()) {
-            switch (SrcMngrError->Kind) {
-                case SourceManager::Error::ErrorKind::FailedToOpenFile: {
-                    fprintf(stderr,
-                            "Failed to open file: %s, reason: %s\n",
-                            Path.data(),
-                            SrcMngrError->OpenError->Reason.c_str());
+        auto Diag = SourceFileDiagnosticConsumer(std::string(Path));
+        const auto SrcBufferOpt = ADT::SourceBuffer::fromFile(Path);
+
+        if (SrcBufferOpt.has_value()) {
+            const auto Error = SrcBufferOpt.error();
+            switch (Error.Kind) {
+                case ADT::SourceBuffer::Error::Kind::FailedToOpenFile: {
+                    std::print(stderr,
+                               "Failed to open file: {}, reason: {}\n",
+                               Path,
+                               Error.Reason);
                     exit(1);
                 }
-                case SourceManager::Error::ErrorKind::FailedToStatFile:
-                    fprintf(stderr,
-                            "Failed to stat file: %s, reason: %s\n",
-                            Path.data(),
-                            SrcMngrError->OpenError->Reason.c_str());
+                case ADT::SourceBuffer::Error::Kind::FailedToStatFile:
+                    std::print(stderr,
+                               "Failed to stat file: {}, reason: {}\n",
+                               Path,
+                               Error.Reason);
                     exit(1);
-                case SourceManager::Error::ErrorKind::FailedToMapFile:
-                    fprintf(stderr,
-                            "Failed to map file: %s, reason: %s\n",
-                            Path.data(),
-                            SrcMngrError->OpenError->Reason.c_str());
+                case ADT::SourceBuffer::Error::Kind::FailedToMapFile:
+                    std::print(stderr,
+                               "Failed to map file: {}, reason: {}\n",
+                               Path,
+                               Error.Reason);
                     exit(1);
             }
         }
 
-        const auto SrcMngr = SrcMngrOpt.getResult();
-        const auto TokensOpt =
-            Lex::Tokenizer(SrcMngr->getText(), Diag).createList();
+        const auto SrcBuffer = SrcBufferOpt.value();
+        const auto TokenBuffer = Lex::TokenBuffer::Create(*SrcBuffer, Diag);
 
-        if (!TokensOpt.has_value()) {
-            exit(1);
+        if (ArgOptions.PrintTokens) {
+            auto TokenList = TokenBuffer->getTokenList();
+            fputs("Tokens:\n", stdout);
+
+            for (const auto &Token : TokenList) {
+                std::print("\t{}\n", Lex::TokenKindGetName(Token.Kind));
+            }
+
+            fputc('\n', stdout);
         }
 
-        const auto TokenList = TokensOpt.value();
+        const auto Options = Parse::ParseOptions();
 
-        auto Context = AST::Context();
+        auto Unit = Parse::ParseUnit::Create(*TokenBuffer, Diag, Options);
         auto BackendHandler = Backend::LLVM::Handler(Diag);
-        auto Parser = Parse::Parser(*SrcMngr, Context, TokenList, Diag);
-
-        if (!Parser.startParsing()) {
-            exit(1);
-        }
 
         if (ArgOptions.PrintAST) {
-            const auto &DeclMap =
-                Context.getSymbolTable().getGlobalScope().getDeclMap();
-
-            for (const auto &[Name, Decl] : DeclMap) {
+            for (const auto &[Name, Decl] : Unit.getTopLevelDeclList()) {
                 PrintAST(BackendHandler, Decl, /*Depth=*/ArgOptions.PrintDepth);
             }
         }
 
         //Context.visitDecls(Diag, AST::Context::VisitOptions());
-        BackendHandler.evaluate(Context);
+        // BackendHandler.evaluate(Diag);
         if (ArgOptions.PrintIR) {
             BackendHandler.getModule().print(llvm::outs(), nullptr);
         }
@@ -543,8 +734,8 @@ int main(const int argc, const char *const argv[]) {
             break;
         }
 
-        if (Arg == "-h" || Arg == "--help"
-         || Arg == "-u" || Arg == "--usage")
+        if (Arg == "-h" || Arg == "--help" ||
+            Arg == "-u" || Arg == "--usage")
         {
             PrintUsage(argv[0]);
             return 0;
@@ -571,7 +762,7 @@ int main(const int argc, const char *const argv[]) {
             continue;
         }
 
-        fprintf(stderr, "Unrecognized option: %s\n", Arg.data());
+        std::print(stderr, "Unrecognized option: {}\n", Arg);
         return 1;
     }
 

@@ -1,50 +1,339 @@
-func b(c: *mut volatile int) {
+@meta.deprecated({ message: "Unsafe function." })
+func b(c: *mut volatile u32) {
     a.b = 0;
     return 0;
 }
 
-struct A {
-    a: int = 4;
-    b: mut int = b;
+extern let ptr: pointer;
+() -> type  {
+}
 
-    if (T) {
-        c: bool = false;
-    } else {
-        d: float = 4.0;
+(): type {
+
+}
+
+interface Allocator {
+    getHandleType: typeof(() -> type) = () => {
+        return ptr;
     }
+
+    alloc: () -> ?getHandleType() = () => {
+        return null;
+    }
+
+    free: () -> void
+    optFree?: () -> void;
+}
+
+shape Sh {
+    a: u32 or u64;
+    b: () -> void;
+    c?: s8 or s32;
+};
+
+interface I {
+    doThing: () -> void = () => {
+        std.print(`Hi {"hi"}`);
+    },
+
+    doThing2: (a: u32) -> void = () => {
+        std.print(`Hi {a:x}`);
+    }
+}
+
+func tupleExample(a: u32) -> tuple(uint32_t, meta.string) {
+    // FIXME:
+    return @[a, b];
+}
+
+// In structs, fields are mutable by default
+struct A {
+    a: u32 = 4;
+    b: u32 = 5;
+
+    if T {
+        c: bit = false;
+    } else {
+        d: f64 = 4.0;
+    }
+
+    for (let mut i = 0; i != 10; i++) {
+        #meta.addDeclToSelf(`a{i}`, int);
+    }
+
+    impl I {
+        doThing() {
+
+        },
+
+        .doThing2 = default
+    }
+};
+
+export impl I for A {
+
+}
+
+func SGen(T: struct, a: u32) {
+    return struct {
+        a: *T;
+        b: u32 = ::a;
+    };
+}
+
+impl I for SGen(T: struct, a: 2) = () => {
+    if (T == A) {
+        .doThing = func() {
+            std::print("{}", T);
+        },
+
+        doThing2() {
+            if (\Sh.?c) {
+                std::print("{}", T);
+            }
+        }
+    }
+}
+
+func inf(a...: typeof(b), b: u16 or u32 or u64) -> typeof(a[0]) {
+    std::println("Got {} items", a.length);
+    return a[0];
+}
+
+struct ErrorStruct {
+    number: u32 = 0;
+    string_value: *[10]u8;
+    array: [11]mut [10]u8 = [0..<11: [...0]];
+    array2: [*][10]u8;
+};
+
+// associated values
+enum Error(ErrorStruct, \ErrorStruct.number) {
+    FailPartial: {
+        .number = 4,
+        .string_value = "Hi"
+    },
+    FailComplete: {
+        .number = 14,
+    }
+};
+
+union(enum) UE {
+    FuturePartial: {
+        a: mut u16,
+        b: u16
+    },
+    FutureComplete: {
+        a: bit
+    },
+    FutureA: A
+}
+
+class C {
+    private let mut a: A;
+    public func init() -> result<*mut C, Error> {
+        return malloc(sizeof(C));
+    }
+
+    // #meta.disable(copy);
+
+    public func deinit(*mut self) {
+        self.a = 0;
+    }
+}
+
+func B(a: i32, b: u32) type {
+    let bc = func() { return true; }
+    let bd = () => true;
 
     for (let mut i = 0; i != 10; i++) {
 
     }
-};
 
-function B<T: struct>(a: int, b: int) type {
+    for (let mut i in A) {
+
+    }
+
+    for (let mut i: *mut u32 in A) {
+
+    }
+
     return struct {
-        a: mut T;
-        if (1) {
-            b: T
+        a: T;
+        if 1 + 1 == 2 {
+            b: T;
         } else {
-            c: *T
+            c: *mut T;
         }
     };
 }
 
-enum C {
-    a = 4,
+enum E {
+    a: 4,
     b,
-    c = 6 + 4
+    c: 6 + 4,
+
+    if 1 + 2 == 3 {
+        d: 4,
+    } else {
+        d_e: 5,
+    }
 };
 
+// constraint = (T: any) -> bit
+
+let Ec: constraint = E as constraint;
+let strict_type: constraint = struct or enum or union or wrapper or pointer;
+
+func D() {
+    return (
+        <html.div>
+            <html.p a=5 bind:b={{ a:  { b: 4 }, c.d: 5 }}>
+                { if (1 + 1 == 2) "Hello, World" else "Hello, Not" }
+                <meta.if_node cond={true} else={"Hello, Not"}>
+                    Hello,
+                </meta.if_node>
+            </html.p>
+        </html.div>
+    );
+
+    return %(
+        html.div {
+            a: 5,
+            b: {{ a: { b: 4 }, c.d: 5 }}
+
+            Text {
+                if (1 + 1 == 2) {
+                    value: "Hello, World"
+                } else {
+                    value: "Hello, Not"
+                }
+            }
+        }
+    )
+
+    return %(
+        VStack {
+            padding: tw.rem(4),
+            color: .blue,
+
+            if (1 + 1 == 2) {
+                HStack {
+                    Form {
+                        Input {
+                            placeholder: `Hello, {variable}`
+                            bind: stateVariable,
+                            label: {
+                                text: "Name: "
+                            }
+                        }
+                        Button {
+                            kind: .submit
+                            text: "Click here"
+                        }
+                    }
+                }
+            }
+
+            for (let mut i = 0; i != 10; i++) {
+                Button {
+                    kind: .formal,
+                    padding: .rem(4)
+                    text: "Click here",
+                    onclick: <L>[]() => return print(`Hello, {variable}`),
+                    ...default
+                }
+            }
+
+            for (let mut i in 0..<10) {
+               Button {
+                    kind: .formal,
+                    padding: .rem(4)
+                    text: "Click here",
+                    onclick: <L>[]() => print(`Hello, {variable}`) as void,
+                    ...default
+                }
+            }
+        }
+        html.div {
+            a: 5
+            b: { a: { b: 4 }, c.d: 5 }
+
+            html.p {
+                text: `Hello, {variable}`
+            }
+        }
+    );
+}
+
+closure C {
+    func alloc(I: meta.closure_capture_info) -> ptr {
+
+    }
+
+    func free(P: ptr, I: meta.closure_capture_info) {
+
+    }
+
+    void callHandler() {
+
+    }
+}
+
+pointer P {
+    layout {
+
+    }
+
+    func nullValue() {
+        return 0u32;
+    }
+}
+
+wrapper(u32) {
+    layout {
+
+    }
+}
+
+wrapper(f64) {
+    layout {
+
+    }
+
+    nan {
+
+    }
+}
+
+let closure: LambdaFn<(a: u64, b: bit) -> bit>(L) =
+    (a: int, b: bit) => return true
+
+let D: constraint = (T: type): bit => return true
+let C: constraint = bit or u64;
+
+func cons_example(a: %D) {
+
+}
+
 let mut d: int = 3;
-func main(argc: int, argv: int) {
+func main(argc: s32, argv: []*u8) -> int {
     let mut e = [1,2,3,4,5];
     let mut ea = [...e, 1];
     let mut eb: [10]int = [...ea, ...2];
 
+    let mut [2: state, [1, 2]] = useState("");
+
+    eb[0..<5] = ...[...ea, ...eb];
+    eb[5..=9] = 2;
+
+    let mut ez = [2: 5, ...eb];
     let volatile f = .c.d;
 
     let mut volatile g = f();
-    let h = struct C { a: int; b: char; }();
+    let callback: LambdaFn<L>(a: u64) = <L>[&](a: u64): bit => {
+        return true;
+    }
 
     return c;
 }

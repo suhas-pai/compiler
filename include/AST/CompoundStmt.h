@@ -3,10 +3,12 @@
  */
 
 #pragma once
+
+#include <span>
 #include <vector>
 
-#include "AST/Stmt.h"
-#include "Basic/SourceLocation.h"
+#include "Source/SourceLocation.h"
+#include "Stmt.h"
 
 namespace AST {
     struct CompoundStmt : public Stmt {
@@ -18,8 +20,9 @@ namespace AST {
     public:
         constexpr explicit
         CompoundStmt(const SourceLocation BraceLoc,
-                     const std::vector<Stmt *> &StmtList) noexcept
-        : Stmt(ObjKind), BraceLoc(BraceLoc), StmtList(StmtList) {}
+                     const std::span<Stmt *> StmtList) noexcept
+        : Stmt(ObjKind), BraceLoc(BraceLoc),
+          StmtList(std::vector(StmtList.begin(), StmtList.end())) {}
 
         constexpr explicit
         CompoundStmt(const SourceLocation BraceLoc,
@@ -37,15 +40,15 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getBraceLoc() const noexcept {
-            return BraceLoc;
+            return this->BraceLoc;
         }
 
-        [[nodiscard]] constexpr auto &getStmtList() const noexcept {
-            return StmtList;
+        [[nodiscard]] constexpr auto getStmtList() const noexcept {
+            return std::span(this->StmtList);
         }
 
         [[nodiscard]] constexpr auto &getStmtListRef() noexcept {
-            return StmtList;
+            return this->StmtList;
         }
 
         constexpr auto setBraceLoc(const SourceLocation BraceLoc) noexcept
