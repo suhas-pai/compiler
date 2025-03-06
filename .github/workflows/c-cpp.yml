@@ -12,7 +12,7 @@ jobs:
     steps:
     - name: Install Dependencies
       run: |
-        brew update --preinstall
+        brew update
         brew install llvm ninja cmake lld
         echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
         echo "/opt/homebrew/opt/make/libexec/gnubin" >> $GITHUB_PATH
