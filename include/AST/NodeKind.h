@@ -19,7 +19,6 @@ namespace AST {
         Paren,
 
         ArrayDecl,
-        ArrowFunctionDecl,
         ClosureDecl,
         EnumDecl,
         FunctionDecl,
@@ -40,9 +39,6 @@ namespace AST {
         ArraySubscriptExpr,
         CastExpr,
 
-        PointerExpr,
-        OptionalExpr,
-
         IfStmt,
 
         CompoundStmt,
@@ -50,6 +46,19 @@ namespace AST {
 
         CommaSepStmtList,
         ReturnStmt,
+
+        ArrayType,
+        ClosureType,
+        EnumType,
+        FunctionType,
+        OptionalType,
+        PointerType,
+        ShapeType,
+        StructType,
+        UnionType,
+
+        TypeBase = ArrayType,
+        TypeLast = UnionType,
 
         LvalueNamedDeclBase = LvalueNamedDecl,
         LvalueNamedDeclLast = ParamVarDecl,
@@ -63,17 +72,5 @@ namespace AST {
         ExprBase = BinaryOperation,
         ExprLast = ForStmt,
 
-        ArrayType,
-        OptionalType,
-        StructType,
-        EnumType,
-        FunctionType,
-        LambdaType,
-        PointerType,
-        ShapeType,
-        UnionType,
-
-        TypeBase = ArrayType,
-        TypeLast = UnionType,
     };
 }

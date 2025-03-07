@@ -110,9 +110,6 @@ namespace Lex {
             CHECK_KW(Comptime)
             [[fallthrough]];
 
-            CHECK_KW(NoInline)
-            break;
-
             CHECK_KW(Default)
             break;
 
@@ -120,6 +117,9 @@ namespace Lex {
             break;
 
             CHECK_KW(As)
+            break;
+
+            CHECK_KW(Discardable)
             break;
 
         #undef CHECK_KW

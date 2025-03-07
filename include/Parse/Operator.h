@@ -87,9 +87,9 @@ namespace Parse {
                 case Lex::Keyword::While:
                 case Lex::Keyword::Inline:
                 case Lex::Keyword::Comptime:
-                case Lex::Keyword::NoInline:
                 case Lex::Keyword::Default:
                 case Lex::Keyword::In:
+                case Lex::Keyword::Discardable:
                     break;
                 case Lex::Keyword::As:
                     return BinaryOperator::As;

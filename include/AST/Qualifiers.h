@@ -20,8 +20,8 @@ namespace AST {
     struct Qualifiers {
     protected:
         std::unordered_map<Qualifier, SourceLocation> LocationList;
-
         Sema::InlinePolicy InlinePolicy = Sema::InlinePolicy::None;
+
         SourceLocation InlineLoc;
     public:
         explicit Qualifiers() noexcept = default;

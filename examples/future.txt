@@ -5,15 +5,12 @@ func b(c: *mut volatile u32) {
 }
 
 extern let ptr: pointer;
-() -> type  {
-}
-
-(): type {
+func b_func(): type {
 
 }
 
 interface Allocator {
-    getHandleType: typeof(() -> type) = () => {
+    getHandleType: () -> type = () => {
         return ptr;
     }
 
@@ -41,7 +38,7 @@ interface I {
     }
 }
 
-func tupleExample(a: u32) -> tuple(uint32_t, meta.string) {
+func tupleExample(a: u32): tuple(uint32_t, meta.string) {
     // FIXME:
     return @[a, b];
 }
@@ -51,7 +48,7 @@ struct A {
     a: u32 = 4;
     b: u32 = 5;
 
-    if T {
+    if (T) {
         c: bit = false;
     } else {
         d: f64 = 4.0;
@@ -66,7 +63,7 @@ struct A {
 
         },
 
-        .doThing2 = default
+        doThing2: default
     }
 };
 
@@ -83,7 +80,7 @@ func SGen(T: struct, a: u32) {
 
 impl I for SGen(T: struct, a: 2) = () => {
     if (T == A) {
-        .doThing = func() {
+        doThing: func() {
             std::print("{}", T);
         },
 
@@ -95,7 +92,7 @@ impl I for SGen(T: struct, a: 2) = () => {
     }
 }
 
-func inf(a...: typeof(b), b: u16 or u32 or u64) -> typeof(a[0]) {
+func inf(a...: typeof(b), b: u16 or u32 or u64): typeof(a[0]) {
     std::println("Got {} items", a.length);
     return a[0];
 }
@@ -131,7 +128,7 @@ union(enum) UE {
 
 class C {
     private let mut a: A;
-    public func init() -> result<*mut C, Error> {
+    public func init(): result<*mut C, Error> {
         return malloc(sizeof(C));
     }
 
@@ -142,9 +139,9 @@ class C {
     }
 }
 
-func B(a: i32, b: u32) type {
+func B(a: i32, b: u32): type {
     let bc = func() { return true; }
-    let bd = () => true;
+    let bd: () -> bit = () => true;
 
     for (let mut i = 0; i != 10; i++) {
 
@@ -197,7 +194,7 @@ func D() {
         </html.div>
     );
 
-    return %(
+    return %{
         html.div {
             a: 5,
             b: {{ a: { b: 4 }, c.d: 5 }}
@@ -210,9 +207,9 @@ func D() {
                 }
             }
         }
-    )
+    }
 
-    return %(
+    return %{
         VStack {
             padding: tw.rem(4),
             color: .blue,
@@ -263,7 +260,7 @@ func D() {
                 text: `Hello, {variable}`
             }
         }
-    );
+    };
 }
 
 closure C {

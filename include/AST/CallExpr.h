@@ -27,7 +27,7 @@ namespace AST {
         explicit
         CallExpr(Expr *const Callee,
                  const SourceLocation ParenLoc,
-                 const Qualifiers Quals,
+                 const Qualifiers &Quals,
                  const std::span<Expr *> Args) noexcept
         : Expr(ObjKind), Callee(Callee), ParenLoc(ParenLoc), Quals(Quals),
           Args(std::vector(Args.begin(), Args.end())) {}
@@ -35,7 +35,7 @@ namespace AST {
         explicit
         CallExpr(Expr *const Callee,
                  const SourceLocation ParenLoc,
-                 const Qualifiers Quals,
+                 const Qualifiers &Quals,
                  std::vector<Expr *> &&Args) noexcept
         : Expr(ObjKind), Callee(Callee), ParenLoc(ParenLoc), Quals(Quals),
           Args(std::move(Args)) {}

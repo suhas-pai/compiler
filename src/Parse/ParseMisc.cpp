@@ -60,10 +60,6 @@ namespace Parse {
                 case Lex::Keyword::Comptime:
                     Qualifiers.setIsComptime(/*IsComptime=*/true, Token.Loc);
                     break;
-                case Lex::Keyword::NoInline:
-                    Qualifiers.setInlinePolicy(Sema::InlinePolicy::DontInline,
-                                               Token.Loc);
-                    break;
                 case Lex::Keyword::Let:
                 case Lex::Keyword::Function:
                 case Lex::Keyword::If:
@@ -81,8 +77,9 @@ namespace Parse {
                 case Lex::Keyword::Default:
                 case Lex::Keyword::In:
                 case Lex::Keyword::As:
+                case Lex::Keyword::Discardable:
                     return;
-                }
+            }
 
             TokenStream.consume();
             TokenOpt = TokenStream.peek();

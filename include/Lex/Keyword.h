@@ -29,10 +29,10 @@ namespace Lex {
         While,
         Inline,
         Comptime,
-        NoInline,
         Default,
         In,
         As,
+        Discardable,
     };
 
     const auto KeywordToLexemeMap =
@@ -55,9 +55,9 @@ namespace Lex {
             std::make_pair(Keyword::For, "for"),
             std::make_pair(Keyword::Inline, "inline"),
             std::make_pair(Keyword::Comptime, "comptime"),
-            std::make_pair(Keyword::NoInline, "noinline"),
             std::make_pair(Keyword::Default, "default"),
             std::make_pair(Keyword::In, "in"),
             std::make_pair(Keyword::As, "as"),
+            std::make_pair(Keyword::Discardable, "discardable")
         });
 }

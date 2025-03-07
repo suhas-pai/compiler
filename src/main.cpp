@@ -5,17 +5,8 @@
 #include <cassert>
 #include <cstdio>
 
-#include "AST/ArraySubscriptExpr.h"
-#include "AST/BinaryOperation.h"
-#include "AST/CallExpr.h"
-#include "AST/CastExpr.h"
-#include "AST/CharLiteral.h"
-#include "AST/CommaSepStmtList.h"
-#include "AST/CompoundStmt.h"
-#include "AST/DeclRefExpr.h"
 #include "AST/Decls/ArrayDecl.h"
 #include "AST/Decls/ArrayDestructredVarDecl.h"
-#include "AST/Decls/ArrowFunctionDecl.h"
 #include "AST/Decls/ClosureDecl.h"
 #include "AST/Decls/ObjectDestructuredVarDecl.h"
 #include "AST/Decls/EnumDecl.h"
@@ -25,15 +16,27 @@
 #include "AST/Decls/ParamVarDecl.h"
 #include "AST/Decls/StructDecl.h"
 #include "AST/Decls/VarDecl.h"
+
+#include "AST/Types/FunctionType.h"
+#include "AST/Types/OptionalType.h"
+#include "AST/Types/PointerType.h"
+
+#include "AST/ArraySubscriptExpr.h"
+#include "AST/BinaryOperation.h"
+#include "AST/CallExpr.h"
+#include "AST/CastExpr.h"
+#include "AST/CharLiteral.h"
+#include "AST/CommaSepStmtList.h"
+#include "AST/CompoundStmt.h"
+#include "AST/DeclRefExpr.h"
 #include "AST/FieldExpr.h"
 #include "AST/ForStmt.h"
-#include "AST/IfStmt.h"
+#include "AST/IfExpr.h"
 #include "AST/NumberLiteral.h"
-#include "AST/OptionalExpr.h"
 #include "AST/ParenExpr.h"
-#include "AST/PointerExpr.h"
 #include "AST/ReturnStmt.h"
 #include "AST/StringLiteral.h"
+#include "AST/Types/ArrayType.h"
 #include "AST/UnaryOperation.h"
 
 #include "Backend/LLVM/Handler.h"
@@ -334,7 +337,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             return;
         }
         case AST::NodeKind::IfStmt: {
-            const auto IfStmt = llvm::cast<AST::IfStmt>(Stmt);
+            const auto IfStmt = llvm::cast<AST::IfExpr>(Stmt);
 
             std::print("IfStmt\n");
             PrintAST(Handler, IfStmt->getCond(), Depth + 1);
@@ -518,24 +521,6 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             return;
         }
-        case AST::NodeKind::ArrowFunctionDecl: {
-            const auto ArrowFuncDecl = llvm::cast<AST::ArrowFunctionDecl>(Stmt);
-            std::print("ArrowFunctionDecl\n");
-
-            PrintDepth(Depth + 1);
-            std::print("Args\n");
-
-            const auto ParamList = ArrowFuncDecl->getParamList();
-            for (const auto Param : ParamList) {
-                PrintAST(Handler, Param, Depth + 2);
-            }
-
-            PrintDepth(Depth + 1);
-            std::print("Body\n");
-
-            PrintAST(Handler, ArrowFuncDecl->getBodyExpr(), Depth + 1);
-            break;
-        }
         case AST::NodeKind::CastExpr: {
             const auto CastExpr = llvm::cast<AST::CastExpr>(Stmt);
             std::print("CastExpr\n");
@@ -549,32 +534,62 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("Operand\n");
             PrintAST(Handler, CastExpr->getOperand(), Depth + 2);
 
-            break;
+            return;
         }
-        case AST::NodeKind::PointerExpr: {
-            const auto PointerExpr = llvm::cast<AST::PointerExpr>(Stmt);
+        case AST::NodeKind::ArrayType: {
+            const auto ArrayTypeExpr = llvm::cast<AST::ArrayTypeExpr>(Stmt);
 
-            std::print("PointerExpr\n");
-            PrintAST(Handler, PointerExpr->getOperand(), Depth + 1);
+            std::print("ArrayTypeExpr\n");
+            PrintAST(Handler, ArrayTypeExpr->getBase(), Depth + 1);
 
-            break;
+            PrintDepth(Depth + 1);
+            std::print("Detail-List\n");
+
+            for (const auto &Detail : ArrayTypeExpr->getDetailList()) {
+                PrintAST(Handler, Detail, Depth + 2);
+            }
+
+            return;
         }
-        case AST::NodeKind::OptionalExpr: {
-            const auto OptionalExpr = llvm::cast<AST::OptionalExpr>(Stmt);
+        case AST::NodeKind::FunctionType: {
+            const auto FuncTypeExpr = llvm::cast<AST::FunctionTypeExpr>(Stmt);
+
+            std::print("FunctionTypeExpr\n");
+            PrintDepth(Depth + 1);
+            std::print("ParamList\n");
+
+            for (const auto &Param : FuncTypeExpr->getParamList()) {
+                PrintAST(Handler, Param, Depth + 2);
+            }
+
+            PrintDepth(Depth + 1);
+            std::print("ReturnType\n");
+
+            PrintAST(Handler, FuncTypeExpr->getReturnType(), Depth + 2);
+            return;
+        }
+        case AST::NodeKind::OptionalType: {
+            const auto OptionalExpr = llvm::cast<AST::OptionalTypeExpr>(Stmt);
 
             std::print("OptionalExpr\n");
             PrintAST(Handler, OptionalExpr->getOperand(), Depth + 1);
 
             break;
         }
+        case AST::NodeKind::PointerType: {
+            const auto PointerExpr = llvm::cast<AST::PointerTypeExpr>(Stmt);
+
+            std::print("PointerExpr\n");
+            PrintAST(Handler, PointerExpr->getOperand(), Depth + 1);
+
+            return;
+        }
+        case AST::NodeKind::ClosureType:
         case AST::NodeKind::StructType:
         case AST::NodeKind::EnumType:
-        case AST::NodeKind::FunctionType:
-        case AST::NodeKind::LambdaType:
-        case AST::NodeKind::PointerType:
         case AST::NodeKind::ShapeType:
         case AST::NodeKind::UnionType:
-            return;
+            __builtin_unreachable();
     }
 
     __builtin_unreachable();

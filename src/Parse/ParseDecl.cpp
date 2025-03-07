@@ -10,12 +10,15 @@
 #include "AST/Decls/ParamVarDecl.h"
 #include "AST/Decls/VarDecl.h"
 
+#include "AST/Types/FunctionType.h"
 #include "AST/NumberLiteral.h"
 
 #include "Parse/ParseDecl.h"
 #include "Parse/ParseExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseStmt.h"
+
+#include "llvm/Support/Casting.h"
 
 namespace Parse {
     auto
@@ -308,6 +311,7 @@ namespace Parse {
         return List;
     }
 
+    [[nodiscard]]
     static auto ParseFunctionReturnTypeIfFound(ParseContext &Context) noexcept
         -> std::optional<AST::Expr *>
     {
@@ -441,46 +445,91 @@ namespace Parse {
                                      ReturnTypeOpt.value(), Body);
     }
 
-    [[nodiscard]] auto
-    ParseArrowFunctionDecl(ParseContext &Context,
-                           Lex::Token ParenToken) noexcept
-        -> std::expected<AST::ArrowFunctionDecl *, ParseError>
+    auto
+    ParseArrowFunctionDeclOrFunctionType(ParseContext &Context,
+                                         Lex::Token ParenToken) noexcept
+        -> std::expected<AST::Expr *, ParseError>
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
-
         auto ParamListOpt = ParseFunctionParamList(Context, ParenToken);
         if (!ParamListOpt.has_value()) {
             return std::unexpected(ParamListOpt.error());
+        }
+
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        if (TokenStream.consumeIfIs(Lex::TokenKind::ThinArrow)) {
+            const auto ReturnTypeExpr = ParseExpression(Context);
+            if (ReturnTypeExpr == nullptr) {
+                return nullptr;
+            }
+
+            auto &ParamList = ParamListOpt.value();
+            return new AST::FunctionTypeExpr(std::move(ParamList),
+                                             ReturnTypeExpr);
+        }
+
+        auto ReturnTypeExpr = static_cast<AST::Expr *>(nullptr);
+        if (TokenStream.consumeIfIs(Lex::TokenKind::Colon)) {
+            ReturnTypeExpr = ParseExpression(Context);
+            if (ReturnTypeExpr == nullptr) {
+                return nullptr;
+            }
         }
 
         if (!TokenStream.consumeIfIs(Lex::TokenKind::FatArrow)) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
                 .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Expected '->' after inline function declaration"
+                .Message = "Expected '=>' after inline function declaration"
             });
-
-            return nullptr;
         }
 
-        const auto ReturnTypeOpt = ParseFunctionReturnTypeIfFound(Context);
-        if (!ReturnTypeOpt.has_value()) {
-            if (!TokenStream.proceedToAndConsume(
-                    Lex::TokenKind::OpenCurlyBrace))
-            {
-                return std::unexpected(ParseError::FailedCouldNotProceed);
+        auto Body = static_cast<AST::Stmt *>(nullptr);
+        if (TokenStream.peekIs(Lex::TokenKind::OpenCurlyBrace)) {
+            const auto CurlyToken = TokenStream.consume().value();
+
+            Body = ParseCompoundStmt(Context, CurlyToken);
+            if (Body == nullptr) {
+                return nullptr;
+            }
+        } else if (TokenStream.peekIs(Lex::TokenKind::Keyword)) {
+            const auto Token = TokenStream.peek().value();
+            const auto Keyword =
+                Lex::KeywordTokenGetKeyword(TokenStream.tokenContent(Token));
+
+            if (Keyword == Lex::Keyword::Return) {
+                TokenStream.consume();
+                Body = ParseReturnStmt(Context, Token).value();
+
+                if (Body == nullptr) {
+                    return nullptr;
+                }
+            }
+
+            // Unexpected token, pass error-handling to ParseExpression()
+            // instead of handling it here.
+
+            Body = ParseExpression(Context);
+            if (Body == nullptr) {
+                return nullptr;
+            }
+        } else {
+            Body = ParseExpression(Context);
+            if (Body == nullptr) {
+                return nullptr;
             }
         }
 
-        const auto Body = ParseExpression(Context);
-        if (Body == nullptr) {
-            return nullptr;
+        // For arrow functions, wrap expressions in a return-statement
+        if (const auto BodyExpr = llvm::dyn_cast<AST::Expr>(Body)) {
+            Body = new AST::ReturnStmt(SourceLocation::invalid(), BodyExpr);
         }
 
+        // Function Decl.
         auto &ParamList = ParamListOpt.value();
-        return new AST::ArrowFunctionDecl(ParenToken.Loc, std::move(ParamList),
-                                          Body);
+        return new AST::FunctionDecl(ParenToken.Loc, std::move(ParamList),
+                                     ReturnTypeExpr, Body);
     }
 
     [[nodiscard]] auto
@@ -551,8 +600,7 @@ namespace Parse {
     ParseRightSideOfArrayDestructureItemColon(
         ParseContext &Context,
         AST::Expr *const IndexExpr,
-        const SourceLocation IndexLoc) noexcept
-            -> AST::ArrayDestructureItem *
+        const SourceLocation IndexLoc) noexcept -> AST::ArrayDestructureItem *
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;

@@ -356,7 +356,7 @@ namespace Backend::LLVM {
     }
 
     auto
-    IfStmtCodegen(AST::IfStmt &IfStmt,
+    IfStmtCodegen(AST::IfExpr &IfStmt,
                   Handler &Handler,
                   llvm::IRBuilder<> &Builder,
                   ValueMap &ValueMap) noexcept
@@ -706,7 +706,7 @@ namespace Backend::LLVM {
                                     ValueMap);
             case AST::NodeKind::IfStmt:
                 return
-                    IfStmtCodegen(llvm::cast<AST::IfStmt>(Stmt),
+                    IfStmtCodegen(llvm::cast<AST::IfExpr>(Stmt),
                                   *this,
                                   Builder,
                                   ValueMap);
@@ -724,6 +724,7 @@ namespace Backend::LLVM {
                                         ValueMap);
             case AST::NodeKind::StructDecl:
             case AST::NodeKind::ArraySubscriptExpr:
+            case AST::NodeKind::CastExpr:
             case AST::NodeKind::FieldDecl:
             case AST::NodeKind::ParamVarDecl:
             case AST::NodeKind::FieldExpr:
@@ -737,17 +738,15 @@ namespace Backend::LLVM {
             case AST::NodeKind::ObjectDestructuredVarDecl:
             case AST::NodeKind::ForStmt:
             case AST::NodeKind::CommaSepStmtList:
-            case AST::NodeKind::StructType:
+            case AST::NodeKind::ArrayType:
+            case AST::NodeKind::ClosureType:
             case AST::NodeKind::EnumType:
             case AST::NodeKind::FunctionType:
-            case AST::NodeKind::LambdaType:
+            case AST::NodeKind::OptionalType:
             case AST::NodeKind::PointerType:
+            case AST::NodeKind::StructType:
             case AST::NodeKind::ShapeType:
             case AST::NodeKind::UnionType:
-            case AST::NodeKind::ArrowFunctionDecl:
-            case AST::NodeKind::CastExpr:
-            case AST::NodeKind::PointerExpr:
-            case AST::NodeKind::OptionalExpr:
                 __builtin_unreachable();
         }
 

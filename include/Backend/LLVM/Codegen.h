@@ -12,7 +12,7 @@
 #include "AST/CompoundStmt.h"
 #include "AST/CallExpr.h"
 #include "AST/DeclRefExpr.h"
-#include "AST/IfStmt.h"
+#include "AST/IfExpr.h"
 #include "AST/NumberLiteral.h"
 #include "AST/ParenExpr.h"
 #include "AST/ReturnStmt.h"
@@ -68,7 +68,7 @@ namespace Backend::LLVM {
         -> std::optional<llvm::Value *>;
 
     auto
-    IfStmtCodegen(AST::IfStmt &IfStmt,
+    IfStmtCodegen(AST::IfExpr &IfStmt,
                   Backend::LLVM::Handler &Handler,
                   llvm::IRBuilder<> &Builder,
                   Backend::LLVM::ValueMap &ValueMap) noexcept

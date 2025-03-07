@@ -19,7 +19,7 @@ namespace AST {
         explicit
         VarDecl(const std::string_view Name,
                 const SourceLocation NameLoc,
-                const struct Qualifiers Qualifiers,
+                const struct Qualifiers &Qualifiers,
                 Expr *const TypeExpr,
                 Expr *const InitExpr = nullptr) noexcept
         : LvalueTypedDecl(ObjKind, Name, NameLoc, TypeExpr, InitExpr),

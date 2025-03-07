@@ -13,7 +13,7 @@
 #include "Sema/Types/PointerQualifiers.h"
 
 namespace AST {
-    struct ArrayType : public Expr {
+    struct ArrayTypeExpr : public Expr {
     public:
         constexpr static auto NodeKind = NodeKind::ArrayType;
     protected:
@@ -25,7 +25,7 @@ namespace AST {
         Sema::PointerBaseTypeQualifiers Qualifiers;
     public:
         constexpr explicit
-        ArrayType(const SourceLocation BracketLoc,
+        ArrayTypeExpr(const SourceLocation BracketLoc,
                   const std::span<Stmt *> DetailList,
                   Expr *const Base,
                   const Sema::PointerBaseTypeQualifiers Qualifiers) noexcept
@@ -34,7 +34,7 @@ namespace AST {
           BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
 
         constexpr explicit
-        ArrayType(const SourceLocation BracketLoc,
+        ArrayTypeExpr(const SourceLocation BracketLoc,
                   std::vector<Stmt *> &&DetailList,
                   Expr *const Base,
                   const Sema::PointerBaseTypeQualifiers Qualifiers) noexcept

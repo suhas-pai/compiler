@@ -10,7 +10,8 @@
 
 namespace Parse {
     auto
-    ParseCompoundStmt(ParseContext &Context, Lex::Token CurlyToken) noexcept
+    ParseCompoundStmt(ParseContext &Context,
+                      const Lex::Token CurlyToken) noexcept
         -> AST::CompoundStmt *
     {
         auto &Diag = Context.Diag;
@@ -49,8 +50,7 @@ namespace Parse {
         return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
     }
 
-    auto
-    ParseReturnStmt(ParseContext &Context, Lex::Token ReturnToken) noexcept
+    auto ParseReturnStmt(ParseContext &Context, Lex::Token ReturnToken) noexcept
         -> std::expected<AST::ReturnStmt *, ParseError>
     {
         auto &Diag = Context.Diag;
@@ -58,20 +58,33 @@ namespace Parse {
 
         const auto Expr = ParseExpression(Context);
         if (Expr != nullptr) {
-            return new AST::ReturnStmt(ReturnToken.Loc, Expr);
+            if (ExpectSemicolon(Context)) {
+                return new AST::ReturnStmt(ReturnToken.Loc, Expr);
+            }
         }
 
-        if (!ProceedToSemicolon(Context)) {
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Failed to find ';' to end return statement"
-            });
+        const auto CurrentOpt = TokenStream.current();
+        Diag.consume({
+            .Level = DiagnosticLevel::Error,
+            .Location = TokenStream.getCurrOrPrevLoc(),
+            .Message =
+                std::format("Expected ';', found {} instead",
+                            CurrentOpt.has_value() ?
+                                TokenStream.tokenContent(CurrentOpt.value()) :
+                                "end of file")
+        });
 
-            return std::unexpected(ParseError::FailedCouldNotProceed);
+        if (ProceedToSemicolon(Context)) {
+            return std::unexpected(ParseError::FailedAndProceeded);
         }
 
-        return std::unexpected(ParseError::FailedAndProceeded);
+        Diag.consume({
+            .Level = DiagnosticLevel::Error,
+            .Location = TokenStream.getCurrOrPrevLoc(),
+            .Message = "Failed to find ';' to end return statement"
+        });
+
+        return std::unexpected(ParseError::FailedCouldNotProceed);
     }
 
     auto ParseStmt(ParseContext &Context) noexcept
@@ -104,7 +117,7 @@ namespace Parse {
                     case Lex::Keyword::Volatile:
                     case Lex::Keyword::Inline:
                     case Lex::Keyword::Comptime:
-                    case Lex::Keyword::NoInline:
+                    case Lex::Keyword::Discardable:
                         // This should've been parsed earlier in qualifiers
                         __builtin_unreachable();
                     case Lex::Keyword::Function: {
@@ -117,10 +130,10 @@ namespace Parse {
                             return std::unexpected(ResultOpt.error());
                         }
 
+                        const auto NameTok = NameTokOpt.value();
                         const auto Result = ResultOpt.value();
-                        const auto &NameTok = NameTokOpt.value();
-
                         const auto Name = TokenStream.tokenContent(NameTok);
+
                         return new AST::LvalueNamedDecl(Name, NameTok.Loc,
                                                         Result);
                     }

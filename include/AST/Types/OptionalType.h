@@ -3,26 +3,27 @@
  * © suhas pai
  */
 
-#pragma once
+ #pragma once
 
-#include "AST/Expr.h"
-#include "Source/SourceLocation.h"
+ #include "AST/Expr.h"
+ #include "Source/SourceLocation.h"
 
 namespace AST {
-    class OptionalType : public Expr {
+    struct OptionalTypeExpr : public Expr {
+    public:
+        constexpr static auto ObjKind = NodeKind::OptionalType;
     protected:
-        SourceLocation QuestionMarkLoc;
-        Expr *Base;
+        Expr *Operand;
+        SourceLocation Loc;
     public:
         constexpr explicit
-        OptionalType(const SourceLocation QuestionMarkLoc,
-                     Expr *const Base) noexcept
-        : Expr(NodeKind::OptionalType), QuestionMarkLoc(QuestionMarkLoc),
-          Base(Base) {}
+        OptionalTypeExpr(const SourceLocation Loc,
+                        Expr *const Operand) noexcept
+        : Expr(ObjKind), Operand(Operand), Loc(Loc) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
-            return Stmt.getKind() == NodeKind::OptionalType;
+            return Stmt.getKind() == ObjKind;
         }
 
         [[nodiscard]]
@@ -30,24 +31,18 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getQuestionMarkLoc() const noexcept {
-            return this->QuestionMarkLoc;
+        [[nodiscard]] constexpr auto getOperand() const noexcept {
+            return this->Operand;
         }
 
-        [[nodiscard]] constexpr auto getBase() const noexcept {
-            return this->Base;
+        [[nodiscard]] constexpr auto getLoc() const noexcept {
+            return this->Loc;
         }
 
-        constexpr auto setBase(Expr *const Base) noexcept -> decltype(*this) {
-            this->Base = Base;
-            return *this;
-        }
-
-        constexpr
-        auto setQuestionMarkLoc(const SourceLocation QuestionMarkLoc) noexcept
+        constexpr auto setOperand(Expr *const Operand) noexcept
             -> decltype(*this)
         {
-            this->QuestionMarkLoc = QuestionMarkLoc;
+            this->Operand = Operand;
             return *this;
         }
     };

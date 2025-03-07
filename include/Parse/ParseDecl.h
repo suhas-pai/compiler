@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "AST/Decls/ArrowFunctionDecl.h"
 #include "AST/Decls/DeclStmt.h"
 #include "AST/Decls/FunctionDecl.h"
 #include "AST/Decls/StructDecl.h"
@@ -23,9 +22,9 @@ namespace Parse {
         -> std::expected<AST::FunctionDecl *, ParseError>;
 
     [[nodiscard]] auto
-    ParseArrowFunctionDecl(ParseContext &Context,
-                           Lex::Token ParenToken) noexcept
-        -> std::expected<AST::ArrowFunctionDecl *, ParseError>;
+    ParseArrowFunctionDeclOrFunctionType(ParseContext &Context,
+                                         Lex::Token ParenToken) noexcept
+        -> std::expected<AST::Expr *, ParseError>;
 
     [[nodiscard]] auto
     ParseStructDecl(ParseContext &Context,

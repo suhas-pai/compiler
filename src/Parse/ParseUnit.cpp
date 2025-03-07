@@ -27,6 +27,9 @@ namespace Parse {
             }
 
             const auto Stmt = StmtOpt.value();
+            if (Stmt == nullptr) {
+                continue;
+            }
 
             // Every top level statement, except top level functions, need an
             // ending semicolon.

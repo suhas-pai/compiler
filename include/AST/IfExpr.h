@@ -1,5 +1,5 @@
 /*
- * AST/IfStmt.h
+ * AST/IfExpr.h
  */
 
 #pragma once
@@ -8,7 +8,7 @@
 #include "Expr.h"
 
 namespace AST {
-    struct IfStmt : public Expr {
+    struct IfExpr : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::IfStmt;
     protected:
@@ -19,7 +19,7 @@ namespace AST {
         Stmt *Else;
     public:
         constexpr explicit
-        IfStmt(const SourceLocation IfLoc,
+        IfExpr(const SourceLocation IfLoc,
                Expr &Cond,
                Stmt *const Then,
                Stmt *const Else) noexcept

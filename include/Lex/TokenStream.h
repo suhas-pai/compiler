@@ -100,7 +100,7 @@ namespace Lex {
         [[nodiscard]]
         constexpr auto current() const noexcept -> std::optional<Lex::Token> {
             if (!this->reachedEof()) {
-                return this->TokenBuffer.getTokenList()[this->position()];
+                return this->TokenBuffer.getTokenList()[this->position() - 1];
             }
 
             return std::nullopt;

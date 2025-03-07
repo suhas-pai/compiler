@@ -51,7 +51,7 @@ namespace AST {
             const SourceLocation KeyLoc,
             const std::string_view Name,
             const SourceLocation NameLoc,
-            const struct Qualifiers Qualifiers) noexcept
+            const struct Qualifiers &Qualifiers) noexcept
         : ObjectDestructureField(ObjectDestructureFieldKind::Identifier, Key,
                                  KeyLoc),
           Qualifiers(Qualifiers), Name(Name), NameLoc(NameLoc) {}
@@ -76,7 +76,7 @@ namespace AST {
         ObjectDestructureFieldArray(
             const std::string_view Key,
             const SourceLocation KeyLoc,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::span<ArrayDestructureItem *> ItemList) noexcept
         : ObjectDestructureField(ObjectDestructureFieldKind::Array, Key,
                                  KeyLoc),
@@ -87,7 +87,7 @@ namespace AST {
         ObjectDestructureFieldArray(
             const std::string_view Key,
             const SourceLocation KeyLoc,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             std::vector<ArrayDestructureItem *> &&ItemList) noexcept
         : ObjectDestructureField(ObjectDestructureFieldKind::Array, Key,
                                  KeyLoc),
@@ -112,7 +112,7 @@ namespace AST {
         ObjectDestructureFieldObject(
             const std::string_view Key,
             const SourceLocation KeyLoc,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::span<ObjectDestructureField *> FieldList) noexcept
         : ObjectDestructureField(ObjectDestructureFieldKind::Object, Key,
                                  KeyLoc),
@@ -123,7 +123,7 @@ namespace AST {
         ObjectDestructureFieldObject(
             const std::string_view Key,
             const SourceLocation KeyLoc,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             std::vector<ObjectDestructureField *> &&FieldList) noexcept
         : ObjectDestructureField(ObjectDestructureFieldKind::Object, Key,
                                  KeyLoc),
@@ -149,7 +149,7 @@ namespace AST {
             const std::string_view Key,
             const SourceLocation KeyLoc,
             const SourceLocation SpreadLoc,
-            const struct Qualifiers Qualifiers) noexcept
+            const struct Qualifiers &Qualifiers) noexcept
         : ObjectDestructureField(ObjectDestructureFieldKind::Spread, Key,
                                  KeyLoc),
           Qualifiers(Qualifiers), SpreadLoc(SpreadLoc) {}
@@ -175,7 +175,7 @@ namespace AST {
         explicit
         ObjectDestructuredVarDecl(
             const SourceLocation Loc,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::span<ObjectDestructureField *> &Items,
             Expr *const InitExpr) noexcept
         : DeclStmt(NodeKind::ObjectDestructuredVarDecl), Qualifiers(Qualifiers),
@@ -184,7 +184,7 @@ namespace AST {
         explicit
         ObjectDestructuredVarDecl(
             const SourceLocation Loc,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             std::vector<ObjectDestructureField *> &&Items,
             Expr *const InitExpr) noexcept
         : DeclStmt(NodeKind::ObjectDestructuredVarDecl), Qualifiers(Qualifiers),

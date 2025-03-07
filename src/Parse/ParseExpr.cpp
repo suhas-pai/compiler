@@ -8,6 +8,9 @@
 
 #include "AST/Decls/ArrayDecl.h"
 
+#include "AST/Types/OptionalType.h"
+#include "AST/Types/PointerType.h"
+
 #include "AST/ArraySubscriptExpr.h"
 #include "AST/BinaryOperation.h"
 #include "AST/CallExpr.h"
@@ -15,9 +18,7 @@
 #include "AST/DeclRefExpr.h"
 #include "AST/FieldExpr.h"
 #include "AST/NumberLiteral.h"
-#include "AST/OptionalExpr.h"
 #include "AST/ParenExpr.h"
-#include "AST/PointerExpr.h"
 
 #include "Parse/OperatorPrecedence.h"
 
@@ -27,16 +28,15 @@
 #include "Parse/ParseString.h"
 
 namespace Parse {
-    [[nodiscard]]
-    static auto ParseArrayDetailList(ParseContext &Context) noexcept
+    [[nodiscard]] static auto
+    ParseArrayDetailList(ParseContext &Context,
+                         const Lex::Token BracketToken) noexcept
         -> std::expected<std::vector<AST::Stmt *>, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        auto BracketToken = TokenStream.consume().value();
         auto DetailList = std::vector<AST::Stmt *>();
-
         do {
             if (const auto Expr = ParseExpression(Context)) {
                 DetailList.emplace_back(Expr);
@@ -85,7 +85,7 @@ namespace Parse {
                                const Lex::Token BracketToken) noexcept
         -> std::expected<AST::Expr *, ParseError>
     {
-        auto DetailListOpt = ParseArrayDetailList(Context);
+        auto DetailListOpt = ParseArrayDetailList(Context, BracketToken);
         if (!DetailListOpt.has_value()) {
             return std::unexpected(DetailListOpt.error());
         }
@@ -109,7 +109,7 @@ namespace Parse {
                             const Lex::Token BracketToken) noexcept
         -> std::expected<AST::ArraySubscriptExpr *, ParseError>
     {
-        auto DetailListOpt = ParseArrayDetailList(Context);
+        auto DetailListOpt = ParseArrayDetailList(Context, BracketToken);
         if (!DetailListOpt.has_value()) {
             return std::unexpected(DetailListOpt.error());
         }
@@ -232,7 +232,7 @@ done:
                                  std::move(ArgList));
     }
 
-    [[nodiscard]] static auto
+    static auto
     ParseCallAndFieldExprs(ParseContext &Context,
                            AST::Expr *Root,
                            const AST::Qualifiers &Qualifiers,
@@ -311,7 +311,7 @@ done:
             __builtin_unreachable();
         }
 
-        return ParseCallAndFieldExprs(Context, Root, Qualifiers, IdentToken);
+        return Root;
     }
 
     [[nodiscard]] static auto
@@ -376,9 +376,9 @@ done:
             case Lex::Keyword::While:
             case Lex::Keyword::Inline:
             case Lex::Keyword::Comptime:
-            case Lex::Keyword::NoInline:
             case Lex::Keyword::Default:
             case Lex::Keyword::In:
+            case Lex::Keyword::Discardable:
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
                     .Location = KeywordTok.Loc,
@@ -410,7 +410,7 @@ done:
             });
         }
 
-        return ParseCallAndFieldExprs(Context, Root, Qualifiers, KeywordTok);
+        return Root;
     }
 
     [[nodiscard]] static
@@ -423,10 +423,36 @@ done:
         // We assume this could simply be a paren-expr, but we could instead
         // have an arrow-function's parameter-list, which we need to check.
 
+        // The two possibilities that indicate a non-paren expr are an empty
+        // parenthesis, or a parenthesis with an identifier.
+
+        if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
+            if (TokenStream.consumeIfIs(Lex::TokenKind::ThinArrow) ||
+                TokenStream.consumeIfIs(Lex::TokenKind::FatArrow))
+            {
+                TokenStream.goBack(2);
+                const auto FuncOpt =
+                    ParseArrowFunctionDeclOrFunctionType(Context, Token);
+
+                return FuncOpt.value();
+            }
+
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected an expression inside parenthesis"
+            });
+
+            return nullptr;
+        }
+
         if (TokenStream.consumeIfIs(Lex::TokenKind::Identifier)) {
             if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
                 TokenStream.goBack(2);
-                return ParseArrowFunctionDecl(Context, Token).value();
+                const auto FuncOpt =
+                    ParseArrowFunctionDeclOrFunctionType(Context, Token);
+
+                return FuncOpt.value();
             }
 
             TokenStream.goBack();
@@ -584,10 +610,10 @@ done:
 
     [[nodiscard]] static auto
     ParsePointerExpr(ParseContext &Context, const Lex::Token Token) noexcept
-        -> AST::PointerExpr *
+        -> AST::PointerTypeExpr *
     {
         if (const auto Operand = ParseLhs(Context); Operand != nullptr) {
-            return new AST::PointerExpr(Token.Loc, Operand);
+            return new AST::PointerTypeExpr(Token.Loc, Operand);
         }
 
         return nullptr;
@@ -595,10 +621,10 @@ done:
 
     [[nodiscard]] static auto
     ParseOptionalExpr(ParseContext &Context, const Lex::Token Token) noexcept
-        -> AST::OptionalExpr *
+        -> AST::OptionalTypeExpr *
     {
         if (const auto Operand = ParseLhs(Context); Operand != nullptr) {
-            return new AST::OptionalExpr(Token.Loc, Operand);
+            return new AST::OptionalTypeExpr(Token.Loc, Operand);
         }
 
         return nullptr;
@@ -727,7 +753,7 @@ done:
                                             TokenStream.tokenContent(Token))
                         });
 
-                        break;
+                        return nullptr;
                 }
             } else {
                 Expr = ParseUnaryOperation(Context, Token);
@@ -741,6 +767,15 @@ done:
                 Root = Expr;
             } else {
                 CurrentOper->setOperand(*Expr);
+            }
+
+            const auto ParseResult =
+                ParseCallAndFieldExprs(Context, Root, Qualifiers, Token);
+
+            if (ParseResult.has_value()) {
+                Root = ParseResult.value();
+            } else {
+                return nullptr;
             }
 
             if (Expr->getKind() == AST::NodeKind::UnaryOperation) {

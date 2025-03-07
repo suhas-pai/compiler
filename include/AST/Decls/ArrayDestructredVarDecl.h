@@ -39,7 +39,7 @@ namespace AST {
         explicit
         ArrayDestructureItem(
             const ArrayDestructureItemKind Kind,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::optional<ArrayDestructureIndex> Index) noexcept
         : Kind(Kind), Index(Index), Qualifiers(Qualifiers) {}
     public:
@@ -57,7 +57,7 @@ namespace AST {
 
         explicit
         ArrayDestructureItemIdentifier(
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::optional<ArrayDestructureIndex> Index,
             const std::string_view Name,
             const SourceLocation NameLoc) noexcept
@@ -82,7 +82,7 @@ namespace AST {
 
         explicit
         ArrayDestructureItemArray(
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::optional<ArrayDestructureIndex> Index,
             const std::span<ArrayDestructureItem *> ItemList,
             const SourceLocation ItemLoc) noexcept
@@ -93,7 +93,7 @@ namespace AST {
 
         explicit
         ArrayDestructureItemArray(
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::optional<ArrayDestructureIndex> Index,
             std::vector<ArrayDestructureItem *> &&ItemList,
             const SourceLocation ItemLoc) noexcept
@@ -119,7 +119,7 @@ namespace AST {
 
         explicit
         ArrayDestructureItemObject(
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::optional<ArrayDestructureIndex> Index,
             const std::span<ObjectDestructureField *> FieldList,
             const SourceLocation ItemLoc) noexcept
@@ -130,7 +130,7 @@ namespace AST {
 
         explicit
         ArrayDestructureItemObject(
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::optional<ArrayDestructureIndex> Index,
             std::vector<ObjectDestructureField *> &&FieldList,
             const SourceLocation ItemLoc) noexcept
@@ -157,7 +157,7 @@ namespace AST {
 
         explicit
         ArrayDestructureItemSpread(
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::optional<ArrayDestructureIndex> Index,
             const std::string_view Name,
             const SourceLocation NameLoc,
@@ -186,7 +186,7 @@ namespace AST {
         explicit
         ArrayDestructuredVarDecl(
             const SourceLocation Loc,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             const std::span<ArrayDestructureItem *> ItemList,
             Expr *const InitExpr) noexcept
         : DeclStmt(NodeKind::ArrayDestructuredVarDecl), Qualifiers(Qualifiers),
@@ -196,7 +196,7 @@ namespace AST {
         explicit
         ArrayDestructuredVarDecl(
             const SourceLocation Loc,
-            const struct Qualifiers Qualifiers,
+            const struct Qualifiers &Qualifiers,
             std::vector<ArrayDestructureItem *> &&ItemList,
             Expr *const InitExpr) noexcept
         : DeclStmt(NodeKind::ArrayDestructuredVarDecl), Qualifiers(Qualifiers),
