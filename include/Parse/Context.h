@@ -11,6 +11,7 @@
 namespace Parse {
     struct ParseOptions {
         bool DontRequireSemicolons : 1 = false;
+        bool IgnoreUnusedExpressions : 1 = false;
     };
 
     struct ParseContext {

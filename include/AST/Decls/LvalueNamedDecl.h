@@ -6,14 +6,11 @@
 #pragma once
 #include <string>
 
-#include "AST/Decls/DeclStmt.h"
 #include "AST/Expr.h"
-#include "AST/NodeKind.h"
-
 #include "Source/SourceLocation.h"
 
 namespace AST {
-    struct LvalueNamedDecl : public DeclStmt {
+    struct LvalueNamedDecl : public Stmt {
     public:
         constexpr static auto ObjKind = NodeKind::LvalueNamedDecl;
     protected:
@@ -27,21 +24,21 @@ namespace AST {
                         const std::string_view Name,
                         const SourceLocation NameLoc,
                         Expr *const RvalueExpr) noexcept
-        : DeclStmt(ObjKind), Name(Name), NameLoc(NameLoc),
+        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc),
           RvalueExpr(RvalueExpr) {}
     public:
         constexpr
         LvalueNamedDecl(const std::string_view Name,
                         const SourceLocation NameLoc,
                         Expr *const RvalueExpr) noexcept
-        : DeclStmt(ObjKind), Name(Name), NameLoc(NameLoc),
+        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc),
           RvalueExpr(RvalueExpr) {}
 
         constexpr
         LvalueNamedDecl(std::string &&Name,
                         const SourceLocation NameLoc,
                         Expr *const RvalueExpr) noexcept
-        : DeclStmt(ObjKind), Name(Name), NameLoc(NameLoc),
+        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc),
           RvalueExpr(RvalueExpr) {}
 
         [[nodiscard]]

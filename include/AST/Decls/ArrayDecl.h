@@ -23,7 +23,7 @@ namespace AST {
         ArrayDecl(const SourceLocation LeftBracketLoc,
                   const std::span<Stmt *> ElementList) noexcept
         : Expr(ObjKind), LeftBracketLoc(LeftBracketLoc),
-          ElementList(std::vector(ElementList.begin(), ElementList.end())) {}
+          ElementList(ElementList.begin(), ElementList.end()) {}
 
         constexpr explicit
         ArrayDecl(const SourceLocation LeftBracketLoc,
@@ -43,6 +43,10 @@ namespace AST {
 
         [[nodiscard]] constexpr auto getLeftBracketLoc() const noexcept {
             return this->LeftBracketLoc;
+        }
+
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+            return this->getLeftBracketLoc();
         }
 
         [[nodiscard]] constexpr auto getElementList() const noexcept {

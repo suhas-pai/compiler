@@ -16,20 +16,23 @@ namespace AST {
     public:
         constexpr static auto ObjKind = NodeKind::FunctionType;
     protected:
+        SourceLocation Loc;
         std::vector<ParamVarDecl *> ParamList;
         Expr *ReturnType;
     public:
         constexpr explicit
-        FunctionTypeExpr(const std::span<ParamVarDecl *> ParamList,
-                     Expr *const ReturnType) noexcept
-        : Expr(ObjKind),
-          ParamList(std::vector(ParamList.begin(), ParamList.end())),
+        FunctionTypeExpr(const SourceLocation Loc,
+                         const std::span<ParamVarDecl *> ParamList,
+                         Expr *const ReturnType) noexcept
+        : Expr(ObjKind), Loc(Loc),
+          ParamList(ParamList.begin(), ParamList.end()),
           ReturnType(ReturnType) {}
 
         constexpr explicit
-        FunctionTypeExpr(std::vector<ParamVarDecl *> &&ParamList,
-                     Expr *const ReturnType) noexcept
-        : Expr(ObjKind), ParamList(std::move(ParamList)),
+        FunctionTypeExpr(const SourceLocation Loc,
+                         std::vector<ParamVarDecl *> &&ParamList,
+                         Expr *const ReturnType) noexcept
+        : Expr(ObjKind), Loc(Loc), ParamList(std::move(ParamList)),
           ReturnType(ReturnType) {}
 
         [[nodiscard]]
@@ -40,6 +43,10 @@ namespace AST {
         [[nodiscard]]
         constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
+        }
+
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+            return this->Loc;
         }
 
         [[nodiscard]] constexpr auto getParamList() const noexcept {

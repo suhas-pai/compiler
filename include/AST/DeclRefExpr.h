@@ -35,6 +35,10 @@ namespace AST {
             return this->NameLoc;
         }
 
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+            return this->getNameLoc();
+        }
+
         [[nodiscard]]
         constexpr auto getName() const noexcept -> std::string_view {
             return this->Name;

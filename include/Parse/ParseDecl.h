@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "AST/Decls/DeclStmt.h"
+#include "AST/Decls/ClosureDecl.h"
 #include "AST/Decls/FunctionDecl.h"
 #include "AST/Decls/StructDecl.h"
 
@@ -15,6 +15,12 @@
 #include "Parse/ParseError.h"
 
 namespace Parse {
+    auto
+    ParseClosureDecl(ParseContext &Context,
+                     const Lex::Token ParenToken,
+                     std::vector<AST::Stmt *> &&CaptureList) noexcept
+        -> std::expected<AST::ClosureDecl *, ParseError>;
+
     [[nodiscard]] auto
     ParseFunctionDecl(ParseContext &Context,
                       Lex::Token ParenToken,
@@ -28,11 +34,13 @@ namespace Parse {
 
     [[nodiscard]] auto
     ParseStructDecl(ParseContext &Context,
+                    Lex::Token StructKeywordToken,
+                    bool IsLValue,
                     std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::StructDecl *, ParseError>;
 
     [[nodiscard]] auto
     ParseVarDecl(ParseContext &Context,
                  const AST::Qualifiers &PreQualifiers) noexcept
-        -> std::expected<AST::DeclStmt *, ParseError>;
+        -> std::expected<AST::Stmt *, ParseError>;
 }

@@ -15,7 +15,7 @@
 #include "Source/SourceBuffer.h"
 
 namespace ADT {
-    auto SourceBuffer::fromFile(const std::string_view Path) noexcept
+    auto SourceBuffer::FromFile(const std::string_view Path) noexcept
         -> std::expected<SourceBuffer *, Error>
     {
         const auto Fd = open(Path.data(), O_RDONLY);
@@ -47,7 +47,7 @@ namespace ADT {
         return new SourceBuffer(Map, Stat.st_size, DestroyMapKind::Mapped);
     }
 
-    auto SourceBuffer::fromAlloc(void *const Base, const size_t Size) noexcept
+    auto SourceBuffer::FromAlloc(void *const Base, const size_t Size) noexcept
         -> SourceBuffer *
     {
         return new SourceBuffer(Base, Size, DestroyMapKind::Allocated);

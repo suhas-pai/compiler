@@ -32,9 +32,9 @@ namespace Parse {
         MultiplyAssign,
         DivideAssign,
         ModuloAssign,
-        AndAssign,
-        OrAssign,
-        XorAssign,
+        BitwiseAndAssign,
+        BitwiseOrAssign,
+        BitwiseXorAssign,
         LeftShiftAssign,
         RightShiftAssign,
 
@@ -58,9 +58,268 @@ namespace Parse {
         Decrement,
         AddressOf,
         Spread,
+        Optional,
+        Pointer,
     };
 
-    constexpr auto
+    [[nodiscard]] constexpr
+    auto BinaryOperatorIsComparable(const BinaryOperator Op) noexcept {
+        switch (Op) {
+            case BinaryOperator::Assignment:
+            case BinaryOperator::Add:
+            case BinaryOperator::Subtract:
+            case BinaryOperator::Multiply:
+            case BinaryOperator::Modulo:
+            case BinaryOperator::Divide:
+            case BinaryOperator::LogicalAnd:
+            case BinaryOperator::LogicalOr:
+            case BinaryOperator::BitwiseAnd:
+            case BinaryOperator::BitwiseOr:
+            case BinaryOperator::BitwiseXor:
+            case BinaryOperator::LeftShift:
+            case BinaryOperator::RightShift:
+            case BinaryOperator::AddAssign:
+            case BinaryOperator::SubtractAssign:
+            case BinaryOperator::MultiplyAssign:
+            case BinaryOperator::DivideAssign:
+            case BinaryOperator::ModuloAssign:
+            case BinaryOperator::BitwiseAndAssign:
+            case BinaryOperator::BitwiseOrAssign:
+            case BinaryOperator::BitwiseXorAssign:
+            case BinaryOperator::LeftShiftAssign:
+            case BinaryOperator::RightShiftAssign:
+                return false;
+            case BinaryOperator::LessThan:
+            case BinaryOperator::GreaterThan:
+            case BinaryOperator::LessThanOrEqual:
+            case BinaryOperator::GreaterThanOrEqual:
+            case BinaryOperator::Equality:
+            case BinaryOperator::Inequality:
+                return true;
+            case BinaryOperator::Power:
+            case BinaryOperator::As:
+                  break;
+        }
+
+        __builtin_unreachable();
+    }
+
+    [[nodiscard]]
+    constexpr auto BinaryOperatorIsAssigment(const BinaryOperator Op) noexcept {
+        switch (Op) {
+            case BinaryOperator::Assignment:
+                return true;
+            case BinaryOperator::Add:
+            case BinaryOperator::Subtract:
+            case BinaryOperator::Multiply:
+            case BinaryOperator::Modulo:
+            case BinaryOperator::Divide:
+            case BinaryOperator::LogicalAnd:
+            case BinaryOperator::LogicalOr:
+            case BinaryOperator::BitwiseAnd:
+            case BinaryOperator::BitwiseOr:
+            case BinaryOperator::BitwiseXor:
+            case BinaryOperator::LeftShift:
+            case BinaryOperator::RightShift:
+                return false;
+            case BinaryOperator::AddAssign:
+            case BinaryOperator::SubtractAssign:
+            case BinaryOperator::MultiplyAssign:
+            case BinaryOperator::DivideAssign:
+            case BinaryOperator::ModuloAssign:
+            case BinaryOperator::BitwiseAndAssign:
+            case BinaryOperator::BitwiseOrAssign:
+            case BinaryOperator::BitwiseXorAssign:
+            case BinaryOperator::LeftShiftAssign:
+            case BinaryOperator::RightShiftAssign:
+                return true;
+            case BinaryOperator::LessThan:
+            case BinaryOperator::GreaterThan:
+            case BinaryOperator::LessThanOrEqual:
+            case BinaryOperator::GreaterThanOrEqual:
+            case BinaryOperator::Equality:
+            case BinaryOperator::Inequality:
+            case BinaryOperator::Power:
+            case BinaryOperator::As:
+                return false;
+        }
+
+        __builtin_unreachable();
+    }
+
+    [[nodiscard]] constexpr
+    auto BinaryOperatorIsArithmetic(const BinaryOperator Op) noexcept {
+        switch (Op) {
+            case BinaryOperator::Assignment:
+                return false;
+            case BinaryOperator::Add:
+            case BinaryOperator::Subtract:
+            case BinaryOperator::Multiply:
+            case BinaryOperator::Modulo:
+            case BinaryOperator::Divide:
+                return true;
+            case BinaryOperator::LogicalAnd:
+            case BinaryOperator::LogicalOr:
+            case BinaryOperator::BitwiseAnd:
+            case BinaryOperator::BitwiseOr:
+            case BinaryOperator::BitwiseXor:
+            case BinaryOperator::LeftShift:
+            case BinaryOperator::RightShift:
+            case BinaryOperator::AddAssign:
+            case BinaryOperator::SubtractAssign:
+            case BinaryOperator::MultiplyAssign:
+            case BinaryOperator::DivideAssign:
+            case BinaryOperator::ModuloAssign:
+            case BinaryOperator::BitwiseAndAssign:
+            case BinaryOperator::BitwiseOrAssign:
+            case BinaryOperator::BitwiseXorAssign:
+            case BinaryOperator::LeftShiftAssign:
+            case BinaryOperator::RightShiftAssign:
+            case BinaryOperator::LessThan:
+            case BinaryOperator::GreaterThan:
+            case BinaryOperator::LessThanOrEqual:
+            case BinaryOperator::GreaterThanOrEqual:
+            case BinaryOperator::Equality:
+            case BinaryOperator::Inequality:
+            case BinaryOperator::Power:
+            case BinaryOperator::As:
+                return false;
+        }
+
+        __builtin_unreachable();
+    }
+
+    [[nodiscard]]
+    constexpr auto BinaryOperatorIsLogical(const BinaryOperator Op) {
+        switch (Op) {
+            case BinaryOperator::Assignment:
+            case BinaryOperator::Add:
+            case BinaryOperator::Subtract:
+            case BinaryOperator::Multiply:
+            case BinaryOperator::Modulo:
+            case BinaryOperator::Divide:
+                return false;
+            case BinaryOperator::LogicalAnd:
+            case BinaryOperator::LogicalOr:
+                return true;
+            case BinaryOperator::BitwiseAnd:
+            case BinaryOperator::BitwiseOr:
+            case BinaryOperator::BitwiseXor:
+            case BinaryOperator::LeftShift:
+            case BinaryOperator::RightShift:
+            case BinaryOperator::AddAssign:
+            case BinaryOperator::SubtractAssign:
+            case BinaryOperator::MultiplyAssign:
+            case BinaryOperator::DivideAssign:
+            case BinaryOperator::ModuloAssign:
+            case BinaryOperator::BitwiseAndAssign:
+            case BinaryOperator::BitwiseOrAssign:
+            case BinaryOperator::BitwiseXorAssign:
+            case BinaryOperator::LeftShiftAssign:
+            case BinaryOperator::RightShiftAssign:
+            case BinaryOperator::LessThan:
+            case BinaryOperator::GreaterThan:
+            case BinaryOperator::LessThanOrEqual:
+            case BinaryOperator::GreaterThanOrEqual:
+            case BinaryOperator::Equality:
+            case BinaryOperator::Inequality:
+            case BinaryOperator::Power:
+            case BinaryOperator::As:
+                return false;
+        }
+
+        __builtin_unreachable();
+    }
+
+    [[nodiscard]]
+    constexpr auto BinaryOperatorIsBitwise(const BinaryOperator Op) noexcept {
+        switch (Op) {
+            case BinaryOperator::Assignment:
+            case BinaryOperator::Add:
+            case BinaryOperator::Subtract:
+            case BinaryOperator::Multiply:
+            case BinaryOperator::Modulo:
+            case BinaryOperator::Divide:
+            case BinaryOperator::LogicalAnd:
+            case BinaryOperator::LogicalOr:
+                return false;
+            case BinaryOperator::BitwiseAnd:
+            case BinaryOperator::BitwiseOr:
+            case BinaryOperator::BitwiseXor:
+                return true;
+            case BinaryOperator::LeftShift:
+            case BinaryOperator::RightShift:
+            case BinaryOperator::AddAssign:
+            case BinaryOperator::SubtractAssign:
+            case BinaryOperator::MultiplyAssign:
+            case BinaryOperator::DivideAssign:
+            case BinaryOperator::ModuloAssign:
+                return false;
+            case BinaryOperator::BitwiseAndAssign:
+            case BinaryOperator::BitwiseOrAssign:
+            case BinaryOperator::BitwiseXorAssign:
+                return true;
+            case BinaryOperator::LeftShiftAssign:
+            case BinaryOperator::RightShiftAssign:
+            case BinaryOperator::LessThan:
+            case BinaryOperator::GreaterThan:
+            case BinaryOperator::LessThanOrEqual:
+            case BinaryOperator::GreaterThanOrEqual:
+            case BinaryOperator::Equality:
+            case BinaryOperator::Inequality:
+            case BinaryOperator::Power:
+            case BinaryOperator::As:
+                return false;
+        }
+
+        __builtin_unreachable();
+    }
+
+    [[nodiscard]]
+    constexpr auto BinaryOperatorIsShift(const BinaryOperator Op) noexcept {
+        switch (Op) {
+            case BinaryOperator::Assignment:
+            case BinaryOperator::Add:
+            case BinaryOperator::Subtract:
+            case BinaryOperator::Multiply:
+            case BinaryOperator::Modulo:
+            case BinaryOperator::Divide:
+            case BinaryOperator::LogicalAnd:
+            case BinaryOperator::LogicalOr:
+            case BinaryOperator::BitwiseAnd:
+            case BinaryOperator::BitwiseOr:
+            case BinaryOperator::BitwiseXor:
+                return false;
+            case BinaryOperator::LeftShift:
+            case BinaryOperator::RightShift:
+                return true;
+            case BinaryOperator::AddAssign:
+            case BinaryOperator::SubtractAssign:
+            case BinaryOperator::MultiplyAssign:
+            case BinaryOperator::DivideAssign:
+            case BinaryOperator::ModuloAssign:
+            case BinaryOperator::BitwiseAndAssign:
+            case BinaryOperator::BitwiseOrAssign:
+            case BinaryOperator::BitwiseXorAssign:
+                return false;
+            case BinaryOperator::LeftShiftAssign:
+            case BinaryOperator::RightShiftAssign:
+                return true;
+            case BinaryOperator::LessThan:
+            case BinaryOperator::GreaterThan:
+            case BinaryOperator::LessThanOrEqual:
+            case BinaryOperator::GreaterThanOrEqual:
+            case BinaryOperator::Equality:
+            case BinaryOperator::Inequality:
+            case BinaryOperator::Power:
+            case BinaryOperator::As:
+                return false;
+        }
+
+        __builtin_unreachable();
+    }
+
+    [[nodiscard]] constexpr auto
     LexTokenToBinaryOperator(const Lex::Token Token,
                              const std::string_view Text) noexcept
         -> std::optional<BinaryOperator>
@@ -132,11 +391,11 @@ namespace Parse {
             case Lex::TokenKind::PercentEqual:
                 return BinaryOperator::ModuloAssign;
             case Lex::TokenKind::AmpersandEqual:
-                return BinaryOperator::AndAssign;
+                return BinaryOperator::BitwiseAndAssign;
             case Lex::TokenKind::PipeEqual:
-                return BinaryOperator::OrAssign;
+                return BinaryOperator::BitwiseOrAssign;
             case Lex::TokenKind::CaretEqual:
-                return BinaryOperator::XorAssign;
+                return BinaryOperator::BitwiseXorAssign;
             case Lex::TokenKind::ShiftLeftEqual:
                 return BinaryOperator::LeftShiftAssign;
             case Lex::TokenKind::ShiftRightEqual:
@@ -171,7 +430,6 @@ namespace Parse {
             case Lex::TokenKind::TildeEqual:
             case Lex::TokenKind::Exclamation:
             case Lex::TokenKind::QuestionMark:
-            case Lex::TokenKind::QuestionColon:
             case Lex::TokenKind::OpenParen:
             case Lex::TokenKind::CloseParen:
             case Lex::TokenKind::OpenCurlyBrace:
@@ -217,9 +475,9 @@ namespace Parse {
             std::make_pair(BinaryOperator::MultiplyAssign, "*="),
             std::make_pair(BinaryOperator::DivideAssign, "/="),
             std::make_pair(BinaryOperator::ModuloAssign, "%="),
-            std::make_pair(BinaryOperator::AndAssign, "&="),
-            std::make_pair(BinaryOperator::OrAssign, "|="),
-            std::make_pair(BinaryOperator::XorAssign, "^="),
+            std::make_pair(BinaryOperator::BitwiseAndAssign, "&="),
+            std::make_pair(BinaryOperator::BitwiseOrAssign, "|="),
+            std::make_pair(BinaryOperator::BitwiseXorAssign, "^="),
             std::make_pair(BinaryOperator::LeftShiftAssign, "<<="),
             std::make_pair(BinaryOperator::RightShiftAssign, ">>="),
             std::make_pair(BinaryOperator::LogicalAnd, "and"),
@@ -234,7 +492,7 @@ namespace Parse {
         });
 
     constexpr auto UnaryOperatorToLexemeMap =
-        ADT::SmallArrayMap<UnaryOperator, std::string_view, 8>({
+        ADT::SmallArrayMap<UnaryOperator, std::string_view, 10>({
             std::make_pair(UnaryOperator::Negate, "-"),
             std::make_pair(UnaryOperator::LogicalNot, "!"),
             std::make_pair(UnaryOperator::BitwiseNot, "~"),
@@ -242,5 +500,7 @@ namespace Parse {
             std::make_pair(UnaryOperator::Decrement, "--"),
             std::make_pair(UnaryOperator::AddressOf, "&"),
             std::make_pair(UnaryOperator::Spread, "..."),
+            std::make_pair(UnaryOperator::Optional, "?"),
+            std::make_pair(UnaryOperator::Pointer, "*"),
         });
 }

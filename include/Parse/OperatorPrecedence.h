@@ -9,6 +9,7 @@ namespace Parse {
     enum class Precedence : uint8_t {
         Unknown,         // Not binary operator.
         Comma,           // ,
+        As,              // as
         Assignment,      // =, *=, /=, %=, +=, -=, <<=, >>=, &=, ^=, |=
         Conditional,     // ?
         LogicalOr,       // ||
@@ -64,8 +65,6 @@ namespace Parse {
             case Lex::TokenKind::QuestionMark:
                 return OperatorInfo(Precedence::Conditional,
                                     OperatorAssoc::Left);
-            case Lex::TokenKind::QuestionColon:
-                return OperatorInfo(Precedence::Ternary, OperatorAssoc::Left);
             case Lex::TokenKind::Keyword:
                 switch (Lex::KeywordTokenGetKeyword(Text)) {
                     case Lex::Keyword::If:
@@ -98,7 +97,10 @@ namespace Parse {
                     case Lex::Keyword::Impl:
                     case Lex::Keyword::Default:
                     case Lex::Keyword::In:
+                        break;
                     case Lex::Keyword::As:
+                        return OperatorInfo(Precedence::As,
+                                            OperatorAssoc::Left);
                     case Lex::Keyword::Discardable:
                         break;
                 }

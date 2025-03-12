@@ -19,7 +19,7 @@ namespace Sema {
 
         constexpr explicit
         SymbolTable(const std::span<Scope *> ScopeList) noexcept
-        : ScopeList(std::vector(ScopeList.begin(), ScopeList.end())) {}
+        : ScopeList(ScopeList.begin(), ScopeList.end()) {}
 
         constexpr explicit
         SymbolTable(std::vector<Scope *> &&ScopeList) noexcept

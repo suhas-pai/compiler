@@ -10,7 +10,6 @@
 #include <string_view>
 #include <vector>
 
-#include "AST/Decls/DeclStmt.h"
 #include "AST/Expr.h"
 #include "AST/Qualifiers.h"
 
@@ -88,8 +87,7 @@ namespace AST {
             const SourceLocation ItemLoc) noexcept
         : ArrayDestructureItem(ArrayDestructureItemKind::Array, Qualifiers,
                                Index),
-          ItemList(std::vector(ItemList.begin(), ItemList.end())),
-          ItemLoc(ItemLoc) {}
+          ItemList(ItemList.begin(), ItemList.end()), ItemLoc(ItemLoc) {}
 
         explicit
         ArrayDestructureItemArray(
@@ -125,8 +123,7 @@ namespace AST {
             const SourceLocation ItemLoc) noexcept
         : ArrayDestructureItem(ArrayDestructureItemKind::Object, Qualifiers,
                                Index),
-          FieldList(std::vector(FieldList.begin(), FieldList.end())),
-          ItemLoc(ItemLoc) {}
+          FieldList(FieldList.begin(), FieldList.end()), ItemLoc(ItemLoc) {}
 
         explicit
         ArrayDestructureItemObject(
@@ -177,7 +174,7 @@ namespace AST {
         }
     };
 
-    struct ArrayDestructuredVarDecl : public DeclStmt {
+    struct ArrayDestructuredVarDecl : public Stmt {
     protected:
         Qualifiers Qualifiers;
         std::vector<ArrayDestructureItem *> ItemList;
@@ -189,9 +186,8 @@ namespace AST {
             const struct Qualifiers &Qualifiers,
             const std::span<ArrayDestructureItem *> ItemList,
             Expr *const InitExpr) noexcept
-        : DeclStmt(NodeKind::ArrayDestructuredVarDecl), Qualifiers(Qualifiers),
-          ItemList(std::vector(ItemList.begin(), ItemList.end())),
-          InitExpr(InitExpr) {}
+        : Stmt(NodeKind::ArrayDestructuredVarDecl), Qualifiers(Qualifiers),
+          ItemList(ItemList.begin(), ItemList.end()), InitExpr(InitExpr) {}
 
         explicit
         ArrayDestructuredVarDecl(
@@ -199,7 +195,7 @@ namespace AST {
             const struct Qualifiers &Qualifiers,
             std::vector<ArrayDestructureItem *> &&ItemList,
             Expr *const InitExpr) noexcept
-        : DeclStmt(NodeKind::ArrayDestructuredVarDecl), Qualifiers(Qualifiers),
+        : Stmt(NodeKind::ArrayDestructuredVarDecl), Qualifiers(Qualifiers),
           ItemList(std::move(ItemList)), InitExpr(InitExpr) {}
 
         [[nodiscard]]

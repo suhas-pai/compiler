@@ -15,37 +15,37 @@ namespace AST {
     public:
         explicit
         ClosureDecl(const SourceLocation Loc,
-                   const std::span<Stmt *> CaptureList,
-                   const std::span<ParamVarDecl *> ParamList,
-                   Expr *const ReturnType,
-                   Stmt *const Body) noexcept
+                    const std::span<Stmt *> CaptureList,
+                    const std::span<ParamVarDecl *> ParamList,
+                    Expr *const ReturnType,
+                    Stmt *const Body) noexcept
         : FunctionDecl(Loc, ParamList, ReturnType, Body),
-          CaptureList(std::vector(CaptureList.begin(), CaptureList.end())) {}
+          CaptureList(CaptureList.begin(), CaptureList.end()) {}
 
         explicit
         ClosureDecl(const SourceLocation Loc,
-                   std::vector<Stmt *> &&CaptureList,
-                   const std::span<ParamVarDecl *> ParamList,
-                   Expr *const ReturnType,
-                   Stmt *const Body) noexcept
+                    std::vector<Stmt *> &&CaptureList,
+                    const std::span<ParamVarDecl *> ParamList,
+                    Expr *const ReturnType,
+                    Stmt *const Body) noexcept
         : FunctionDecl(Loc, ParamList, ReturnType, Body),
           CaptureList(std::move(CaptureList)) {}
 
         explicit
         ClosureDecl(const SourceLocation Loc,
-                   const std::span<Stmt *> CaptureList,
-                   std::vector<ParamVarDecl *> &&ParamList,
-                   Expr *const ReturnType,
-                   Stmt *const Body) noexcept
+                    const std::span<Stmt *> CaptureList,
+                    std::vector<ParamVarDecl *> &&ParamList,
+                    Expr *const ReturnType,
+                    Stmt *const Body) noexcept
         : FunctionDecl(Loc, std::move(ParamList), ReturnType, Body),
-          CaptureList(std::vector(CaptureList.begin(), CaptureList.end())) {}
+          CaptureList(CaptureList.begin(), CaptureList.end()) {}
 
         explicit
         ClosureDecl(const SourceLocation Loc,
-                   std::vector<Stmt *> &&CaptureList,
-                   std::vector<ParamVarDecl *> &&ParamList,
-                   Expr *const ReturnType,
-                   Stmt *const Body) noexcept
+                    std::vector<Stmt *> &&CaptureList,
+                    std::vector<ParamVarDecl *> &&ParamList,
+                    Expr *const ReturnType,
+                    Stmt *const Body) noexcept
         : FunctionDecl(Loc, std::move(ParamList), ReturnType, Body),
           CaptureList(std::move(CaptureList)) {}
 

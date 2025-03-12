@@ -20,9 +20,9 @@ namespace AST {
     public:
         constexpr explicit
         CastExpr(const SourceLocation AsLoc,
-                 Expr *const Operand,
-                 Expr *const TypeExpr) noexcept
-        : Expr(ObjKind), AsLoc(AsLoc), Operand(Operand), TypeExpr(TypeExpr) {}
+                 Expr &Operand,
+                 Expr &TypeExpr) noexcept
+        : Expr(ObjKind), AsLoc(AsLoc), Operand(&Operand), TypeExpr(&TypeExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -34,7 +34,7 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getLoc() const noexcept {
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
             return this->AsLoc;
         }
 

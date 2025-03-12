@@ -4,9 +4,15 @@ func b(c: *mut volatile u32) {
     return 0;
 }
 
+func ttest<let T: u32 or u64, let U>(a: std.vector<U>(T)): u32 {
+
+}
+
 extern let ptr: pointer;
 func b_func(): type {
-
+    return <let T>(a: T): T => {
+        return a;
+    }
 }
 
 interface Allocator {

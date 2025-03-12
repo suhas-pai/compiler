@@ -111,13 +111,13 @@ namespace Lex {
             [[fallthrough]];
 
             CHECK_KW(Default)
-            break;
+            [[fallthrough]];
 
             CHECK_KW(In)
-            break;
+            [[fallthrough]];
 
             CHECK_KW(As)
-            break;
+            [[fallthrough]];
 
             CHECK_KW(Discardable)
             break;

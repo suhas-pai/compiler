@@ -10,7 +10,7 @@ namespace AST {
     struct FieldDecl : public LvalueTypedDecl {
     public:
         constexpr static auto ObjKind = NodeKind::FieldDecl;
-    public:
+
         constexpr explicit
         FieldDecl(const std::string_view Name,
                   const SourceLocation NameLoc,

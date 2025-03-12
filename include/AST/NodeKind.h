@@ -16,7 +16,7 @@ namespace AST {
         StringLiteral,
 
         DeclRefExpr,
-        Paren,
+        ParenExpr,
 
         ArrayDecl,
         ClosureDecl,
@@ -39,14 +39,6 @@ namespace AST {
         ArraySubscriptExpr,
         CastExpr,
 
-        IfStmt,
-
-        CompoundStmt,
-        ForStmt,
-
-        CommaSepStmtList,
-        ReturnStmt,
-
         ArrayType,
         ClosureType,
         EnumType,
@@ -57,6 +49,14 @@ namespace AST {
         StructType,
         UnionType,
 
+        IfStmt,
+
+        CompoundStmt,
+        ForStmt,
+
+        CommaSepStmtList,
+        ReturnStmt,
+
         TypeBase = ArrayType,
         TypeLast = UnionType,
 
@@ -66,11 +66,7 @@ namespace AST {
         LvalueTypedDeclBase = FieldDecl,
         LvalueTypedDeclLast = ParamVarDecl,
 
-        DeclStmtBase = ArrayDecl,
-        DeclStmtLast = ObjectDestructuredVarDecl,
-
         ExprBase = BinaryOperation,
-        ExprLast = ForStmt,
-
+        ExprLast = UnionType,
     };
 }

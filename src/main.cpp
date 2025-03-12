@@ -186,7 +186,9 @@ PrintObjectDestructureFieldList(
                 const auto ObjectDestructureObject =
                     llvm::cast<AST::ObjectDestructureFieldObject>(Item);
 
-                std::print("ObjectDestructureItemObject\n");
+                std::print("ObjectDestructureItemObject<\"{}\">\n",
+                           ObjectDestructureObject->Key);
+
                 PrintObjectDestructureFieldList(
                     Handler, ObjectDestructureObject->FieldList, Depth + 1);
 
@@ -275,12 +277,18 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto VarDecl = llvm::cast<AST::VarDecl>(Stmt);
             std::print("VarDecl<\"{}\">\n", VarDecl->getName());
 
-            PrintAST(Handler, VarDecl->getTypeExpr(), Depth + 1);
-            PrintAST(Handler, VarDecl->getInitExpr(), Depth + 1);
+            PrintDepth(Depth + 1);
+            std::print("TypeExpr\n");
 
+            PrintAST(Handler, VarDecl->getTypeExpr(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+            std::print("InitExpr\n");
+
+            PrintAST(Handler, VarDecl->getInitExpr(), Depth + 2);
             return;
         }
-        case AST::NodeKind::Paren: {
+        case AST::NodeKind::ParenExpr: {
             const auto ParenExpr = llvm::cast<AST::ParenExpr>(Stmt);
 
             std::print("ParenExpr\n");
@@ -290,11 +298,17 @@ PrintAST(Backend::LLVM::Handler &Handler,
         }
         case AST::NodeKind::ParamVarDecl: {
             const auto ParamDecl = llvm::cast<AST::ParamVarDecl>(Stmt);
-            std::print("ParamDecl<\"{}\">\n", ParamDecl->getName());
+            std::print("ParamVarDecl<\"{}\">\n", ParamDecl->getName());
 
-            PrintAST(Handler, ParamDecl->getTypeExpr(), Depth + 1);
-            PrintAST(Handler, ParamDecl->getDefaultExpr(), Depth + 1);
+            PrintDepth(Depth + 1);
 
+            std::print("TypeExpr\n");
+            PrintAST(Handler, ParamDecl->getTypeExpr(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+            std::print("DefaultExpr\n");
+
+            PrintAST(Handler, ParamDecl->getDefaultExpr(), Depth + 2);
             return;
         }
         case AST::NodeKind::FunctionDecl: {
@@ -308,6 +322,13 @@ PrintAST(Backend::LLVM::Handler &Handler,
             for (const auto &Param : ParamList) {
                 PrintAST(Handler, Param, Depth + 2);
             }
+
+            const auto RetType = FuncDecl->getReturnTypeExpr();
+
+            PrintDepth(Depth + 1);
+            std::print("ReturnTypeExpr\n");
+
+            PrintAST(Handler, RetType, Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("Body\n");
@@ -325,7 +346,11 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto CallExpr = llvm::cast<AST::CallExpr>(Stmt);
 
             std::print("CallExpr\n");
-            PrintAST(Handler, CallExpr->getCallee(), Depth + 1);
+
+            PrintDepth(Depth + 1);
+            std::print("Callee\n");
+
+            PrintAST(Handler, CallExpr->getCallee(), Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("Args\n");
@@ -382,8 +407,15 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto FieldDecl = llvm::cast<AST::FieldDecl>(Stmt);
             std::print("FieldDecl<\"{}\">\n", FieldDecl->getName());
 
-            PrintAST(Handler, FieldDecl->getTypeExpr(), Depth + 1);
-            PrintAST(Handler, FieldDecl->getInitExpr(), Depth + 1);
+            PrintDepth(Depth + 1);
+
+            std::print("TypeExpr\n");
+            PrintAST(Handler, FieldDecl->getTypeExpr(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+
+            std::print("InitExpr\n");
+            PrintAST(Handler, FieldDecl->getInitExpr(), Depth + 2);
 
             return;
         }
@@ -526,14 +558,14 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("CastExpr\n");
 
             PrintDepth(Depth + 1);
+            std::print("Operand\n");
+
+            PrintAST(Handler, CastExpr->getOperand(), Depth + 2);
+
+            PrintDepth(Depth + 1);
             std::print("Type\n");
 
             PrintAST(Handler, CastExpr->getTypeExpr(), Depth + 2);
-            PrintDepth(Depth + 1);
-
-            std::print("Operand\n");
-            PrintAST(Handler, CastExpr->getOperand(), Depth + 2);
-
             return;
         }
         case AST::NodeKind::ArrayType: {
@@ -571,15 +603,15 @@ PrintAST(Backend::LLVM::Handler &Handler,
         case AST::NodeKind::OptionalType: {
             const auto OptionalExpr = llvm::cast<AST::OptionalTypeExpr>(Stmt);
 
-            std::print("OptionalExpr\n");
+            std::print("OptionalTypeExpr\n");
             PrintAST(Handler, OptionalExpr->getOperand(), Depth + 1);
 
-            break;
+            return;
         }
         case AST::NodeKind::PointerType: {
             const auto PointerExpr = llvm::cast<AST::PointerTypeExpr>(Stmt);
 
-            std::print("PointerExpr\n");
+            std::print("PointerTypeExpr\n");
             PrintAST(Handler, PointerExpr->getOperand(), Depth + 1);
 
             return;
@@ -608,7 +640,7 @@ HandlePrompt(DiagnosticConsumer &Diag,
              const std::string_view &Prompt,
              const ArgumentOptions ArgOptions) noexcept
 {
-    auto SrcBuffer = ADT::SourceBuffer::fromString(Prompt);
+    auto SrcBuffer = ADT::SourceBuffer::FromString(Prompt);
     if (SrcBuffer == nullptr) {
         std::print("Failed to open source-buffer from input");
         return;
@@ -626,9 +658,12 @@ HandlePrompt(DiagnosticConsumer &Diag,
         fputc('\n', stdout);
     }
 
-    const auto Options = Parse::ParseOptions({ .DontRequireSemicolons = true });
-    auto Unit = Parse::ParseUnit::Create(*TokenBuffer, Diag, Options);
+    const auto Options = Parse::ParseOptions({
+        .DontRequireSemicolons = true,
+        .IgnoreUnusedExpressions = true
+    });
 
+    auto Unit = Parse::ParseUnit::Create(*TokenBuffer, Diag, Options);
     if (Unit.getTopLevelStmtList().empty()) {
         return;
     }
@@ -661,7 +696,7 @@ void PrintUsage(const char *const Name) noexcept {
 }
 
 void HandleReplOption(const ArgumentOptions ArgOptions) {
-    auto Diag = SourceFileDiagnosticConsumer("<input>");
+    auto Diag = SourceFileDiagnosticConsumer(std::string_view("<input>"));
     Interface::SetupRepl("Compiler",
                          [&](const std::string_view Input) noexcept {
                             HandlePrompt(Diag, Input, ArgOptions);
@@ -674,19 +709,18 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
                   const std::span<std::string_view> FilePaths) noexcept
 {
     for (const auto Path : FilePaths) {
-        auto Diag = SourceFileDiagnosticConsumer(std::string(Path));
-        const auto SrcBufferOpt = ADT::SourceBuffer::fromFile(Path);
+        auto Diag = SourceFileDiagnosticConsumer(Path);
+        const auto SrcBufferOpt = ADT::SourceBuffer::FromFile(Path);
 
         if (SrcBufferOpt.has_value()) {
             const auto Error = SrcBufferOpt.error();
             switch (Error.Kind) {
-                case ADT::SourceBuffer::Error::Kind::FailedToOpenFile: {
+                case ADT::SourceBuffer::Error::Kind::FailedToOpenFile:
                     std::print(stderr,
                                "Failed to open file: {}, reason: {}\n",
                                Path,
                                Error.Reason);
                     exit(1);
-                }
                 case ADT::SourceBuffer::Error::Kind::FailedToStatFile:
                     std::print(stderr,
                                "Failed to stat file: {}, reason: {}\n",
@@ -727,7 +761,7 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
             }
         }
 
-        //Context.visitDecls(Diag, AST::Context::VisitOptions());
+        // Context.visitDecls(Diag, AST::Context::VisitOptions());
         // BackendHandler.evaluate(Diag);
         if (ArgOptions.PrintIR) {
             BackendHandler.getModule().print(llvm::outs(), nullptr);
@@ -735,10 +769,10 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
     }
 }
 
-int main(const int argc, const char *const argv[]) {
+int main(const int Argc, const char *const Argv[]) {
     auto Options = ArgumentOptions();
     auto FilePaths = std::vector<std::string_view>();
-    auto Lexer = ArgvLexer(argc, argv);
+    auto Lexer = ArgvLexer(Argc, Argv);
 
     while (const auto ArgOpt = Lexer.peek()) {
         const auto Arg = std::string_view(ArgOpt);
@@ -752,7 +786,7 @@ int main(const int argc, const char *const argv[]) {
         if (Arg == "-h" || Arg == "--help" ||
             Arg == "-u" || Arg == "--usage")
         {
-            PrintUsage(argv[0]);
+            PrintUsage(Argv[0]);
             return 0;
         }
 

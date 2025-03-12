@@ -13,62 +13,6 @@ namespace Backend::LLVM {
                            ValueMap &ValueMap) noexcept
         -> std::optional<llvm::Value *>
     {
-        if (BinOp.getOperator() == Parse::BinaryOperator::Assignment) {
-            const auto VarRef =
-                llvm::dyn_cast<AST::DeclRefExpr>(&BinOp.getLhs());
-
-            if (VarRef == nullptr) {
-                Handler.getDiag().consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = BinOp.getLoc(),
-                    .Message = "Left-side of assignment is not a variable"
-                });
-
-                return std::nullopt;
-            }
-
-            const auto VarName = VarRef->getName();
-            const auto VarRefValue = ValueMap.getValue(VarName);
-
-            if (VarRefValue == nullptr) {
-                Handler.getDiag().consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = VarRef->getNameLoc(),
-                    .Message =
-                        std::format("Variable \"{}\" is not defined", VarName)
-                });
-
-                return std::nullopt;
-            }
-
-            if (const auto VarDecl =
-                    llvm::dyn_cast<AST::VarDecl>(Handler.getASTNode(VarName)))
-            {
-                if (!VarDecl->getQualifiers().isMutable()) {
-                    Handler.getDiag().consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = VarRef->getNameLoc(),
-                        .Message =
-                            std::format("Variable \"{}\" is constant", VarName)
-                    });
-
-                    return std::nullopt;
-                }
-            }
-
-            const auto RhsValueOpt =
-                Handler.codegen(BinOp.getRhs(), Builder, ValueMap);
-
-            if (!RhsValueOpt.has_value()) {
-                return std::nullopt;
-            }
-
-            const auto RhsValue = RhsValueOpt.value();
-            Builder.CreateStore(RhsValue, VarRefValue);
-
-            return RhsValue;
-        }
-
         const auto LeftOpt =
             Handler.codegen(BinOp.getLhs(), Builder, ValueMap);
 
@@ -158,9 +102,9 @@ namespace Backend::LLVM {
             case Parse::BinaryOperator::MultiplyAssign:
             case Parse::BinaryOperator::DivideAssign:
             case Parse::BinaryOperator::ModuloAssign:
-            case Parse::BinaryOperator::AndAssign:
-            case Parse::BinaryOperator::OrAssign:
-            case Parse::BinaryOperator::XorAssign:
+            case Parse::BinaryOperator::BitwiseAndAssign:
+            case Parse::BinaryOperator::BitwiseOrAssign:
+            case Parse::BinaryOperator::BitwiseXorAssign:
             case Parse::BinaryOperator::LeftShiftAssign:
             case Parse::BinaryOperator::RightShiftAssign:
             case Parse::BinaryOperator::As:
@@ -201,7 +145,7 @@ namespace Backend::LLVM {
                 if (const auto Decl =
                         llvm::dyn_cast<AST::LvalueNamedDecl>(Stmt))
                 {
-                    ValueMap.addValue(Decl->getName(), ResultOpt.value());
+                    ValueMap.add(Decl->getName(), ResultOpt.value());
                     AddedDecls.push_back(Decl->getName());
                 }
 
@@ -331,7 +275,7 @@ namespace Backend::LLVM {
                                      Function);
 
         for (auto &Arg : Function->args()) {
-            ValueMap.addValue(Arg.getName(), &Arg);
+            ValueMap.add(Arg.getName(), &Arg);
         }
 
         auto BodyIRBuilder = llvm::IRBuilder(BB);
@@ -535,7 +479,10 @@ namespace Backend::LLVM {
 
                 return std::nullopt;
             case Parse::UnaryOperator::Spread:
+            case Parse::UnaryOperator::Optional:
+            case Parse::UnaryOperator::Pointer:
                 __builtin_unreachable();
+              break;
         }
 
         __builtin_unreachable();
@@ -680,7 +627,7 @@ namespace Backend::LLVM {
                                        *this,
                                        Builder,
                                        ValueMap);
-            case AST::NodeKind::Paren:
+            case AST::NodeKind::ParenExpr:
                 return
                     ParenExprCodegen(llvm::cast<AST::ParenExpr>(Stmt),
                                      *this,

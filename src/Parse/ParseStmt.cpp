@@ -50,28 +50,38 @@ namespace Parse {
         return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
     }
 
-    auto ParseReturnStmt(ParseContext &Context, Lex::Token ReturnToken) noexcept
+    auto
+    ParseReturnStmt(ParseContext &Context,
+                    const Lex::Token ReturnToken) noexcept
         -> std::expected<AST::ReturnStmt *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        const auto Expr = ParseExpression(Context);
-        if (Expr != nullptr) {
+        if (const auto Expr = ParseExpression(Context); Expr != nullptr) {
             if (ExpectSemicolon(Context)) {
                 return new AST::ReturnStmt(ReturnToken.Loc, Expr);
             }
         }
 
         const auto CurrentOpt = TokenStream.current();
+        if (!CurrentOpt.has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected ';', found end of file"
+            });
+
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
+        const auto Current = CurrentOpt.value();
         Diag.consume({
             .Level = DiagnosticLevel::Error,
             .Location = TokenStream.getCurrOrPrevLoc(),
             .Message =
                 std::format("Expected ';', found {} instead",
-                            CurrentOpt.has_value() ?
-                                TokenStream.tokenContent(CurrentOpt.value()) :
-                                "end of file")
+                            TokenStream.tokenContent(Current))
         });
 
         if (ProceedToSemicolon(Context)) {
@@ -143,13 +153,28 @@ namespace Parse {
                         // return this->parseExpressionAndEnd();
                     case Lex::Keyword::Return:
                         return ParseReturnStmt(Context, Token).value();
-                    case Lex::Keyword::Struct:
+                    case Lex::Keyword::Struct: {
+                        auto NameTokOpt =
+                            std::optional<Lex::Token>(std::nullopt);
+
+                        const auto Result =
+                            ParseStructDecl(Context, Token,
+                                            /*IsLValue=*/true, NameTokOpt);
+
+                        if (!Result.has_value()) {
+                            return std::unexpected(Result.error());
+                        }
+
+                        const auto NameTok = NameTokOpt.value();
+                        const auto Name = TokenStream.tokenContent(NameTok);
+
+                        return new AST::LvalueNamedDecl(Name, NameTok.Loc,
+                                                        Result.value());
+                    }
                     case Lex::Keyword::Class:
                     case Lex::Keyword::Interface:
-                    case Lex::Keyword::Impl: {
-                        auto Name = std::optional<Lex::Token>(std::nullopt);
-                        return ParseStructDecl(Context, Name);
-                    }
+                    case Lex::Keyword::Impl:
+                        __builtin_unreachable();
                     case Lex::Keyword::Enum:
                         // return this->parseEnumDeclStmt();
                     case Lex::Keyword::For:
@@ -204,7 +229,7 @@ namespace Parse {
                 return ParseCompoundStmt(Context, Token);
             default:
                 TokenStream.goBack();
-                if (const auto Expr = ParseExpression(Context)) {
+                if (const auto Expr = ParseExpressionInPlaceOfStmt(Context)) {
                     return Expr;
                 }
 

@@ -10,7 +10,7 @@
 namespace AST {
     struct ParenExpr : public Expr {
     public:
-        constexpr static auto ObjKind = NodeKind::Paren;
+        constexpr static auto ObjKind = NodeKind::ParenExpr;
     protected:
         SourceLocation Loc;
         SourceLocation End;
@@ -32,7 +32,7 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getLoc() const noexcept {
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
             return this->Loc;
         }
 

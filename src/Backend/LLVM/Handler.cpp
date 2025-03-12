@@ -75,7 +75,7 @@ namespace Backend::LLVM {
     : Handler("Compiler", Diag) {}
 
     auto
-    ValueMap::addValue(const std::string_view Name,
+    ValueMap::add(const std::string_view Name,
                        llvm::Value *const Value) noexcept -> decltype(*this)
     {
         if (const auto Iter = this->Map.find(Name); Iter != this->Map.end()) {
@@ -177,7 +177,7 @@ namespace Backend::LLVM {
                     return false;
                 }
 
-                ValueMap.addValue(Name, FuncDeclCodegenOpt.value());
+                ValueMap.add(Name, FuncDeclCodegenOpt.value());
                 continue;
             }
 
@@ -185,7 +185,7 @@ namespace Backend::LLVM {
                     this->codegen(*Decl, this->getBuilder(), ValueMap))
             {
                 addASTNode(Name, *Decl);
-                ValueMap.addValue(Name, ValueOpt.value());
+                ValueMap.add(Name, ValueOpt.value());
 
                 continue;
             }

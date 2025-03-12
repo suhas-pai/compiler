@@ -30,7 +30,7 @@ namespace AST {
                  const Qualifiers &Quals,
                  const std::span<Expr *> Args) noexcept
         : Expr(ObjKind), Callee(Callee), ParenLoc(ParenLoc), Quals(Quals),
-          Args(std::vector(Args.begin(), Args.end())) {}
+          Args(Args.begin(), Args.end()) {}
 
         explicit
         CallExpr(Expr *const Callee,
@@ -56,6 +56,10 @@ namespace AST {
 
         [[nodiscard]] constexpr auto getParenLoc() const noexcept {
             return this->ParenLoc;
+        }
+
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+            return this->getParenLoc();
         }
 
         [[nodiscard]] constexpr auto getArgs() const noexcept {

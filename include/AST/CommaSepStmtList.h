@@ -19,8 +19,7 @@ namespace AST {
     public:
         constexpr explicit
         CommaSepStmtList(const std::span<Stmt *> StmtList) noexcept
-        : Stmt(ObjKind),
-          StmtList(std::vector(StmtList.begin(), StmtList.end())) {}
+        : Stmt(ObjKind), StmtList(StmtList.begin(), StmtList.end()) {}
 
         constexpr explicit
         CommaSepStmtList(std::vector<Stmt *> &&StmtList) noexcept

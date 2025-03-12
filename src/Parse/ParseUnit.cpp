@@ -4,11 +4,12 @@
  */
 
 #include "AST/Decls/FunctionDecl.h"
+#include "AST/BinaryOperation.h"
 
 #include "Parse/Context.h"
-#include "Parse/ParseUnit.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseStmt.h"
+#include "Parse/ParseUnit.h"
 
 namespace Parse {
     auto
@@ -31,18 +32,30 @@ namespace Parse {
                 continue;
             }
 
-            // Every top level statement, except top level functions, need an
-            // ending semicolon.
+            if (!Options.IgnoreUnusedExpressions) {
+                if (const auto Expr = llvm::dyn_cast<AST::Expr>(Stmt)){
+                    const auto BinOp =
+                        llvm::dyn_cast<AST::BinaryOperation>(Stmt);
 
-            if (llvm::isa<AST::DeclStmt>(Stmt) &&
-                !llvm::isa<AST::FunctionDecl>(Stmt))
-            {
+                    if (BinOp == nullptr || !BinOp->isAssignmentOperation()) {
+                        Diag.consume({
+                            .Level = DiagnosticLevel::Warning,
+                            .Location = Expr->getLoc(),
+                            .Message = "Expression result unused"
+                        });
+                    }
+                }
+            }
+
+            // All top level statements need ending semicolons, except top level
+            // functions.
+
+            if (!llvm::isa<AST::FunctionDecl>(Stmt)) {
                 if (!ExpectSemicolon(Context)) {
                     Diag.consume({
                         .Level = DiagnosticLevel::Error,
                         .Location = Stream.getCurrOrPrevLoc(),
-                        .Message = "Expected a semicolon after variable "
-                                   "declaration"
+                        .Message = "Expected a semicolon after declaration"
                     });
                 }
             }

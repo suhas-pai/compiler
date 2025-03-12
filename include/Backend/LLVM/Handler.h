@@ -27,7 +27,7 @@ namespace Backend::LLVM {
     protected:
         ADT::UnorderedStringMap<std::vector<llvm::Value *>> Map;
     public:
-        auto addValue(std::string_view Name, llvm::Value *Val) noexcept
+        auto add(std::string_view Name, llvm::Value *Val) noexcept
             -> decltype(*this);
         auto setValue(std::string_view Name, llvm::Value *Val) noexcept
             -> decltype(*this);

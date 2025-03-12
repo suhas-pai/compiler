@@ -8,6 +8,7 @@
 
 #include "AST/Decls/ArrayDecl.h"
 
+#include "AST/Types/ArrayType.h"
 #include "AST/Types/OptionalType.h"
 #include "AST/Types/PointerType.h"
 
@@ -19,6 +20,7 @@
 #include "AST/FieldExpr.h"
 #include "AST/NumberLiteral.h"
 #include "AST/ParenExpr.h"
+#include "AST/UnaryOperation.h"
 
 #include "Parse/OperatorPrecedence.h"
 
@@ -26,6 +28,8 @@
 #include "Parse/ParseExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseString.h"
+
+#include "llvm/Support/Casting.h"
 
 namespace Parse {
     [[nodiscard]] static auto
@@ -37,6 +41,10 @@ namespace Parse {
         auto &TokenStream = Context.TokenStream;
 
         auto DetailList = std::vector<AST::Stmt *>();
+        if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
+            return DetailList;
+        }
+
         do {
             if (const auto Expr = ParseExpression(Context)) {
                 DetailList.emplace_back(Expr);
@@ -80,6 +88,39 @@ namespace Parse {
         return DetailList;
     }
 
+    [[nodiscard]] static auto IsLikelyParamList(ParseContext &Context) noexcept
+        -> std::optional<bool>
+    {
+        auto &TokenStream = Context.TokenStream;
+        if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
+            if (TokenStream.peekIs(Lex::TokenKind::ThinArrow) ||
+                TokenStream.peekIs(Lex::TokenKind::FatArrow) ||
+                TokenStream.peekIs(Lex::TokenKind::Colon))
+            {
+                TokenStream.goBack();
+                return true;
+            }
+
+            TokenStream.goBack();
+            Context.Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected an expression inside parenthesis"
+            });
+
+            return std::nullopt;
+        }
+
+        if (TokenStream.consumeIfIs(Lex::TokenKind::Identifier)) {
+            TokenStream.goBack();
+            if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     [[nodiscard]] static auto
     ParseExprWithSquareBracket(ParseContext &Context,
                                const Lex::Token BracketToken) noexcept
@@ -92,11 +133,40 @@ namespace Parse {
 
         // We have two possibilities for the kinds of expressions we have:
         //  (a) We have an array
-        //  (b) We have a lambda expression
+        //  (b) We have an array-type
+        //  (c) We have a lambda expression
 
         auto &TokenStream = Context.TokenStream;
-        if (TokenStream.consumeIfIs(Lex::TokenKind::OpenParen)) {
-            // We have a lambda expression
+        if (TokenStream.peekIs(Lex::TokenKind::Identifier) ||
+            TokenStream.peekIs(Lex::TokenKind::Star) ||
+            TokenStream.peekIs(Lex::TokenKind::QuestionMark))
+        {
+            // We have an array-type
+            const auto Base = ParseLhs(Context, /*InPlaceOfStmt=*/false);
+            if (Base == nullptr) {
+                return nullptr;
+            }
+
+            auto &DetailList = DetailListOpt.value();
+            auto Quals = Sema::PointerBaseTypeQualifiers();
+
+            return new AST::ArrayTypeExpr(BracketToken.Loc, DetailList, Base,
+                                          Quals);
+        }
+
+        if (TokenStream.peekIs(Lex::TokenKind::OpenParen)) {
+            // We have a lambda expression or an array-type
+            TokenStream.consume();
+            if (const auto IsParamListOpt = IsLikelyParamList(Context)) {
+                if (IsParamListOpt.value()) {
+                    // Assume this is a lambda expression.
+                    return ParseClosureDecl(Context, BracketToken,
+                                            std::vector<AST::Stmt *>());
+                }
+            } else {
+                // Empty parenthesis
+                return nullptr;
+            }
         }
 
         auto &DetailList = DetailListOpt.value();
@@ -121,8 +191,9 @@ namespace Parse {
 
     [[nodiscard]] static auto
     ParseFieldExpr(ParseContext &Context,
-                   const Lex::Token DotToken,
-                   AST::Expr *const Lhs) noexcept -> AST::FieldExpr *
+                   AST::Expr *const Lhs,
+                   const Lex::Token DotToken)
+        -> std::expected<AST::FieldExpr *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -139,7 +210,7 @@ namespace Parse {
                     .Message = "Expected member name"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             MemberToken = MemberTokenOpt.value();
@@ -161,7 +232,7 @@ namespace Parse {
                                 MemberString)
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedAndProceeded);
         }
 
         auto MemberName = TokenStream.tokenContent(MemberToken);
@@ -254,9 +325,10 @@ done:
                 Token.Kind == Lex::TokenKind::ThinArrow ||
                 Token.Kind == Lex::TokenKind::DotIdentifier)
             {
-                Root = ParseFieldExpr(Context, Token, Root);
-                if (Root == nullptr) {
-                    return nullptr;
+                if (const auto Result = ParseFieldExpr(Context, Root, Token)) {
+                    Root = Result.value();
+                } else {
+                    return std::unexpected(Result.error());
                 }
 
                 continue;
@@ -299,37 +371,41 @@ done:
         -> std::expected<AST::Expr *, ParseError>
     {
         auto &TokenStream = Context.TokenStream;
-        auto Root = static_cast<AST::Expr *>(nullptr);
-
         if (IdentToken.Kind == Lex::TokenKind::Identifier) {
-            Root =
-                new AST::DeclRefExpr(TokenStream.tokenContent(IdentToken),
-                                     IdentToken.Loc);
-        } else if (IdentToken.Kind == Lex::TokenKind::DotIdentifier) {
-            TokenStream.goBack();
-        } else {
-            __builtin_unreachable();
+            const auto IdentName = TokenStream.tokenContent(IdentToken);
+            return new AST::DeclRefExpr(IdentName, IdentToken.Loc);
         }
 
-        return Root;
+        if (IdentToken.Kind == Lex::TokenKind::DotIdentifier) {
+            TokenStream.goBack();
+
+            // FIXME: What should be done here?
+            return nullptr;
+        }
+
+        __builtin_unreachable();
     }
 
     [[nodiscard]] static auto
     ParseKeywordForLhs(ParseContext &Context,
                        AST::Qualifiers &Qualifiers,
-                       const Lex::Token KeywordTok) noexcept
+                       const Lex::Token KeywordTok,
+                       const bool InPlaceOfStmt) noexcept
         -> std::expected<AST::Expr *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
         auto Root = static_cast<AST::Expr *>(nullptr);
-        const auto Keyword = TokenStream.tokenKeyword(KeywordTok);
-
         auto NameOpt = std::optional<Lex::Token>(std::nullopt);
+
+        const auto Keyword = TokenStream.tokenKeyword(KeywordTok);
         switch (Keyword) {
             case Lex::Keyword::Struct: {
-                if (const auto Result = ParseStructDecl(Context, NameOpt)) {
+                if (const auto Result =
+                        ParseStructDecl(Context, KeywordTok, InPlaceOfStmt,
+                                        NameOpt))
+                {
                     Root = Result.value();
                 } else {
                     return Result;
@@ -399,7 +475,7 @@ done:
                 return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        if (!NameOpt.has_value()) {
+        if (!InPlaceOfStmt && NameOpt.has_value()) {
             const auto Name = NameOpt.value();
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
@@ -413,8 +489,8 @@ done:
         return Root;
     }
 
-    [[nodiscard]] static
-    auto ParseParenExpr(ParseContext &Context, const Lex::Token Token) noexcept
+    [[nodiscard]] static auto
+    ParseParenExpr(ParseContext &Context, const Lex::Token ParenToken) noexcept
         -> AST::Expr *
     {
         auto &Diag = Context.Diag;
@@ -426,17 +502,14 @@ done:
         // The two possibilities that indicate a non-paren expr are an empty
         // parenthesis, or a parenthesis with an identifier.
 
-        if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
-            if (TokenStream.consumeIfIs(Lex::TokenKind::ThinArrow) ||
-                TokenStream.consumeIfIs(Lex::TokenKind::FatArrow))
-            {
-                TokenStream.goBack(2);
+        if (const auto IsParamListOpt = IsLikelyParamList(Context)) {
+            if (IsParamListOpt.value()) {
                 const auto FuncOpt =
-                    ParseArrowFunctionDeclOrFunctionType(Context, Token);
+                    ParseArrowFunctionDeclOrFunctionType(Context, ParenToken);
 
                 return FuncOpt.value();
             }
-
+        } else {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
                 .Location = TokenStream.getCurrOrPrevLoc(),
@@ -446,24 +519,12 @@ done:
             return nullptr;
         }
 
-        if (TokenStream.consumeIfIs(Lex::TokenKind::Identifier)) {
-            if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
-                TokenStream.goBack(2);
-                const auto FuncOpt =
-                    ParseArrowFunctionDeclOrFunctionType(Context, Token);
-
-                return FuncOpt.value();
-            }
-
-            TokenStream.goBack();
-        }
-
         const auto ChildExpr = ParseExpression(Context);
         if (ChildExpr == nullptr) {
             if (!TokenStream.proceedToAndConsume(Lex::TokenKind::CloseParen)) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = Token.Loc,
+                    .Location = ParenToken.Loc,
                     .Message = "Expected closing parenthesis"
                 });
             }
@@ -474,14 +535,14 @@ done:
         if (!TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = Token.Loc,
+                .Location = ParenToken.Loc,
                 .Message = "Expected closing parenthesis"
             });
 
             return nullptr;
         }
 
-        return new AST::ParenExpr(Token, ChildExpr);
+        return new AST::ParenExpr(ParenToken, ChildExpr);
     }
 
     [[nodiscard]] static auto
@@ -589,7 +650,7 @@ done:
 
     auto
     ParseUnaryOperation(ParseContext &Context, const Lex::Token Token) noexcept
-        -> AST::UnaryOperation *
+        -> AST::Expr *
     {
         auto &TokenStream = Context.TokenStream;
 
@@ -600,43 +661,29 @@ done:
         assert(UnaryOpOpt.has_value() &&
                "Unary operator not found in lexeme map");
 
-        if (const auto Operand = ParseLhs(Context); Operand != nullptr) {
-            return new AST::UnaryOperation(Token.Loc, UnaryOpOpt.value(),
-                                           Operand);
+        const auto UnaryOp = UnaryOpOpt.value();
+        if (UnaryOp == Parse::UnaryOperator::Optional) {
+            return new AST::OptionalTypeExpr(Token.Loc, /*Operand=*/nullptr);
         }
 
-        return nullptr;
+        if (UnaryOp == Parse::UnaryOperator::Pointer) {
+            return new AST::PointerTypeExpr(Token.Loc, /*Operand=*/nullptr);
+        }
+
+        return new AST::UnaryOperation(Token.Loc, UnaryOpOpt.value(),
+                                       /*Operand=*/nullptr);
     }
 
-    [[nodiscard]] static auto
-    ParsePointerExpr(ParseContext &Context, const Lex::Token Token) noexcept
-        -> AST::PointerTypeExpr *
+    auto
+    ParseLhs(ParseContext &Context, const bool InPlaceOfStmt) noexcept
+        -> AST::Expr *
     {
-        if (const auto Operand = ParseLhs(Context); Operand != nullptr) {
-            return new AST::PointerTypeExpr(Token.Loc, Operand);
-        }
-
-        return nullptr;
-    }
-
-    [[nodiscard]] static auto
-    ParseOptionalExpr(ParseContext &Context, const Lex::Token Token) noexcept
-        -> AST::OptionalTypeExpr *
-    {
-        if (const auto Operand = ParseLhs(Context); Operand != nullptr) {
-            return new AST::OptionalTypeExpr(Token.Loc, Operand);
-        }
-
-        return nullptr;
-    }
-
-    auto ParseLhs(ParseContext &Context) noexcept -> AST::Expr * {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
         // Parse Prefixes and then Lhs
         auto Root = static_cast<AST::Expr *>(nullptr);
-        auto CurrentOper = static_cast<AST::UnaryOperation *>(nullptr);
+        auto CurrentOper = static_cast<AST::Expr *>(nullptr);
 
         auto Qualifiers = AST::Qualifiers();
         ParseQualifiers(Context, Qualifiers);
@@ -648,11 +695,10 @@ done:
             }
 
             const auto Token = TokenOpt.value();
-            auto Expr = static_cast<AST::Expr *>(nullptr);
+            const auto IsUnaryOp =  Lex::TokenKindIsUnaryOp(Token.Kind);
 
-            if (!Lex::TokenKindIsUnaryOp(Token.Kind) &&
-                Token.Kind != Lex::TokenKind::Minus)
-            {
+            auto Expr = static_cast<AST::Expr *>(nullptr);
+            if (!IsUnaryOp && Token.Kind != Lex::TokenKind::Minus) {
                 switch (Token.Kind) {
                     case Lex::TokenKind::Identifier:
                     case Lex::TokenKind::DotIdentifier:
@@ -662,7 +708,8 @@ done:
                         break;
                     case Lex::TokenKind::Keyword:
                         Expr =
-                            ParseKeywordForLhs(Context, Qualifiers, Token)
+                            ParseKeywordForLhs(Context, Qualifiers, Token,
+                                               InPlaceOfStmt)
                                 .value();
                         break;
                     case Lex::TokenKind::IntegerLiteral:
@@ -686,11 +733,7 @@ done:
                     case Lex::TokenKind::Tilde:
                     case Lex::TokenKind::Ampersand:
                     case Lex::TokenKind::Star:
-                        Expr = ParsePointerExpr(Context, Token);
-                        break;
                     case Lex::TokenKind::QuestionMark:
-                        Expr = ParseOptionalExpr(Context, Token);
-                        break;
                     case Lex::TokenKind::DotDotDot:
                         // Unary-Operation tokens that should've never been
                         // reached
@@ -727,7 +770,6 @@ done:
                     case Lex::TokenKind::Equal:
                     case Lex::TokenKind::NotEqual:
                     case Lex::TokenKind::DoubleEqual:
-                    case Lex::TokenKind::QuestionColon:
                     case Lex::TokenKind::CloseParen:
                     case Lex::TokenKind::OpenCurlyBrace:
                     case Lex::TokenKind::CloseCurlyBrace:
@@ -763,10 +805,26 @@ done:
                 return nullptr;
             }
 
-            if (Root == nullptr) {
-                Root = Expr;
+            if (Root != nullptr) {
+                if (const auto PtrType =
+                        llvm::dyn_cast<AST::PointerTypeExpr>(CurrentOper))
+                {
+                    PtrType->setOperand(*Expr);
+                }
+
+                if (const auto OptType =
+                        llvm::dyn_cast<AST::OptionalTypeExpr>(CurrentOper))
+                {
+                    OptType->setOperand(*Expr);
+                }
+
+                if (const auto UnaryExpr =
+                        llvm::dyn_cast<AST::UnaryOperation>(CurrentOper))
+                {
+                    UnaryExpr->setOperand(*Expr);
+                }
             } else {
-                CurrentOper->setOperand(*Expr);
+                Root = Expr;
             }
 
             const auto ParseResult =
@@ -778,8 +836,8 @@ done:
                 return nullptr;
             }
 
-            if (Expr->getKind() == AST::NodeKind::UnaryOperation) {
-                CurrentOper = static_cast<AST::UnaryOperation *>(Expr);
+            if (IsUnaryOp || Token.Kind == Lex::TokenKind::Minus) {
+                CurrentOper = Expr;
                 continue;
             }
 
@@ -792,7 +850,8 @@ done:
     auto
     ParseBinaryOperationWithRhsPrec(ParseContext &Context,
                                     AST::Expr *Lhs,
-                                    const uint32_t MinPrec) noexcept
+                                    const uint32_t MinPrec,
+                                    const bool InPlaceOfStmt) noexcept
         -> AST::Expr *
     {
         auto &Diag = Context.Diag;
@@ -815,7 +874,7 @@ done:
                 Parse::OperatorInfoForToken(BinOpToken, BinOpTokenString);
 
             assert(ThisOperInfo.Precedence != Precedence::Unknown &&
-                   "OperatorInfoMap is missing a bin-op");
+                   "OperatorInfoForToken is missing a bin-op");
 
             if (static_cast<uint64_t>(ThisOperInfo.Precedence) < MinPrec) {
                 return Lhs;
@@ -834,41 +893,41 @@ done:
                 return nullptr;
             }
 
-            auto Rhs = ParseLhs(Context);
+            auto Rhs = ParseLhs(Context, InPlaceOfStmt);
             if (Rhs == nullptr) {
                 return nullptr;
             }
 
             TokenOpt = TokenStream.peek();
-            if (TokenOpt.has_value() &&
-                Lex::TokenKindIsBinOp(TokenOpt.value().Kind,
-                                      TokenStream.tokenContent(
-                                        TokenOpt.value())))
-            {
+            if (TokenOpt.has_value()) {
                 const auto Token = TokenOpt.value();
-                const auto ThisIsRightAssoc =
-                    ThisOperInfo.Assoc == Parse::OperatorAssoc::Right;
-                const auto NextOperInfo =
-                    Parse::OperatorInfoForToken(
-                        Token, TokenStream.tokenContent(Token));
+                const auto TokenContent = TokenStream.tokenContent(Token);
 
-                assert(NextOperInfo.Precedence != Precedence::Unknown &&
-                       "OperatorInfoMap missing entry for token");
+                if (Lex::TokenKindIsBinOp(Token.Kind, TokenContent)) {
+                    const auto ThisIsRightAssoc =
+                        ThisOperInfo.Assoc == Parse::OperatorAssoc::Right;
+                    const auto NextOperInfo =
+                        Parse::OperatorInfoForToken(Token, TokenContent);
 
-                if (ThisOperInfo.Precedence < NextOperInfo.Precedence ||
-                    (ThisOperInfo.Precedence == NextOperInfo.Precedence &&
-                     ThisIsRightAssoc))
-                {
-                    const auto NextMinPrec =
-                        static_cast<uint64_t>(
-                            static_cast<uint64_t>(ThisOperInfo.Precedence) +
-                            !ThisIsRightAssoc);
+                    assert(NextOperInfo.Precedence != Precedence::Unknown &&
+                           "OperatorInfoForToken missing entry for token");
 
-                    Rhs =
-                        ParseBinaryOperationWithRhsPrec(Context, Rhs,
-                                                        NextMinPrec);
-                    if (Rhs == nullptr) {
-                        return Rhs;
+                    if (ThisOperInfo.Precedence < NextOperInfo.Precedence ||
+                        (ThisOperInfo.Precedence == NextOperInfo.Precedence &&
+                         ThisIsRightAssoc))
+                    {
+                        const auto NextMinPrec =
+                            static_cast<uint64_t>(
+                                static_cast<uint64_t>(ThisOperInfo.Precedence) +
+                                !ThisIsRightAssoc);
+
+                        Rhs =
+                            ParseBinaryOperationWithRhsPrec(Context, Rhs,
+                                                            InPlaceOfStmt,
+                                                            NextMinPrec);
+                        if (Rhs == nullptr) {
+                            return Rhs;
+                        }
                     }
                 }
             }
@@ -877,11 +936,11 @@ done:
                 LexTokenToBinaryOperator(BinOpToken, BinOpTokenString);
 
             assert(BinOpOpt.has_value() &&
-                   "LexTokenKindToBinaryOperatorMap missing BinOp");
+                   "LexTokenToBinaryOperator missing BinOp");
 
             const auto BinOp = BinOpOpt.value();
             if (BinOp == BinaryOperator::As) {
-                Lhs = new AST::CastExpr(BinOpToken.Loc, Lhs, Rhs);
+                Lhs = new AST::CastExpr(BinOpToken.Loc, *Lhs, *Rhs);
             } else {
                 Lhs =
                     new AST::BinaryOperation(BinOp, BinOpToken.Loc, *Lhs, *Rhs);
@@ -893,7 +952,24 @@ done:
     }
 
     auto ParseExpression(ParseContext &Context) noexcept -> AST::Expr * {
-        return ParseBinaryOperationWithRhsPrec(Context, ParseLhs(Context),
-                                               /*MinPrec=*/0);
+        const auto Lhs = ParseLhs(Context, /*InPlaceOfStmt=*/false);
+        if (Lhs == nullptr) {
+            return nullptr;
+        }
+
+        return ParseBinaryOperationWithRhsPrec(Context, Lhs, /*MinPrec=*/0,
+                                               /*InPlaceOfStmt=*/false);
+    }
+
+    auto
+    ParseExpressionInPlaceOfStmt(ParseContext &Context) noexcept -> AST::Expr *
+    {
+        const auto Lhs = ParseLhs(Context, /*InPlaceOfStmt=*/true);
+        if (Lhs == nullptr) {
+            return nullptr;
+        }
+
+        return ParseBinaryOperationWithRhsPrec(Context, Lhs, /*MinPrec=*/0,
+                                               /*InPlaceOfStmt=*/true);
     }
 }

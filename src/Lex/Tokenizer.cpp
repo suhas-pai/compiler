@@ -63,17 +63,15 @@ namespace Lex {
                             goto next;
                         case '\'':
                             State = State::CharLiteral;
-                            Result.Kind = TokenKind::CharLiteral;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::CharLiteral;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
                         case '"':
                             State = State::StringLiteral;
-                            Result.Kind = TokenKind::StringLiteral;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::StringLiteral;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
@@ -82,187 +80,158 @@ namespace Lex {
                         case '_':
                             State = State::Identifier;
                             Result.Kind = TokenKind::Identifier;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
                         case '0'...'9':
                             State = State::IntegerLiteral;
-                            Result.Kind = TokenKind::IntegerLiteral;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::IntegerLiteral;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
                         case '+':
                             State = State::Plus;
-                            Result.Kind = TokenKind::Plus;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Plus;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
                         case '-':
                             State = State::Minus;
-                            Result.Kind = TokenKind::Minus;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Minus;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
                         case '*':
                             State = State::Star;
-                            Result.Kind = TokenKind::Star;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Star;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
                         case '%':
                             State = State::Percent;
-                            Result.Kind = TokenKind::Percent;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Percent;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
                         case '/':
                             State = State::Slash;
-                            Result.Kind = TokenKind::Slash;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Slash;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto next;
                         case '^':
                             State = State::Caret;
-                            Result.Kind = TokenKind::Caret;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Caret;
                             Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '&':
                             State = State::Ampersand;
                             Result.Kind = TokenKind::Ampersand;
+
                             break;
                         case '|':
                             State = State::Pipe;
-                            Result.Kind = TokenKind::Pipe;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Pipe;
                             Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '~':
                             State = State::Tilde;
-                            Result.Kind = TokenKind::Tilde;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Tilde;
                             Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '<':
                             State = State::LessThan;
-                            Result.Kind = TokenKind::LessThan;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::LessThan;
                             Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '>':
                             State = State::GreaterThan;
-                            Result.Kind = TokenKind::GreaterThan;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::GreaterThan;
                             Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '=':
                             State = State::Equal;
-                            Result.Kind = TokenKind::Equal;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Equal;
                             Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '!':
                             State = State::Exclamation;
-                            Result.Kind = TokenKind::Exclamation;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            Result.Kind = TokenKind::Exclamation;
                             Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '(':
                             Result.Kind = TokenKind::OpenParen;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;
                         case ')':
                             Result.Kind = TokenKind::CloseParen;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;
                         case '{':
                             Result.Kind = TokenKind::OpenCurlyBrace;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;
                         case '}':
                             Result.Kind = TokenKind::CloseCurlyBrace;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;
                         case '[':
                             Result.Kind = TokenKind::LeftSquareBracket;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;
                         case ']':
                             Result.Kind = TokenKind::RightSquareBracket;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;
                         case ',':
                             Result.Kind = TokenKind::Comma;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;
                         case '.':
                             State = State::Dot;
                             Result.Kind = TokenKind::Dot;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case ':':
                             Result.Kind = TokenKind::Colon;
-
-                            Result.Loc.Row = this->Loc.Row;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;
                         case ';':
                             Result.Kind = TokenKind::Semicolon;
+                            Result.Loc.Column = this->Loc.Column;
 
-                            Result.Loc.Row = this->Loc.Row;
+                            goto done;
+                        case '?':
+                            Result.Kind = TokenKind::QuestionMark;
                             Result.Loc.Column = this->Loc.Column;
 
                             goto done;

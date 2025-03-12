@@ -22,7 +22,7 @@ namespace Sema {
         FunctionPrototype(QualifiedType *const ReturnType,
                           const std::span<QualifiedType *> ParamList) noexcept
         : Type(ObjKind), ReturnType(ReturnType),
-          ParamList(std::vector(ParamList.begin(), ParamList.end())) {}
+          ParamList(ParamList.begin(), ParamList.end()) {}
 
         constexpr explicit
         FunctionPrototype(QualifiedType *const ReturnType,

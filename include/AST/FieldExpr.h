@@ -47,7 +47,7 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getLoc() const noexcept {
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
             return this->Loc;
         }
 

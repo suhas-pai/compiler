@@ -10,6 +10,7 @@
 
 #include "AST/Qualifiers.h"
 #include "ParamVarDecl.h"
+#include "Source/SourceLocation.h"
 
 namespace AST {
     struct FunctionDecl : public Expr {
@@ -38,8 +39,7 @@ namespace AST {
                      Expr *const ReturnTypeExpr,
                      Stmt *const Body) noexcept
         : Expr(ObjKind),
-          ParamDeclList(
-            std::vector(ParamDeclList.begin(), ParamDeclList.end())), Loc(Loc),
+          ParamDeclList(ParamDeclList.begin(), ParamDeclList.end()), Loc(Loc),
           ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
 
         [[nodiscard]]
@@ -68,7 +68,7 @@ namespace AST {
             return this->Body;
         }
 
-        [[nodiscard]] constexpr auto getLoc() const noexcept {
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
             return this->Loc;
         }
 
@@ -80,15 +80,15 @@ namespace AST {
             return this->Quals;
         }
 
-        constexpr auto setBody(Stmt *const Body) noexcept -> decltype(*this) {
-            this->Body = Body;
+        constexpr auto setBody(Stmt &Body) noexcept -> decltype(*this) {
+            this->Body = &Body;
             return *this;
         }
 
-        constexpr auto setReturnTypeExpr(Expr *const ReturnTypeExpr) noexcept
+        constexpr auto setReturnTypeExpr(Expr &ReturnTypeExpr) noexcept
             -> decltype(*this)
         {
-            this->ReturnTypeExpr = ReturnTypeExpr;
+            this->ReturnTypeExpr = &ReturnTypeExpr;
             return *this;
         }
     };

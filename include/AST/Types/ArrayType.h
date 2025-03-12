@@ -26,18 +26,18 @@ namespace AST {
     public:
         constexpr explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
-                  const std::span<Stmt *> DetailList,
-                  Expr *const Base,
-                  const Sema::PointerBaseTypeQualifiers Qualifiers) noexcept
+                      const std::span<Stmt *> DetailList,
+                      Expr *const Base,
+                      const Sema::PointerBaseTypeQualifiers Qualifiers) noexcept
         : Expr(NodeKind::ArrayType),
-          DetailList(std::vector(DetailList.begin(), DetailList.end())),
+          DetailList(DetailList.begin(), DetailList.end()),
           BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
 
         constexpr explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
-                  std::vector<Stmt *> &&DetailList,
-                  Expr *const Base,
-                  const Sema::PointerBaseTypeQualifiers Qualifiers) noexcept
+                      std::vector<Stmt *> &&DetailList,
+                      Expr *const Base,
+                      const Sema::PointerBaseTypeQualifiers Qualifiers) noexcept
         : Expr(NodeKind::ArrayType), DetailList(std::move(DetailList)),
           BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
 
@@ -61,6 +61,10 @@ namespace AST {
 
         [[nodiscard]] constexpr auto getBracketLoc() const noexcept {
             return this->BracketLoc;
+        }
+
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+            return this->getBracketLoc();
         }
 
         [[nodiscard]] constexpr auto getBase() const noexcept {

@@ -22,7 +22,7 @@ namespace AST {
         CompoundStmt(const SourceLocation BraceLoc,
                      const std::span<Stmt *> StmtList) noexcept
         : Stmt(ObjKind), BraceLoc(BraceLoc),
-          StmtList(std::vector(StmtList.begin(), StmtList.end())) {}
+          StmtList(StmtList.begin(), StmtList.end()) {}
 
         constexpr explicit
         CompoundStmt(const SourceLocation BraceLoc,

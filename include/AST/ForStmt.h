@@ -45,6 +45,10 @@ namespace AST {
             return this->ForLoc;
         }
 
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+            return this->getForLoc();
+        }
+
         [[nodiscard]] constexpr auto getInit() const noexcept {
             return this->Init;
         }

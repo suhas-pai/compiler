@@ -182,8 +182,7 @@ namespace Backend::LLVM {
     SetupGlobalDecls(JITHandler &Handler,
                      ::Backend::LLVM::ValueMap &ValueMap) noexcept -> bool
     {
-        for (const auto &[Name, Decl] :
-                Handler.getUnit().getTopLevelDeclList())
+        for (const auto &[Name, Decl] : Handler.getUnit().getTopLevelDeclList())
         {
             const auto ValDecl = llvm::dyn_cast<AST::LvalueNamedDecl>(Decl);
             if (ValDecl == nullptr) {
@@ -219,7 +218,7 @@ namespace Backend::LLVM {
                     return false;
                 }
 
-                ValueMap.addValue(VarDecl->getName(), CodegenOpt.value());
+                ValueMap.add(VarDecl->getName(), CodegenOpt.value());
                 continue;
             }
         }
@@ -244,6 +243,7 @@ namespace Backend::LLVM {
                     AST::DeclRefExpr(VarDecl->getName(),
                                      /*NameLoc=*/SourceLocation::invalid());
 
+                #if 0
                 auto AssignmentOper =
                     AST::BinaryOperation(Parse::BinaryOperator::Assignment,
                                          /*Loc=*/SourceLocation::invalid(),
@@ -260,6 +260,7 @@ namespace Backend::LLVM {
                     return false;
                 }
 
+                #endif
                 continue;
             }
         }

@@ -3,6 +3,7 @@
  */
 
 #pragma once
+#include "Source/SourceLocation.h"
 #include "Stmt.h"
 
 namespace AST {
@@ -20,5 +21,7 @@ namespace AST {
         constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
         }
+
+        virtual SourceLocation getLoc() const noexcept = 0;
     };
 }

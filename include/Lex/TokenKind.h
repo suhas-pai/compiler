@@ -72,7 +72,6 @@ namespace Lex {
         DoubleEqual,
 
         QuestionMark,
-        QuestionColon,
 
         OpenParen,
         CloseParen,
@@ -112,6 +111,7 @@ namespace Lex {
             case TokenKind::Ampersand:
             case TokenKind::Star:
             case TokenKind::DotDotDot:
+            case TokenKind::QuestionMark:
                 return true;
             case TokenKind::Plus:
             case TokenKind::Minus:
@@ -150,8 +150,6 @@ namespace Lex {
             case TokenKind::DoublePipe:
             case TokenKind::TildeEqual:
             case TokenKind::DoubleEqual:
-            case TokenKind::QuestionMark:
-            case TokenKind::QuestionColon:
             case TokenKind::OpenParen:
             case TokenKind::CloseParen:
             case TokenKind::OpenCurlyBrace:
@@ -180,8 +178,7 @@ namespace Lex {
     }
 
     [[nodiscard]] constexpr auto
-    TokenKindIsBinOp(const TokenKind Kind,
-                     const std::string_view Text) noexcept
+    TokenKindIsBinOp(const TokenKind Kind, const std::string_view Text) noexcept
     {
         switch (Kind) {
             case TokenKind::Plus:
@@ -212,6 +209,7 @@ namespace Lex {
             case TokenKind::DoubleEqual:
             case TokenKind::Equal:
             case TokenKind::NotEqual:
+            case TokenKind::QuestionMark:
                 return true;
             case TokenKind::IntegerLiteral:
             case TokenKind::IntegerLiteralWithSuffix:
@@ -240,8 +238,6 @@ namespace Lex {
             case TokenKind::Tilde:
             case TokenKind::TildeEqual:
             case TokenKind::Exclamation:
-            case TokenKind::QuestionMark:
-            case TokenKind::QuestionColon:
             case TokenKind::OpenParen:
             case TokenKind::CloseParen:
             case TokenKind::OpenCurlyBrace:
@@ -401,8 +397,6 @@ namespace Lex {
                 return "eof";
             case TokenKind::Invalid:
                 assert(false && "TokenKindGetName(): token is invalid");
-            case TokenKind::QuestionColon:
-                break;
         }
 
         __builtin_unreachable();

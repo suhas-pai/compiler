@@ -19,7 +19,11 @@ protected:
     std::string FilePath;
     std::vector<DiagnosticMessage> MessageList;
 public:
-    explicit SourceFileDiagnosticConsumer(std::string FilePath) noexcept
+    explicit
+    SourceFileDiagnosticConsumer(const std::string_view FilePath) noexcept
+    : FilePath(FilePath) {}
+
+    explicit SourceFileDiagnosticConsumer(std::string &&FilePath) noexcept
     : FilePath(std::move(FilePath)) {}
 
     void consume(const DiagnosticMessage &Message) noexcept override {

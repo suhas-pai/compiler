@@ -35,7 +35,7 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getLoc() const noexcept {
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
             return this->Loc;
         }
 
@@ -49,6 +49,30 @@ namespace AST {
 
         [[nodiscard]] constexpr auto &getRhs() const noexcept {
             return *this->Rhs;
+        }
+
+        [[nodiscard]] constexpr auto isAssignmentOperation() const noexcept {
+            return BinaryOperatorIsAssigment(this->getOperator());
+        }
+
+        [[nodiscard]] constexpr auto isComparableOperation() const noexcept {
+            return BinaryOperatorIsComparable(this->getOperator());
+        }
+
+        [[nodiscard]] constexpr auto isArithmeticOperation() const noexcept {
+            return BinaryOperatorIsArithmetic(this->getOperator());
+        }
+
+        [[nodiscard]] constexpr auto isLogicalOperation() const noexcept {
+            return BinaryOperatorIsLogical(this->getOperator());
+        }
+
+        [[nodiscard]] constexpr auto isBitwiseOperation() const noexcept {
+            return BinaryOperatorIsBitwise(this->getOperator());
+        }
+
+        [[nodiscard]] constexpr auto isShiftOperation() const noexcept {
+            return BinaryOperatorIsShift(this->getOperator());
         }
 
         constexpr auto setLhs(Expr &Lhs) noexcept -> decltype(*this) {

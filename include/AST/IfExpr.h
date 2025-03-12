@@ -39,6 +39,10 @@ namespace AST {
             return this->IfLoc;
         }
 
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+            return this->getIfLoc();
+        }
+
         [[nodiscard]] constexpr auto getCond() const noexcept {
             return this->Cond;
         }

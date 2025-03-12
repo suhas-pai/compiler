@@ -9,21 +9,26 @@
 #include <vector>
 
 #include "AST/Expr.h"
-#include "AST/Stmt.h"
+#include "Source/SourceLocation.h"
 
 namespace AST {
     class EnumDecl : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::EnumDecl;
     protected:
+        SourceLocation Loc;
         std::vector<Stmt *> MemberList;
     public:
-        constexpr explicit EnumDecl(const std::span<Stmt *> MemberList) noexcept
-        : Expr(ObjKind),
-          MemberList(std::vector(MemberList.begin(), MemberList.end())) {}
+        constexpr explicit
+        EnumDecl(const SourceLocation Loc,
+                 const std::span<Stmt *> MemberList) noexcept
+        : Expr(ObjKind), Loc(Loc),
+          MemberList(MemberList.begin(), MemberList.end()) {}
 
-        constexpr explicit EnumDecl(std::vector<Stmt *> &&MemberList) noexcept
-        : Expr(ObjKind), MemberList(std::move(MemberList)) {}
+        constexpr explicit
+        EnumDecl(const SourceLocation Loc,
+                 std::vector<Stmt *> &&MemberList) noexcept
+        : Expr(ObjKind), Loc(Loc), MemberList(std::move(MemberList)) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -33,6 +38,10 @@ namespace AST {
         [[nodiscard]]
         constexpr static auto classof(const Stmt *const Node) noexcept {
             return IsOfKind(*Node);
+        }
+
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+            return this->Loc;
         }
 
         [[nodiscard]] constexpr auto getMemberList() const noexcept {

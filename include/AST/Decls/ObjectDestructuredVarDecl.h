@@ -9,9 +9,6 @@
 #include <vector>
 
 #include "AST/Decls/ArrayDestructredVarDecl.h"
-#include "AST/Decls/DeclStmt.h"
-#include "AST/Expr.h"
-#include "AST/Qualifiers.h"
 
 namespace AST {
     enum class ObjectDestructureFieldKind {
@@ -81,7 +78,7 @@ namespace AST {
         : ObjectDestructureField(ObjectDestructureFieldKind::Array, Key,
                                  KeyLoc),
           Qualifiers(Qualifiers),
-          ItemList(std::vector(ItemList.begin(), ItemList.end())) {}
+          ItemList(ItemList.begin(), ItemList.end()) {}
 
         explicit
         ObjectDestructureFieldArray(
@@ -117,7 +114,7 @@ namespace AST {
         : ObjectDestructureField(ObjectDestructureFieldKind::Object, Key,
                                  KeyLoc),
           Qualifiers(Qualifiers),
-          FieldList(std::vector(FieldList.begin(), FieldList.end())) {}
+          FieldList(FieldList.begin(), FieldList.end()) {}
 
         explicit
         ObjectDestructureFieldObject(
@@ -165,7 +162,7 @@ namespace AST {
         }
     };
 
-    struct ObjectDestructuredVarDecl : public DeclStmt {
+    struct ObjectDestructuredVarDecl : public Stmt {
     protected:
         Qualifiers Qualifiers;
         std::vector<ObjectDestructureField *> FieldList;
@@ -176,19 +173,19 @@ namespace AST {
         ObjectDestructuredVarDecl(
             const SourceLocation Loc,
             const struct Qualifiers &Qualifiers,
-            const std::span<ObjectDestructureField *> &Items,
+            const std::span<ObjectDestructureField *> FieldList,
             Expr *const InitExpr) noexcept
-        : DeclStmt(NodeKind::ObjectDestructuredVarDecl), Qualifiers(Qualifiers),
-          FieldList(Items.begin(), Items.end()), InitExpr(InitExpr) {}
+        : Stmt(NodeKind::ObjectDestructuredVarDecl), Qualifiers(Qualifiers),
+          FieldList(FieldList.begin(), FieldList.end()), InitExpr(InitExpr) {}
 
         explicit
         ObjectDestructuredVarDecl(
             const SourceLocation Loc,
             const struct Qualifiers &Qualifiers,
-            std::vector<ObjectDestructureField *> &&Items,
+            std::vector<ObjectDestructureField *> &&FieldList,
             Expr *const InitExpr) noexcept
-        : DeclStmt(NodeKind::ObjectDestructuredVarDecl), Qualifiers(Qualifiers),
-          FieldList(std::move(Items)), InitExpr(InitExpr) {}
+        : Stmt(NodeKind::ObjectDestructuredVarDecl), Qualifiers(Qualifiers),
+          FieldList(std::move(FieldList)), InitExpr(InitExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {

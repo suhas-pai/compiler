@@ -13,13 +13,12 @@ namespace AST {
     public:
         constexpr static auto ObjKind = NodeKind::OptionalType;
     protected:
-        Expr *Operand;
         SourceLocation Loc;
+        Expr *Operand;
     public:
         constexpr explicit
-        OptionalTypeExpr(const SourceLocation Loc,
-                        Expr *const Operand) noexcept
-        : Expr(ObjKind), Operand(Operand), Loc(Loc) {}
+        OptionalTypeExpr(const SourceLocation Loc, Expr *const Operand) noexcept
+        : Expr(ObjKind), Loc(Loc), Operand(Operand) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -35,14 +34,12 @@ namespace AST {
             return this->Operand;
         }
 
-        [[nodiscard]] constexpr auto getLoc() const noexcept {
+        [[nodiscard]] SourceLocation getLoc() const noexcept override {
             return this->Loc;
         }
 
-        constexpr auto setOperand(Expr *const Operand) noexcept
-            -> decltype(*this)
-        {
-            this->Operand = Operand;
+        constexpr auto setOperand(Expr &Operand) noexcept -> decltype(*this) {
+            this->Operand = &Operand;
             return *this;
         }
     };
