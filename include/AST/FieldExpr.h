@@ -4,9 +4,8 @@
  */
 
 #pragma once
-#include <string>
 
-#include "Source/SourceLocation.h"
+#include <string>
 #include "Expr.h"
 
 namespace AST {

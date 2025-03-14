@@ -4,9 +4,7 @@
  */
 
  #pragma once
-
  #include "AST/Expr.h"
- #include "Source/SourceLocation.h"
 
 namespace AST {
     struct OptionalTypeExpr : public Expr {

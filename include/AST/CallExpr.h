@@ -8,8 +8,6 @@
 #include <vector>
 
 #include "AST/Qualifiers.h"
-#include "Source/SourceLocation.h"
-
 #include "Expr.h"
 
 namespace AST {

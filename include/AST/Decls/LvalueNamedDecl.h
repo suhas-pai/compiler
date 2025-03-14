@@ -4,10 +4,9 @@
  */
 
 #pragma once
-#include <string>
 
+#include <string>
 #include "AST/Expr.h"
-#include "Source/SourceLocation.h"
 
 namespace AST {
     struct LvalueNamedDecl : public Stmt {

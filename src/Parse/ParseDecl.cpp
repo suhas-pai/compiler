@@ -512,9 +512,9 @@ namespace Parse {
             return nullptr;
         }
 
+        auto &ParamList = ParamListOpt.value();
         return new AST::ClosureDecl(ParenToken.Loc, std::move(CaptureList),
-                                    std::move(ParamListOpt.value()),
-                                    ReturnTypeExpr, Body);
+                                    std::move(ParamList), ReturnTypeExpr, Body);
     }
 
     auto
@@ -824,8 +824,7 @@ namespace Parse {
             const auto Result =
                 new AST::ArrayDestructureItemSpread(Qualifiers,
                                                     /*Index=*/std::nullopt,
-                                                    Name,
-                                                    NameToken.Loc,
+                                                    Name, NameToken.Loc,
                                                     ItemLoc);
 
             return Result;

@@ -102,20 +102,16 @@ namespace Parse {
             }
 
             TokenStream.goBack();
-            Context.Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Expected an expression inside parenthesis"
-            });
-
             return std::nullopt;
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::Identifier)) {
-            TokenStream.goBack();
             if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
+                TokenStream.goBack();
                 return true;
             }
+
+            TokenStream.goBack();
         }
 
         return false;
@@ -150,8 +146,8 @@ namespace Parse {
             auto &DetailList = DetailListOpt.value();
             auto Quals = Sema::PointerBaseTypeQualifiers();
 
-            return new AST::ArrayTypeExpr(BracketToken.Loc, DetailList, Base,
-                                          Quals);
+            return new AST::ArrayTypeExpr(BracketToken.Loc,
+                                          std::move(DetailList), Base, Quals);
         }
 
         if (TokenStream.peekIs(Lex::TokenKind::OpenParen)) {
@@ -160,11 +156,18 @@ namespace Parse {
             if (const auto IsParamListOpt = IsLikelyParamList(Context)) {
                 if (IsParamListOpt.value()) {
                     // Assume this is a lambda expression.
+                    auto &CaptureList = DetailListOpt.value();
                     return ParseClosureDecl(Context, BracketToken,
-                                            std::vector<AST::Stmt *>());
+                                            std::move(CaptureList));
                 }
             } else {
                 // Empty parenthesis
+                Context.Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Message = "Expected an expression inside parenthesis"
+                });
+
                 return nullptr;
             }
         }
@@ -945,7 +948,6 @@ done:
                 Lhs =
                     new AST::BinaryOperation(BinOp, BinOpToken.Loc, *Lhs, *Rhs);
             }
-
         } while (true);
 
         __builtin_unreachable();

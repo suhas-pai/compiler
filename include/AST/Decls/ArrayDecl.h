@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "AST/Expr.h"
-#include "Source/SourceLocation.h"
 
 namespace AST {
     class ArrayDecl : public Expr {

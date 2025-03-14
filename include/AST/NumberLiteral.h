@@ -5,8 +5,6 @@
 #pragma once
 
 #include "Parse/ParseNumber.h"
-#include "Source/SourceLocation.h"
-
 #include "Expr.h"
 
 namespace AST {

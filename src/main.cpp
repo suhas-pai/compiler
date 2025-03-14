@@ -585,8 +585,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
         }
         case AST::NodeKind::FunctionType: {
             const auto FuncTypeExpr = llvm::cast<AST::FunctionTypeExpr>(Stmt);
-
             std::print("FunctionTypeExpr\n");
+
             PrintDepth(Depth + 1);
             std::print("ParamList\n");
 
