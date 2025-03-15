@@ -62,7 +62,8 @@ namespace AST {
             return this->BracketLoc;
         }
 
-        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+        [[nodiscard]]
+        constexpr SourceLocation getLoc() const noexcept override {
             return this->getBracketLoc();
         }
 

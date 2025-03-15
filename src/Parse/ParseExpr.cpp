@@ -106,9 +106,23 @@ namespace Parse {
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::Identifier)) {
-            if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
+            if (TokenStream.peekIs(Lex::TokenKind::Colon) ||
+                TokenStream.peekIs(Lex::TokenKind::Equal))
+            {
                 TokenStream.goBack();
                 return true;
+            }
+
+            if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
+                if (TokenStream.peekIs(Lex::TokenKind::ThinArrow) ||
+                    TokenStream.peekIs(Lex::TokenKind::FatArrow) ||
+                    TokenStream.peekIs(Lex::TokenKind::LeftSquareBracket))
+                {
+                    TokenStream.goBack(2);
+                    return true;
+                }
+
+                TokenStream.goBack();
             }
 
             TokenStream.goBack();
@@ -677,8 +691,7 @@ done:
                                        /*Operand=*/nullptr);
     }
 
-    auto
-    ParseLhs(ParseContext &Context, const bool InPlaceOfStmt) noexcept
+    auto ParseLhs(ParseContext &Context, const bool InPlaceOfStmt) noexcept
         -> AST::Expr *
     {
         auto &Diag = Context.Diag;
@@ -704,17 +717,29 @@ done:
             if (!IsUnaryOp && Token.Kind != Lex::TokenKind::Minus) {
                 switch (Token.Kind) {
                     case Lex::TokenKind::Identifier:
-                    case Lex::TokenKind::DotIdentifier:
-                        Expr =
-                            ParseIdentifierForLhs(Context, Qualifiers, Token)
-                                .value();
+                    case Lex::TokenKind::DotIdentifier: {
+                        const auto Result =
+                            ParseIdentifierForLhs(Context, Qualifiers, Token);
+
+                        if (!Result.has_value()) {
+                            return nullptr;
+                        }
+
+                        Expr = Result.value();
                         break;
-                    case Lex::TokenKind::Keyword:
-                        Expr =
+                    }
+                    case Lex::TokenKind::Keyword: {
+                        const auto Result =
                             ParseKeywordForLhs(Context, Qualifiers, Token,
-                                               InPlaceOfStmt)
-                                .value();
+                                               InPlaceOfStmt);
+
+                        if (!Result.has_value()) {
+                            return nullptr;
+                        }
+
+                        Expr = Result.value();
                         break;
+                    }
                     case Lex::TokenKind::IntegerLiteral:
                     case Lex::TokenKind::FloatLiteral:
                         Expr = ParseNumberLiteral(Context, Token);
@@ -728,10 +753,17 @@ done:
                     case Lex::TokenKind::OpenParen:
                         Expr = ParseParenExpr(Context, Token);
                         break;
-                    case Lex::TokenKind::LeftSquareBracket:
-                        Expr =
-                            ParseExprWithSquareBracket(Context, Token).value();
+                    case Lex::TokenKind::LeftSquareBracket: {
+                        const auto Result =
+                            ParseExprWithSquareBracket(Context, Token);
+
+                        if (!Result.has_value()) {
+                            return nullptr;
+                        }
+
+                        Expr = Result.value();
                         break;
+                    }
                     case Lex::TokenKind::Exclamation:
                     case Lex::TokenKind::Tilde:
                     case Lex::TokenKind::Ampersand:

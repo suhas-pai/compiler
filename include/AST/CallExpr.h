@@ -56,7 +56,8 @@ namespace AST {
             return this->ParenLoc;
         }
 
-        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+        [[nodiscard]]
+        constexpr SourceLocation getLoc() const noexcept override {
             return this->getParenLoc();
         }
 

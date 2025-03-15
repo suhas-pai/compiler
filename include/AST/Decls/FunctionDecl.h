@@ -67,15 +67,16 @@ namespace AST {
             return this->Body;
         }
 
-        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+        [[nodiscard]]
+        constexpr SourceLocation getLoc() const noexcept override {
             return this->Loc;
         }
 
-        [[nodiscard]] inline auto &getQualifiers() const noexcept {
+        [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] inline auto &getQualifiersRef() noexcept {
+        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
             return this->Quals;
         }
 

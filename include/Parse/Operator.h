@@ -105,7 +105,7 @@ namespace Parse {
     }
 
     [[nodiscard]]
-    constexpr auto BinaryOperatorIsAssigment(const BinaryOperator Op) noexcept {
+    constexpr auto BinaryOperatorIsAssignment(const BinaryOperator Op) noexcept {
         switch (Op) {
             case BinaryOperator::Assignment:
                 return true;

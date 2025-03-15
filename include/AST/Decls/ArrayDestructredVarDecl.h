@@ -216,7 +216,7 @@ namespace AST {
             return this->ItemList;
         }
 
-        [[nodiscard]] inline auto &getQualifiers() const noexcept {
+        [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
             return this->Qualifiers;
         }
 

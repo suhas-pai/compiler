@@ -158,8 +158,8 @@ namespace Parse {
                             std::optional<Lex::Token>(std::nullopt);
 
                         const auto Result =
-                            ParseStructDecl(Context, Token,
-                                            /*IsLValue=*/true, NameTokOpt);
+                            ParseStructDecl(Context, Token, /*IsLValue=*/true,
+                                            NameTokOpt);
 
                         if (!Result.has_value()) {
                             return std::unexpected(Result.error());

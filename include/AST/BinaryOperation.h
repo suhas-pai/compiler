@@ -35,7 +35,8 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+        [[nodiscard]]
+        constexpr SourceLocation getLoc() const noexcept override {
             return this->Loc;
         }
 
@@ -52,7 +53,7 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto isAssignmentOperation() const noexcept {
-            return BinaryOperatorIsAssigment(this->getOperator());
+            return BinaryOperatorIsAssignment(this->getOperator());
         }
 
         [[nodiscard]] constexpr auto isComparableOperation() const noexcept {

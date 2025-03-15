@@ -169,6 +169,14 @@ namespace Parse {
             if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
                 continue;
             }
+
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected a comma after field declaration"
+            });
+
+            return false;
         }
 
         return true;
@@ -449,6 +457,9 @@ namespace Parse {
                 .Location = TokenStream.getCurrOrPrevLoc(),
                 .Message = "Expected '=>' after inline function declaration"
             });
+
+            // Ignore missing '=>' and assume the user just forgot to include
+            // it.
         }
 
         if (TokenStream.peekIs(Lex::TokenKind::OpenCurlyBrace)) {
@@ -470,14 +481,14 @@ namespace Parse {
                 if (Body == nullptr) {
                     return false;
                 }
-            }
+            } else {
+                // Unexpected token, pass error-handling to ParseExpression()
+                // instead of handling it here.
 
-            // Unexpected token, pass error-handling to ParseExpression()
-            // instead of handling it here.
-
-            Body = ParseExpression(Context);
-            if (Body == nullptr) {
-                return false;
+                Body = ParseExpression(Context);
+                if (Body == nullptr) {
+                    return false;
+                }
             }
         } else {
             Body = ParseExpression(Context);
