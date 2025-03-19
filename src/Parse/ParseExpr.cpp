@@ -116,6 +116,7 @@ namespace Parse {
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
                 if (TokenStream.peekIs(Lex::TokenKind::ThinArrow) ||
                     TokenStream.peekIs(Lex::TokenKind::FatArrow) ||
+                    TokenStream.peekIs(Lex::TokenKind::Colon) ||
                     TokenStream.peekIs(Lex::TokenKind::LeftSquareBracket))
                 {
                     TokenStream.goBack(2);

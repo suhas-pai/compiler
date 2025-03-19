@@ -220,7 +220,7 @@ namespace AST {
             return this->Qualifiers;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiers() noexcept {
+        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
             return this->Qualifiers;
         }
 

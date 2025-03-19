@@ -5,7 +5,9 @@
 
 #pragma once
 
+#include <span>
 #include <vector>
+
 #include "Expr.h"
 
 namespace AST {
@@ -49,7 +51,7 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getDetailList() const noexcept {
-            return this->DetailList;
+            return std::span(this->DetailList);
         }
 
         [[nodiscard]] constexpr auto &getDetailListRef() noexcept {

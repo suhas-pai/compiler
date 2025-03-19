@@ -936,7 +936,7 @@ namespace Parse {
 
     [[nodiscard]] static auto
     ParseArrayDestructureVarDecl(ParseContext &Context,
-                                 const AST::Qualifiers &PreQualifiers,
+                                 const AST::Qualifiers &PreIntroducerQualifiers,
                                  const SourceLocation SquareBracketLoc) noexcept
         -> std::expected<AST::Stmt *, ParseError>
     {

@@ -103,8 +103,8 @@ namespace Parse {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        auto Qualifiers = AST::Qualifiers();
-        ParseQualifiers(Context, Qualifiers);
+        auto PreIntroducerQualifiers = AST::Qualifiers();
+        ParseQualifiers(Context, PreIntroducerQualifiers);
 
         const auto TokenOpt = TokenStream.consume();
         if (!TokenOpt.has_value()) {
@@ -122,7 +122,7 @@ namespace Parse {
             case Lex::TokenKind::Keyword: {
                 switch (TokenStream.tokenKeyword(Token)) {
                     case Lex::Keyword::Let:
-                        return ParseVarDecl(Context, Qualifiers);
+                        return ParseVarDecl(Context, PreIntroducerQualifiers);
                     case Lex::Keyword::Mut:
                     case Lex::Keyword::Volatile:
                     case Lex::Keyword::Inline:

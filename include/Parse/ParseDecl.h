@@ -41,6 +41,6 @@ namespace Parse {
 
     [[nodiscard]] auto
     ParseVarDecl(ParseContext &Context,
-                 const AST::Qualifiers &PreQualifiers) noexcept
+                 const AST::Qualifiers &PreIntroducerQualifiers) noexcept
         -> std::expected<AST::Stmt *, ParseError>;
 }

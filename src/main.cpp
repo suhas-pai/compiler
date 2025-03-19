@@ -350,7 +350,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("Callee\n");
 
-            PrintAST(Handler, CallExpr->getCallee(), Depth + 2);
+            PrintAST(Handler, CallExpr->getCalleeExpr(), Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("Args\n");

@@ -37,9 +37,7 @@ namespace AST {
             return this->Loc;
         }
 
-        constexpr auto setOperand(Expr &Operand) noexcept
-            -> decltype(*this)
-        {
+        constexpr auto setOperand(Expr &Operand) noexcept -> decltype(*this) {
             this->Operand = &Operand;
             return *this;
         }

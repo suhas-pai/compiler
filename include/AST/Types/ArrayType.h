@@ -71,7 +71,7 @@ namespace AST {
             return this->Base;
         }
 
-        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+        [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
             return this->Qualifiers;
         }
 

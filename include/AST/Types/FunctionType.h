@@ -54,12 +54,12 @@ namespace AST {
             return std::span(this->ParamList);
         }
 
-        [[nodiscard]] constexpr auto getReturnType() const noexcept {
-            return this->ReturnType;
-        }
-
         [[nodiscard]] constexpr auto &getParamListRef() noexcept {
             return this->ParamList;
+        }
+
+        [[nodiscard]] constexpr auto getReturnType() const noexcept {
+            return this->ReturnType;
         }
 
         constexpr auto setReturnTypeRef(Expr *const ReturnType) noexcept

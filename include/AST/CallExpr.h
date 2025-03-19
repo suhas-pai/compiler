@@ -15,7 +15,7 @@ namespace AST {
     public:
         constexpr static auto ObjKind = NodeKind::CallExpr;
     protected:
-        Expr *Callee;
+        Expr *CalleeExpr;
 
         SourceLocation ParenLoc;
         Qualifiers Quals;
@@ -27,7 +27,7 @@ namespace AST {
                  const SourceLocation ParenLoc,
                  const Qualifiers &Quals,
                  const std::span<Expr *> Args) noexcept
-        : Expr(ObjKind), Callee(Callee), ParenLoc(ParenLoc), Quals(Quals),
+        : Expr(ObjKind), CalleeExpr(Callee), ParenLoc(ParenLoc), Quals(Quals),
           Args(Args.begin(), Args.end()) {}
 
         explicit
@@ -35,7 +35,7 @@ namespace AST {
                  const SourceLocation ParenLoc,
                  const Qualifiers &Quals,
                  std::vector<Expr *> &&Args) noexcept
-        : Expr(ObjKind), Callee(Callee), ParenLoc(ParenLoc), Quals(Quals),
+        : Expr(ObjKind), CalleeExpr(Callee), ParenLoc(ParenLoc), Quals(Quals),
           Args(std::move(Args)) {}
 
         [[nodiscard]]
@@ -48,8 +48,8 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getCallee() const noexcept {
-            return this->Callee;
+        [[nodiscard]] constexpr auto getCalleeExpr() const noexcept {
+            return this->CalleeExpr;
         }
 
         [[nodiscard]] constexpr auto getParenLoc() const noexcept {
@@ -71,7 +71,7 @@ namespace AST {
 
         constexpr auto setCallee(Expr *const Callee) noexcept -> decltype(*this)
         {
-            this->Callee = Callee;
+            this->CalleeExpr = Callee;
             return *this;
         }
 

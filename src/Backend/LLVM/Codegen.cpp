@@ -93,8 +93,7 @@ namespace Backend::LLVM {
                     return std::nullopt;
                 }
 
-                return Builder.CreateCall(PowFunc,
-                                          {LeftDouble, RightDouble},
+                return Builder.CreateCall(PowFunc, {LeftDouble, RightDouble},
                                           "powtmp");
             }
             case Parse::BinaryOperator::AddAssign:
@@ -173,7 +172,7 @@ namespace Backend::LLVM {
                     ValueMap &ValueMap) noexcept
         -> std::optional<llvm::Value *>
     {
-        auto Callee = FuncCall.getCallee();
+        auto Callee = FuncCall.getCalleeExpr();
         const auto CalleeCodegen = Handler.codegen(*Callee, Builder, ValueMap);
 
         if (!CalleeCodegen.has_value()) {
