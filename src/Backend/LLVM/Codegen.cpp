@@ -13,9 +13,7 @@ namespace Backend::LLVM {
                            ValueMap &ValueMap) noexcept
         -> std::optional<llvm::Value *>
     {
-        const auto LeftOpt =
-            Handler.codegen(BinOp.getLhs(), Builder, ValueMap);
-
+        const auto LeftOpt = Handler.codegen(BinOp.getLhs(), Builder, ValueMap);
         if (!LeftOpt.has_value()) {
             return std::nullopt;
         }
@@ -668,6 +666,7 @@ namespace Backend::LLVM {
                                         *this,
                                         Builder,
                                         ValueMap);
+            case AST::NodeKind::DerefExpr:
             case AST::NodeKind::StructDecl:
             case AST::NodeKind::ArraySubscriptExpr:
             case AST::NodeKind::CastExpr:

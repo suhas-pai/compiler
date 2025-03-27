@@ -151,8 +151,14 @@ namespace Parse {
                         //return this->parseIfStmt(Token);
                     case Lex::Keyword::Else:
                         // return this->parseExpressionAndEnd();
-                    case Lex::Keyword::Return:
-                        return ParseReturnStmt(Context, Token).value();
+                    case Lex::Keyword::Return: {
+                        const auto ResultOpt = ParseReturnStmt(Context, Token);
+                        if (!ResultOpt.has_value()) {
+                            return std::unexpected(ResultOpt.error());
+                        }
+
+                        return ResultOpt.value();
+                    }
                     case Lex::Keyword::Struct: {
                         auto NameTokOpt =
                             std::optional<Lex::Token>(std::nullopt);
@@ -163,6 +169,18 @@ namespace Parse {
 
                         if (!Result.has_value()) {
                             return std::unexpected(Result.error());
+                        }
+
+                        if (!NameTokOpt.has_value()) {
+                            Diag.consume({
+                                .Level = DiagnosticLevel::Error,
+                                .Location = Token.Loc,
+                                .Message =
+                                    "Expected name for top-level struct "
+                                    "declaration"
+                            });
+
+                            return nullptr;
                         }
 
                         const auto NameTok = NameTokOpt.value();

@@ -17,6 +17,7 @@
 #include "AST/Decls/StructDecl.h"
 #include "AST/Decls/VarDecl.h"
 
+#include "AST/Types/ArrayType.h"
 #include "AST/Types/FunctionType.h"
 #include "AST/Types/OptionalType.h"
 #include "AST/Types/PointerType.h"
@@ -29,14 +30,15 @@
 #include "AST/CommaSepStmtList.h"
 #include "AST/CompoundStmt.h"
 #include "AST/DeclRefExpr.h"
+#include "AST/DerefExpr.h"
 #include "AST/FieldExpr.h"
 #include "AST/ForStmt.h"
 #include "AST/IfExpr.h"
+#include "AST/OptionalUnwrapExpr.h"
 #include "AST/NumberLiteral.h"
 #include "AST/ParenExpr.h"
 #include "AST/ReturnStmt.h"
 #include "AST/StringLiteral.h"
-#include "AST/Types/ArrayType.h"
 #include "AST/UnaryOperation.h"
 
 #include "Backend/LLVM/Handler.h"
@@ -286,6 +288,14 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("InitExpr\n");
 
             PrintAST(Handler, VarDecl->getInitExpr(), Depth + 2);
+            return;
+        }
+        case AST::NodeKind::OptionalUnwrapExpr: {
+            const auto OptionalExpr = llvm::cast<AST::OptionalUnwrapExpr>(Stmt);
+
+            std::print("OptionalUnwrapExpr\n");
+            PrintAST(Handler, OptionalExpr->getBase(), Depth + 1);
+
             return;
         }
         case AST::NodeKind::ParenExpr: {
@@ -566,6 +576,14 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("Type\n");
 
             PrintAST(Handler, CastExpr->getTypeExpr(), Depth + 2);
+            return;
+        }
+        case AST::NodeKind::DerefExpr: {
+            const auto DerefExpr = llvm::cast<AST::DerefExpr>(Stmt);
+
+            std::print("DerefExpr\n");
+            PrintAST(Handler, DerefExpr->getOperand(), Depth + 1);
+
             return;
         }
         case AST::NodeKind::ArrayType: {

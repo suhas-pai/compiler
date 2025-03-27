@@ -17,8 +17,10 @@
 #include "AST/CallExpr.h"
 #include "AST/CastExpr.h"
 #include "AST/DeclRefExpr.h"
+#include "AST/DerefExpr.h"
 #include "AST/FieldExpr.h"
 #include "AST/NumberLiteral.h"
+#include "AST/OptionalUnwrapExpr.h"
 #include "AST/ParenExpr.h"
 #include "AST/UnaryOperation.h"
 
@@ -37,14 +39,14 @@ namespace Parse {
                          const Lex::Token BracketToken) noexcept
         -> std::expected<std::vector<AST::Stmt *>, ParseError>
     {
-        auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
-
         auto DetailList = std::vector<AST::Stmt *>();
+
         if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
             return DetailList;
         }
 
+        auto &Diag = Context.Diag;
         do {
             if (const auto Expr = ParseExpression(Context)) {
                 DetailList.emplace_back(Expr);
@@ -211,8 +213,12 @@ namespace Parse {
     ParseFieldExpr(ParseContext &Context,
                    AST::Expr *const Lhs,
                    const Lex::Token DotToken)
-        -> std::expected<AST::FieldExpr *, ParseError>
+        -> std::expected<AST::Expr *, ParseError>
     {
+        if (DotToken.Kind == Lex::TokenKind::DotStar) {
+            return new AST::DerefExpr(DotToken.Loc, Lhs);
+        }
+
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
@@ -265,7 +271,7 @@ namespace Parse {
 
     [[nodiscard]] static auto
     ParseCallExpr(ParseContext &Context,
-                  AST::Expr *const Callee,
+                  AST::Expr *const CalleeExpr,
                   const AST::Qualifiers &Qualifiers,
                   const Lex::Token ParenToken) noexcept
         -> std::expected<AST::CallExpr *, ParseError>
@@ -317,32 +323,29 @@ namespace Parse {
         } while (true);
 
 done:
-        return new AST::CallExpr(Callee, ParenToken.Loc, Qualifiers,
+        return new AST::CallExpr(CalleeExpr, ParenToken.Loc, Qualifiers,
                                  std::move(ArgList));
     }
 
     static auto
     ParseCallAndFieldExprs(ParseContext &Context,
                            AST::Expr *Root,
-                           const AST::Qualifiers &Qualifiers,
-                           const Lex::Token Token) noexcept
+                           const AST::Qualifiers &Quals) noexcept
         -> std::expected<AST::Expr *, ParseError>
     {
-        auto &TokenStream = Context.TokenStream;
-        const auto TokenList = {
+        const auto FieldTokenList = {
             Lex::TokenKind::Dot,
             Lex::TokenKind::DotIdentifier,
-            Lex::TokenKind::ThinArrow,
-            Lex::TokenKind::LeftSquareBracket,
-            Lex::TokenKind::OpenParen
+            Lex::TokenKind::DotStar,
+            Lex::TokenKind::ThinArrow
         };
 
-        while (TokenStream.peekIsOneOf(TokenList)) {
-            const auto Token = TokenStream.consume().value();
-            if (Token.Kind == Lex::TokenKind::Dot ||
-                Token.Kind == Lex::TokenKind::ThinArrow ||
-                Token.Kind == Lex::TokenKind::DotIdentifier)
-            {
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        while (true) {
+            if (TokenStream.peekIsOneOf(FieldTokenList)) {
+                const auto Token = TokenStream.consume().value();
                 if (const auto Result = ParseFieldExpr(Context, Root, Token)) {
                     Root = Result.value();
                 } else {
@@ -352,31 +355,52 @@ done:
                 continue;
             }
 
-            if (Token.Kind == Lex::TokenKind::LeftSquareBracket) {
-                if (const auto Result =
-                        ParseArraySubscriptExpr(Context, Root, Token))
+            if (TokenStream.peekIs(Lex::TokenKind::QuestionMark)) {
+                const auto Token = TokenStream.consume().value();
+                if (TokenStream.peekIs(Lex::TokenKind::OpenParen) ||
+                    TokenStream.peekIs(Lex::TokenKind::LeftSquareBracket) ||
+                    TokenStream.peekIs(Lex::TokenKind::Dot) ||
+                    TokenStream.peekIs(Lex::TokenKind::DotIdentifier))
                 {
-                    Root = Result.value();
-                } else {
+                    Root = new AST::OptionalUnwrapExpr(Token.Loc, Root);
+                    continue;
+                }
+
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = Token.Loc,
+                    .Message = "Expected '(' or '[' or '.' after '?'"
+                });
+
+                return std::unexpected(ParseError::FailedCouldNotProceed);
+            }
+
+            if (TokenStream.peekIs(Lex::TokenKind::LeftSquareBracket)) {
+                const auto Token = TokenStream.consume().value();
+                const auto Result =
+                    ParseArraySubscriptExpr(Context, Root, Token);
+
+                if (!Result.has_value()) {
                     return std::unexpected(Result.error());
                 }
 
+                Root = Result.value();
                 continue;
             }
 
-            if (Token.Kind == Lex::TokenKind::OpenParen) {
-                if (const auto Result =
-                        ParseCallExpr(Context, Root, Qualifiers, Token))
-                {
-                    Root = Result.value();
-                } else {
+            if (TokenStream.peekIs(Lex::TokenKind::OpenParen)) {
+                const auto Token = TokenStream.consume().value();
+                const auto Result = ParseCallExpr(Context, Root, Quals, Token);
+
+                if (!Result.has_value()) {
                     return std::unexpected(Result.error());
                 }
 
+                Root = Result.value();
                 continue;
             }
 
-            __builtin_unreachable();
+            break;
         }
 
         return Root;
@@ -420,15 +444,15 @@ done:
         const auto Keyword = TokenStream.tokenKeyword(KeywordTok);
         switch (Keyword) {
             case Lex::Keyword::Struct: {
-                if (const auto Result =
-                        ParseStructDecl(Context, KeywordTok, InPlaceOfStmt,
-                                        NameOpt))
-                {
-                    Root = Result.value();
-                } else {
-                    return Result;
+                const auto Result =
+                    ParseStructDecl(Context, KeywordTok, InPlaceOfStmt,
+                                    NameOpt);
+
+                if (!Result.has_value()) {
+                    return std::unexpected(Result.error());
                 }
 
+                Root = Result.value();
                 break;
             }
             case Lex::Keyword::Class:
@@ -702,10 +726,10 @@ done:
         auto Root = static_cast<AST::Expr *>(nullptr);
         auto CurrentOper = static_cast<AST::Expr *>(nullptr);
 
-        auto Qualifiers = AST::Qualifiers();
-        ParseQualifiers(Context, Qualifiers);
-
         while (true) {
+            auto Qualifiers = AST::Qualifiers();
+            ParseQualifiers(Context, Qualifiers);
+
             const auto TokenOpt = TokenStream.consume();
             if (!TokenOpt.has_value()) {
                 return Root;
@@ -765,11 +789,11 @@ done:
                         Expr = Result.value();
                         break;
                     }
+                    case Lex::TokenKind::QuestionMark:
                     case Lex::TokenKind::Exclamation:
                     case Lex::TokenKind::Tilde:
                     case Lex::TokenKind::Ampersand:
                     case Lex::TokenKind::Star:
-                    case Lex::TokenKind::QuestionMark:
                     case Lex::TokenKind::DotDotDot:
                         // Unary-Operation tokens that should've never been
                         // reached
@@ -841,6 +865,14 @@ done:
                 return nullptr;
             }
 
+            const auto ParseResult =
+                ParseCallAndFieldExprs(Context, Expr, Qualifiers);
+
+            if (!ParseResult.has_value()) {
+                return nullptr;
+            }
+
+            Expr = ParseResult.value();
             if (Root != nullptr) {
                 if (const auto PtrType =
                         llvm::dyn_cast<AST::PointerTypeExpr>(CurrentOper))
@@ -861,15 +893,6 @@ done:
                 }
             } else {
                 Root = Expr;
-            }
-
-            const auto ParseResult =
-                ParseCallAndFieldExprs(Context, Root, Qualifiers, Token);
-
-            if (ParseResult.has_value()) {
-                Root = ParseResult.value();
-            } else {
-                return nullptr;
             }
 
             if (IsUnaryOp || Token.Kind == Lex::TokenKind::Minus) {

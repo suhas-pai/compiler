@@ -1,7 +1,7 @@
 @meta.deprecated({ message: "Unsafe function." })
 func b(c: *mut volatile u32) {
     a.b = 0;
-    return 0;
+    return 0u32;
 }
 
 func ttest<let T: u32 or u64, let U>(a: std.vector<U>(T)): u32 {
@@ -18,20 +18,20 @@ func b_func(): type {
 interface Allocator {
     getHandleType: () -> type = () => {
         return ptr;
-    }
+    },
 
     alloc: () -> ?getHandleType() = () => {
         return null;
-    }
+    },
 
-    free: () -> void
-    optFree?: () -> void;
+    free: () -> void,
+    optFree?: () -> void
 }
 
 shape Sh {
-    a: u32 or u64;
-    b: () -> void;
-    c?: s8 or s32;
+    a: u32 or u64,
+    b: () -> void,
+    c?: s8 or s32
 };
 
 interface I {

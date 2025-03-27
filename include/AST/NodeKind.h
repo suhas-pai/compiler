@@ -16,6 +16,7 @@ namespace AST {
         StringLiteral,
 
         DeclRefExpr,
+        OptionalUnwrapExpr,
         ParenExpr,
 
         ArrayDecl,
@@ -38,6 +39,7 @@ namespace AST {
         FieldExpr,
         ArraySubscriptExpr,
         CastExpr,
+        DerefExpr,
 
         ArrayType,
         ClosureType,
