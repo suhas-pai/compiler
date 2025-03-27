@@ -13,7 +13,9 @@
 #include "AST/Decls/EnumMemberDecl.h"
 #include "AST/Decls/FieldDecl.h"
 #include "AST/Decls/FunctionDecl.h"
+#include "AST/Decls/OptionalFieldDecl.h"
 #include "AST/Decls/ParamVarDecl.h"
+#include "AST/Decls/ShapeDecl.h"
 #include "AST/Decls/StructDecl.h"
 #include "AST/Decls/VarDecl.h"
 
@@ -413,9 +415,24 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             return;
         }
-        case AST::NodeKind::FieldDecl: {
+        case AST::NodeKind::ShapeDecl: {
+            const auto ShapeDecl = llvm::cast<AST::ShapeDecl>(Stmt);
+            std::print("ShapeDecl\n");
+
+            for (const auto Field : ShapeDecl->getFieldList()) {
+                PrintAST(Handler, Field, Depth + 1);
+            }
+
+            return;
+        }
+        case AST::NodeKind::FieldDecl:
+        case AST::NodeKind::OptionalFieldDecl: {
             const auto FieldDecl = llvm::cast<AST::FieldDecl>(Stmt);
-            std::print("FieldDecl<\"{}\">\n", FieldDecl->getName());
+            if (llvm::isa<AST::OptionalFieldDecl>(FieldDecl)) {
+                std::print("OptionalFieldDecl\n");
+            } else {
+                std::print("FieldDecl<\"{}\">\n", FieldDecl->getName());
+            }
 
             PrintDepth(Depth + 1);
 
@@ -654,8 +671,7 @@ struct ArgumentOptions {
 };
 
 void
-HandlePrompt(DiagnosticConsumer &Diag,
-             const std::string_view &Prompt,
+HandlePrompt(const std::string_view &Prompt,
              const ArgumentOptions ArgOptions) noexcept
 {
     auto SrcBuffer = ADT::SourceBuffer::FromString(Prompt);
@@ -664,7 +680,9 @@ HandlePrompt(DiagnosticConsumer &Diag,
         return;
     }
 
+    auto Diag = SourceFileDiagnosticConsumer(std::string_view("<input>"));
     auto TokenBuffer = Lex::TokenBuffer::Create(*SrcBuffer, Diag);
+
     if (ArgOptions.PrintTokens) {
         auto TokenList = TokenBuffer->getTokenList();
         fputs("Tokens:\n", stdout);
@@ -676,6 +694,10 @@ HandlePrompt(DiagnosticConsumer &Diag,
         fputc('\n', stdout);
     }
 
+    if (Diag.hasMessages()) {
+        return;
+    }
+
     const auto Options = Parse::ParseOptions({
         .DontRequireSemicolons = true,
         .IgnoreUnusedExpressions = true
@@ -683,6 +705,10 @@ HandlePrompt(DiagnosticConsumer &Diag,
 
     auto Unit = Parse::ParseUnit::Create(*TokenBuffer, Diag, Options);
     if (Unit.getTopLevelStmtList().empty()) {
+        return;
+    }
+
+    if (Diag.hasMessages()) {
         return;
     }
 
@@ -714,10 +740,9 @@ void PrintUsage(const char *const Name) noexcept {
 }
 
 void HandleReplOption(const ArgumentOptions ArgOptions) {
-    auto Diag = SourceFileDiagnosticConsumer(std::string_view("<input>"));
     Interface::SetupRepl("Compiler",
                          [&](const std::string_view Input) noexcept {
-                            HandlePrompt(Diag, Input, ArgOptions);
+                            HandlePrompt(Input, ArgOptions);
                             return true;
                          });
 }

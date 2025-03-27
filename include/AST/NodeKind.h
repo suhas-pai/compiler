@@ -24,11 +24,13 @@ namespace AST {
         EnumDecl,
         FunctionDecl,
         StructDecl,
+        ShapeDecl,
 
         LvalueNamedDecl,
         EnumMemberDecl,
 
         FieldDecl,
+        OptionalFieldDecl,
         VarDecl,
         ParamVarDecl,
 

@@ -92,6 +92,21 @@ namespace Lex {
             CHECK_KW(Struct)
             [[fallthrough]];
 
+            CHECK_KW(Class)
+            [[fallthrough]];
+
+            CHECK_KW(Shape)
+            [[fallthrough]];
+
+            CHECK_KW(Interface)
+            [[fallthrough]];
+
+            CHECK_KW(Impl)
+            [[fallthrough]];
+
+            CHECK_KW(While)
+            [[fallthrough]];
+
             CHECK_KW(Enum)
             [[fallthrough]];
 

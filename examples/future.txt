@@ -15,6 +15,10 @@ func b_func(): type {
     }
 }
 
+func btest(a: u64, <let T>(a: T): T) {
+
+}
+
 interface Allocator {
     getHandleType: () -> type = () => {
         return ptr;

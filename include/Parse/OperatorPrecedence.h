@@ -89,11 +89,12 @@ namespace Parse {
                     case Lex::Keyword::Return:
                     case Lex::Keyword::Volatile:
                     case Lex::Keyword::Struct:
+                    case Lex::Keyword::Class:
+                    case Lex::Keyword::Shape:
+                    case Lex::Keyword::Interface:
                     case Lex::Keyword::Enum:
                     case Lex::Keyword::Inline:
                     case Lex::Keyword::Comptime:
-                    case Lex::Keyword::Class:
-                    case Lex::Keyword::Interface:
                     case Lex::Keyword::Impl:
                     case Lex::Keyword::Default:
                     case Lex::Keyword::In:

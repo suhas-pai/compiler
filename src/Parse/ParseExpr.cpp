@@ -456,6 +456,19 @@ done:
                 break;
             }
             case Lex::Keyword::Class:
+                break;
+            case Lex::Keyword::Shape: {
+                const auto Result =
+                    ParseShapeDecl(Context, KeywordTok, InPlaceOfStmt,
+                                   NameOpt);
+
+                if (!Result.has_value()) {
+                    return std::unexpected(Result.error());
+                }
+
+                Root = Result.value();
+                break;
+            }
             case Lex::Keyword::Interface:
             case Lex::Keyword::Impl:
             case Lex::Keyword::Enum:

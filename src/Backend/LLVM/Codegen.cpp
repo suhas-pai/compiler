@@ -667,10 +667,13 @@ namespace Backend::LLVM {
                                         Builder,
                                         ValueMap);
             case AST::NodeKind::DerefExpr:
+            case AST::NodeKind::OptionalUnwrapExpr:
             case AST::NodeKind::StructDecl:
+            case AST::NodeKind::ShapeDecl:
             case AST::NodeKind::ArraySubscriptExpr:
             case AST::NodeKind::CastExpr:
             case AST::NodeKind::FieldDecl:
+            case AST::NodeKind::OptionalFieldDecl:
             case AST::NodeKind::ParamVarDecl:
             case AST::NodeKind::FieldExpr:
             case AST::NodeKind::EnumMemberDecl:
@@ -678,7 +681,6 @@ namespace Backend::LLVM {
             case AST::NodeKind::EnumDecl:
             case AST::NodeKind::ArrayDecl:
             case AST::NodeKind::ClosureDecl:
-                __builtin_unreachable();
             case AST::NodeKind::ArrayDestructuredVarDecl:
             case AST::NodeKind::ObjectDestructuredVarDecl:
             case AST::NodeKind::ForStmt:

@@ -7,6 +7,7 @@
 
 #include "AST/Decls/ClosureDecl.h"
 #include "AST/Decls/FunctionDecl.h"
+#include "AST/Decls/ShapeDecl.h"
 #include "AST/Decls/StructDecl.h"
 
 #include "AST/Qualifiers.h"
@@ -31,6 +32,13 @@ namespace Parse {
     ParseArrowFunctionDeclOrFunctionType(ParseContext &Context,
                                          Lex::Token ParenToken) noexcept
         -> std::expected<AST::Expr *, ParseError>;
+
+    [[nodiscard]] auto
+    ParseShapeDecl(ParseContext &Context,
+                   Lex::Token StructKeywordToken,
+                   bool IsLValue,
+                   std::optional<Lex::Token> &NameTokenOptOut) noexcept
+        -> std::expected<AST::ShapeDecl *, ParseError>;
 
     [[nodiscard]] auto
     ParseStructDecl(ParseContext &Context,

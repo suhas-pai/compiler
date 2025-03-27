@@ -10,17 +10,26 @@ namespace AST {
     struct FieldDecl : public LvalueTypedDecl {
     public:
         constexpr static auto ObjKind = NodeKind::FieldDecl;
-
+    protected:
+        constexpr explicit
+        FieldDecl(const NodeKind ObjKind,
+                  const std::string_view Name,
+                  const SourceLocation NameLoc,
+                  Expr *const TypeExpr,
+                  Expr *const InitExpr) noexcept
+        : LvalueTypedDecl(ObjKind, Name, NameLoc, TypeExpr, InitExpr) {}
+    public:
         constexpr explicit
         FieldDecl(const std::string_view Name,
                   const SourceLocation NameLoc,
                   Expr *const TypeExpr,
                   Expr *const InitExpr) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, TypeExpr, InitExpr) {}
+        : FieldDecl(ObjKind, Name, NameLoc, TypeExpr, InitExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
-            return Stmt.getKind() == ObjKind;
+            return Stmt.getKind() == ObjKind ||
+                   Stmt.getKind() == NodeKind::OptionalFieldDecl;
         }
 
         [[nodiscard]]

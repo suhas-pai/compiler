@@ -7,6 +7,7 @@
 #include "AST/Decls/ObjectDestructuredVarDecl.h"
 
 #include "AST/Decls/FieldDecl.h"
+#include "AST/Decls/OptionalFieldDecl.h"
 #include "AST/Decls/ParamVarDecl.h"
 #include "AST/Decls/VarDecl.h"
 
@@ -64,7 +65,6 @@ namespace Parse {
 
     [[nodiscard]] static auto
     ParseTypeAnnotationIfFound(ParseContext &Context,
-                               const SourceLocation Loc,
                                const Lex::TokenKind EndToken) noexcept
         -> AST::Expr *
     {
@@ -93,8 +93,9 @@ namespace Parse {
 
     auto
     ParseFieldList(ParseContext &Context,
-                   const SourceLocation StructDeclLoc,
-                   std::vector<AST::Stmt *> &FieldList) noexcept -> bool
+                   const SourceLocation DeclLoc,
+                   std::vector<AST::Stmt *> &FieldList,
+                   const bool AllowOptionalFields) noexcept -> bool
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -136,18 +137,50 @@ namespace Parse {
                 return false;
             }
 
-            const auto TypeExpr =
-                ParseTypeAnnotationIfFound(Context, NameToken.Loc,
-                                           Lex::TokenKind::CloseCurlyBrace);
+            auto TypeExpr = static_cast<AST::Expr *>(nullptr);
+            const auto IsOptional =
+                TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark);
 
-            if (TypeExpr == nullptr) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = NameToken.Loc,
-                    .Message = "All fields must have a type annotation"
-                });
+            if (IsOptional) {
+                if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
+                    if (!AllowOptionalFields) {
+                        Diag.consume({
+                            .Level = DiagnosticLevel::Error,
+                            .Location = NameToken.Loc,
+                            .Message = "Optional fields are not allowed"
+                        });
 
-                return false;
+                        return false;
+                    }
+
+                    TypeExpr =
+                        ParseTypeAnnotationIfFound(
+                            Context,  Lex::TokenKind::CloseCurlyBrace);
+
+                    if (TypeExpr == nullptr) {
+                        Diag.consume({
+                            .Level = DiagnosticLevel::Error,
+                            .Location = NameToken.Loc,
+                            .Message = "All fields must have a type annotation"
+                        });
+
+                        return false;
+                    }
+                }
+            } else {
+                TypeExpr =
+                    ParseTypeAnnotationIfFound(Context,
+                                               Lex::TokenKind::CloseCurlyBrace);
+
+                if (TypeExpr == nullptr) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = NameToken.Loc,
+                        .Message = "All fields must have a type annotation"
+                    });
+
+                    return false;
+                }
             }
 
             auto InitExpr = static_cast<AST::Expr *>(nullptr);
@@ -159,8 +192,15 @@ namespace Parse {
             }
 
             const auto Name = TokenStream.tokenContent(NameToken);
-            FieldList.emplace_back(
-                new AST::FieldDecl(Name, NameToken.Loc, TypeExpr, InitExpr));
+            if (IsOptional) {
+                FieldList.emplace_back(
+                    new AST::OptionalFieldDecl(Name, NameToken.Loc, TypeExpr,
+                                               InitExpr));
+            } else {
+                FieldList.emplace_back(
+                    new AST::FieldDecl(Name, NameToken.Loc, TypeExpr,
+                                       InitExpr));
+            }
 
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
                 break;
@@ -266,8 +306,7 @@ namespace Parse {
 
             const auto Name = TokenStream.tokenContent(NameToken);
             const auto TypeExpr =
-                ParseTypeAnnotationIfFound(Context, NameToken.Loc,
-                                           Lex::TokenKind::Comma);
+                ParseTypeAnnotationIfFound(Context, Lex::TokenKind::Comma);
 
             const auto InitExpr =
                 ParseInitExpressionIfFound(Context, Lex::TokenKind::Comma);
@@ -302,8 +341,8 @@ namespace Parse {
         return List;
     }
 
-    [[nodiscard]]
-    static auto ParseFunctionReturnTypeIfFound(ParseContext &Context) noexcept
+    [[nodiscard]] static
+    auto ParseFunctionTypeReturnTypeIfFound(ParseContext &Context) noexcept
         -> std::optional<AST::Expr *>
     {
         auto &Diag = Context.Diag;
@@ -382,7 +421,7 @@ namespace Parse {
         }
 
         auto CurlyTokenOpt = std::optional<Lex::Token>(std::nullopt);
-        const auto ReturnTypeOpt = ParseFunctionReturnTypeIfFound(Context);
+        const auto ReturnTypeOpt = ParseFunctionTypeReturnTypeIfFound(Context);
 
         if (!ReturnTypeOpt.has_value()) {
             if (!TokenStream.proceedToAndConsume(
@@ -438,18 +477,14 @@ namespace Parse {
 
     static auto
     ParseArrowFunctionLikeDecl(ParseContext &Context,
-                               AST::Expr *&ReturnTypeExpr,
-                               AST::Stmt *&Body) noexcept -> bool
+                               AST::Expr *&ReturnTypeOut) noexcept
+        -> AST::Stmt *
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        if (TokenStream.consumeIfIs(Lex::TokenKind::Colon)) {
-            ReturnTypeExpr = ParseExpression(Context);
-            if (ReturnTypeExpr == nullptr) {
-                return false;
-            }
-        }
+        ReturnTypeOut =
+            ParseTypeAnnotationIfFound(Context, Lex::TokenKind::FatArrow);
 
         if (!TokenStream.consumeIfIs(Lex::TokenKind::FatArrow)) {
             Diag.consume({
@@ -462,13 +497,10 @@ namespace Parse {
             // it.
         }
 
+        auto Body = static_cast<AST::Stmt *>(nullptr);
         if (TokenStream.peekIs(Lex::TokenKind::OpenCurlyBrace)) {
             const auto CurlyToken = TokenStream.consume().value();
-
             Body = ParseCompoundStmt(Context, CurlyToken);
-            if (Body == nullptr) {
-                return false;
-            }
         } else if (TokenStream.peekIs(Lex::TokenKind::Keyword)) {
             const auto Token = TokenStream.peek().value();
             const auto Keyword =
@@ -477,32 +509,22 @@ namespace Parse {
             if (Keyword == Lex::Keyword::Return) {
                 TokenStream.consume();
                 Body = ParseReturnStmt(Context, Token).value();
-
-                if (Body == nullptr) {
-                    return false;
-                }
             } else {
                 // Unexpected token, pass error-handling to ParseExpression()
                 // instead of handling it here.
 
                 Body = ParseExpression(Context);
-                if (Body == nullptr) {
-                    return false;
-                }
             }
         } else {
             Body = ParseExpression(Context);
-            if (Body == nullptr) {
-                return false;
-            }
         }
 
         // For arrow functions, wrap expressions in a return-statement
-        if (const auto BodyExpr = llvm::dyn_cast<AST::Expr>(Body)) {
-            Body = new AST::ReturnStmt(SourceLocation::invalid(), BodyExpr);
+        if (const auto BodyExpr = llvm::dyn_cast_if_present<AST::Expr>(Body)) {
+            return new AST::ReturnStmt(SourceLocation::invalid(), BodyExpr);
         }
 
-        return true;
+        return Body;
     }
 
     auto
@@ -517,9 +539,9 @@ namespace Parse {
         }
 
         auto ReturnTypeExpr = static_cast<AST::Expr *>(nullptr);
-        auto Body = static_cast<AST::Stmt *>(nullptr);
+        const auto Body = ParseArrowFunctionLikeDecl(Context, ReturnTypeExpr);
 
-        if (!ParseArrowFunctionLikeDecl(Context, ReturnTypeExpr, Body)) {
+        if (Body == nullptr) {
             return nullptr;
         }
 
@@ -552,9 +574,9 @@ namespace Parse {
         }
 
         auto ReturnTypeExpr = static_cast<AST::Expr *>(nullptr);
-        auto Body = static_cast<AST::Stmt *>(nullptr);
+        const auto Body = ParseArrowFunctionLikeDecl(Context, ReturnTypeExpr);
 
-        if (!ParseArrowFunctionLikeDecl(Context, ReturnTypeExpr, Body)) {
+        if (Body == nullptr) {
             return nullptr;
         }
 
@@ -562,6 +584,67 @@ namespace Parse {
         auto &ParamList = ParamListOpt.value();
         return new AST::FunctionDecl(ParenToken.Loc, std::move(ParamList),
                                      ReturnTypeExpr, Body);
+    }
+
+    auto
+    ParseShapeDecl(ParseContext &Context,
+                   const Lex::Token ShapeKeywordToken,
+                   const bool IsLValue,
+                   std::optional<Lex::Token> &NameTokenOptOut) noexcept
+        -> std::expected<AST::ShapeDecl *, ParseError>
+    {
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        auto FieldList = std::vector<AST::Stmt *>();
+        if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
+            if (!ParseFieldList(Context, ShapeKeywordToken.Loc, FieldList,
+                                /*AllowOptionalFields=*/true))
+            {
+                return nullptr;
+            }
+
+            NameTokenOptOut = std::nullopt;
+            return new AST::ShapeDecl(ShapeKeywordToken.Loc,
+                                      std::move(FieldList));
+        }
+
+        const auto NameTokenOpt = TokenStream.consume();
+        if (!NameTokenOpt.has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected a name for struct declaration"
+            });
+
+            return nullptr;
+        }
+
+        const auto NameToken = NameTokenOpt.value();
+        if (!VerifyDeclName(Context, NameToken, "shape")) {
+            if (!TokenStream.proceedToAndConsume(
+                    Lex::TokenKind::OpenCurlyBrace))
+            {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = NameToken.Loc,
+                    .Message = "Expected '{' after shape declaration"
+                });
+
+                return nullptr;
+            }
+        }
+
+        NameTokenOptOut = NameToken;
+        TokenStream.consume();
+
+        if (!ParseFieldList(Context, NameToken.Loc, FieldList,
+                            /*AllowOptionalFields=*/true))
+        {
+            return nullptr;
+        }
+
+        return new AST::ShapeDecl(NameToken.Loc, std::move(FieldList));
     }
 
     auto
@@ -579,7 +662,9 @@ namespace Parse {
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             const auto StructKeywordToken = StructKeywordTokenOpt.value();
-            if (!ParseFieldList(Context, StructKeywordToken.Loc, FieldList)) {
+            if (!ParseFieldList(Context, StructKeywordToken.Loc, FieldList,
+                                /*AllowOptionalFields=*/false))
+            {
                 return nullptr;
             }
 
@@ -617,7 +702,9 @@ namespace Parse {
         NameTokenOptOut = NameToken;
         TokenStream.consume();
 
-        if (!ParseFieldList(Context, NameToken.Loc, FieldList)) {
+        if (!ParseFieldList(Context, NameToken.Loc, FieldList,
+                            /*AllowOptionalFields=*/false))
+        {
             return nullptr;
         }
 
@@ -1230,8 +1317,7 @@ namespace Parse {
         }
 
         const auto TypeExpr =
-            ParseTypeAnnotationIfFound(Context, DeclLoc,
-                                       Lex::TokenKind::Semicolon);
+            ParseTypeAnnotationIfFound(Context, Lex::TokenKind::Semicolon);
 
         if (!TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
             Diag.consume({

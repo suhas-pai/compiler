@@ -30,6 +30,10 @@ public:
         this->MessageList.emplace_back(Message);
     }
 
+    [[nodiscard]] constexpr auto hasMessages() const noexcept {
+        return !this->MessageList.empty();
+    }
+
     constexpr auto print() const noexcept -> decltype(*this) {
         // FIXME: Add support for printing the location of the message
         for (const auto &DiagMessage : this->MessageList) {

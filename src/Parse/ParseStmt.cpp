@@ -190,6 +190,37 @@ namespace Parse {
                                                         Result.value());
                     }
                     case Lex::Keyword::Class:
+                        __builtin_unreachable();
+                    case Lex::Keyword::Shape: {
+                        auto NameTokOpt =
+                            std::optional<Lex::Token>(std::nullopt);
+
+                        const auto Result =
+                            ParseShapeDecl(Context, Token, /*IsLValue=*/true,
+                                           NameTokOpt);
+
+                        if (!Result.has_value()) {
+                            return std::unexpected(Result.error());
+                        }
+
+                        if (!NameTokOpt.has_value()) {
+                            Diag.consume({
+                                .Level = DiagnosticLevel::Error,
+                                .Location = Token.Loc,
+                                .Message =
+                                    "Expected name for top-level shape "
+                                    "declaration"
+                            });
+
+                            return nullptr;
+                        }
+
+                        const auto NameTok = NameTokOpt.value();
+                        const auto Name = TokenStream.tokenContent(NameTok);
+
+                        return new AST::LvalueNamedDecl(Name, NameTok.Loc,
+                                                        Result.value());
+                    }
                     case Lex::Keyword::Interface:
                     case Lex::Keyword::Impl:
                         __builtin_unreachable();
