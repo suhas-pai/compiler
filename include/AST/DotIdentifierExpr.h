@@ -21,14 +21,14 @@ namespace AST {
 
         std::string Identifier;
     public:
-        constexpr explicit
+        explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
                           AST::Qualifiers &&Qualifiers,
                           const std::string_view Identifier) noexcept
         : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(std::move(Qualifiers)),
           Identifier(Identifier) {}
 
-        constexpr explicit
+        explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
                           AST::Qualifiers &&Qualifiers,
                           std::string &&Identifier) noexcept
