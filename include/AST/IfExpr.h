@@ -8,7 +8,7 @@
 namespace AST {
     struct IfExpr : public Expr {
     public:
-        constexpr static auto ObjKind = NodeKind::IfStmt;
+        constexpr static auto ObjKind = NodeKind::IfExpr;
     protected:
         SourceLocation IfLoc;
 

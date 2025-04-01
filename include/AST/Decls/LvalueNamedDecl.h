@@ -30,15 +30,13 @@ namespace AST {
         LvalueNamedDecl(const std::string_view Name,
                         const SourceLocation NameLoc,
                         Expr *const RvalueExpr) noexcept
-        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc),
-          RvalueExpr(RvalueExpr) {}
+        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc), RvalueExpr(RvalueExpr) {}
 
         constexpr
         LvalueNamedDecl(std::string &&Name,
                         const SourceLocation NameLoc,
                         Expr *const RvalueExpr) noexcept
-        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc),
-          RvalueExpr(RvalueExpr) {}
+        : Stmt(ObjKind), Name(Name), NameLoc(NameLoc), RvalueExpr(RvalueExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {

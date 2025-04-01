@@ -18,6 +18,7 @@
 #include "AST/CastExpr.h"
 #include "AST/DeclRefExpr.h"
 #include "AST/DerefExpr.h"
+#include "AST/DotIdentifierExpr.h"
 #include "AST/FieldExpr.h"
 #include "AST/NumberLiteral.h"
 #include "AST/OptionalUnwrapExpr.h"
@@ -327,7 +328,7 @@ done:
                                  std::move(ArgList));
     }
 
-    static auto
+    [[nodiscard]] static auto
     ParseCallAndFieldExprs(ParseContext &Context,
                            AST::Expr *Root,
                            const AST::Qualifiers &Quals) noexcept
@@ -419,10 +420,11 @@ done:
         }
 
         if (IdentToken.Kind == Lex::TokenKind::DotIdentifier) {
-            TokenStream.goBack();
+            const auto IdentName =
+                TokenStream.tokenContent(IdentToken).substr(1);
 
-            // FIXME: What should be done here?
-            return nullptr;
+            return new AST::DotIdentifierExpr(IdentToken.Loc,
+                                              std::move(Qualifiers), IdentName);
         }
 
         __builtin_unreachable();
@@ -459,8 +461,7 @@ done:
                 break;
             case Lex::Keyword::Shape: {
                 const auto Result =
-                    ParseShapeDecl(Context, KeywordTok, InPlaceOfStmt,
-                                   NameOpt);
+                    ParseShapeDecl(Context, KeywordTok, InPlaceOfStmt, NameOpt);
 
                 if (!Result.has_value()) {
                     return std::unexpected(Result.error());
@@ -478,13 +479,17 @@ done:
                 }
 
                 break;
-            case Lex::Keyword::If:
-                //Root = ParseIfStmt(Context, KeywordTok);
-                if (Root == nullptr) {
-                    return nullptr;
+            case Lex::Keyword::If: {
+                const auto Result =
+                    ParseIfExpr(Context, KeywordTok, ParseExpression);
+
+                if (!Result.has_value()) {
+                    return std::unexpected(Result.error());
                 }
 
+                Root = Result.value();
                 break;
+            }
             case Lex::Keyword::Function: {
                 const auto Result =
                     ParseFunctionDecl(Context, KeywordTok, NameOpt);
@@ -725,8 +730,7 @@ done:
             return new AST::PointerTypeExpr(Token.Loc, /*Operand=*/nullptr);
         }
 
-        return new AST::UnaryOperation(Token.Loc, UnaryOpOpt.value(),
-                                       /*Operand=*/nullptr);
+        return new AST::UnaryOperation(Token.Loc, UnaryOp, /*Operand=*/nullptr);
     }
 
     auto ParseLhs(ParseContext &Context, const bool InPlaceOfStmt) noexcept
@@ -1032,8 +1036,8 @@ done:
                                                /*InPlaceOfStmt=*/false);
     }
 
-    auto
-    ParseExpressionInPlaceOfStmt(ParseContext &Context) noexcept -> AST::Expr *
+    auto ParseExpressionInPlaceOfStmt(ParseContext &Context) noexcept
+        -> AST::Expr *
     {
         const auto Lhs = ParseLhs(Context, /*InPlaceOfStmt=*/true);
         if (Lhs == nullptr) {

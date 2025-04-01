@@ -50,6 +50,82 @@ namespace Parse {
         return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
     }
 
+    auto ParseIfStmt(ParseContext &Context, const Lex::Token IfToken) noexcept
+        -> std::expected<AST::IfExpr *, ParseError>
+    {
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        if (Context.Options.RequireParensOnIfExpr) {
+            if (!TokenStream.consumeIfIs(Lex::TokenKind::OpenParen)) {
+                // Expect '(' after 'if'
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = IfToken.Loc,
+                    .Message = "Expected '(' after 'if' keyword"
+                });
+
+                return std::unexpected(ParseError::FailedCouldNotProceed);
+            }
+        }
+
+        // Parse the condition expression
+        const auto Condition = ParseExpression(Context);
+        if (Condition == nullptr) {
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
+        if (Context.Options.RequireParensOnIfExpr) {
+            if (!TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Message = "Expected ')' to close condition of 'if' "
+                               "expression"
+                });
+
+                return std::unexpected(ParseError::FailedCouldNotProceed);
+            }
+        }
+
+        // Expect the 'then' part to be a compound statement
+        const auto ThenOpt = ParseStmt(Context);
+        if (!ThenOpt.has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected a statement for 'then' part of "
+                           "if-expression"
+            });
+
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
+        auto Else = static_cast<AST::Stmt *>(nullptr);
+        if (TokenStream.peekIs(Lex::TokenKind::Keyword)) {
+            // Check if the next token is an 'else' keyword
+            const auto ElseToken = TokenStream.consume().value();
+            if (TokenStream.tokenKeyword(ElseToken) == Lex::Keyword::Else) {
+                const auto ElseOpt = ParseStmt(Context);
+                if (!ElseOpt.has_value()) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = TokenStream.getCurrOrPrevLoc(),
+                        .Message = "Expected a statement for 'else' part of "
+                                   "if-expression"
+                    });
+
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
+                }
+
+                Else = ElseOpt.value();
+            }
+        }
+
+        const auto Then = ThenOpt.value();
+        return new AST::IfExpr(IfToken.Loc, *Condition, Then, Else);
+    }
+
     auto
     ParseReturnStmt(ParseContext &Context,
                     const Lex::Token ReturnToken) noexcept
@@ -76,12 +152,13 @@ namespace Parse {
         }
 
         const auto Current = CurrentOpt.value();
+        const auto CurrentString = TokenStream.tokenContent(Current);
+
         Diag.consume({
             .Level = DiagnosticLevel::Error,
             .Location = TokenStream.getCurrOrPrevLoc(),
             .Message =
-                std::format("Expected ';', found {} instead",
-                            TokenStream.tokenContent(Current))
+                std::format("Expected ';', found \"{}\" instead", CurrentString)
         });
 
         if (ProceedToSemicolon(Context)) {
@@ -140,6 +217,18 @@ namespace Parse {
                             return std::unexpected(ResultOpt.error());
                         }
 
+                        if (!NameTokOpt.has_value()) {
+                            Diag.consume({
+                                .Level = DiagnosticLevel::Error,
+                                .Location = Token.Loc,
+                                .Message =
+                                    "Expected name for top-level function "
+                                    "declaration"
+                            });
+
+                            return nullptr;
+                        }
+
                         const auto NameTok = NameTokOpt.value();
                         const auto Result = ResultOpt.value();
                         const auto Name = TokenStream.tokenContent(NameTok);
@@ -148,7 +237,7 @@ namespace Parse {
                                                         Result);
                     }
                     case Lex::Keyword::If:
-                        //return this->parseIfStmt(Token);
+                        return ParseIfStmt(Context, Token);
                     case Lex::Keyword::Else:
                         // return this->parseExpressionAndEnd();
                     case Lex::Keyword::Return: {

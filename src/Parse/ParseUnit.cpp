@@ -50,7 +50,9 @@ namespace Parse {
             // All top level statements need ending semicolons, except top level
             // functions.
 
-            if (!llvm::isa<AST::FunctionDecl>(Stmt)) {
+            if (!llvm::isa<AST::FunctionDecl>(Stmt) &&
+                !llvm::isa<AST::IfExpr>(Stmt))
+            {
                 if (!ExpectSemicolon(Context)) {
                     Diag.consume({
                         .Level = DiagnosticLevel::Error,

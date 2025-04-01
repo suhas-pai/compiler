@@ -16,6 +16,7 @@ namespace AST {
         StringLiteral,
 
         DeclRefExpr,
+        DotIdentifierExpr,
         OptionalUnwrapExpr,
         ParenExpr,
 
@@ -39,6 +40,7 @@ namespace AST {
 
         CallExpr,
         FieldExpr,
+        IfExpr,
         ArraySubscriptExpr,
         CastExpr,
         DerefExpr,
@@ -52,8 +54,6 @@ namespace AST {
         ShapeType,
         StructType,
         UnionType,
-
-        IfStmt,
 
         CompoundStmt,
         ForStmt,

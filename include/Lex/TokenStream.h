@@ -74,11 +74,12 @@ namespace Lex {
             return false;
         }
 
-        [[nodiscard]] constexpr auto
-        peekIsOneOf(const std::span<const Lex::TokenKind> Kinds) const noexcept
+        [[nodiscard]]
+        constexpr auto peekIsOneOf(
+            const std::span<const Lex::TokenKind> KindList) const noexcept
         {
             if (const auto TokenOpt = this->peek()) {
-                for (const auto Kind : Kinds) {
+                for (const auto Kind : KindList) {
                     if (TokenOpt->Kind == Kind) {
                         return true;
                     }

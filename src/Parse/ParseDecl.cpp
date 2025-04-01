@@ -22,11 +22,6 @@
 #include "llvm/Support/Casting.h"
 
 namespace Parse {
-    [[nodiscard]]
-    static inline auto ParseTypeExpr(ParseContext &Context) noexcept {
-        return ParseExpression(Context);
-    }
-
     [[nodiscard]] static bool
     VerifyDeclName(ParseContext &Context,
                    const Lex::Token NameToken,
@@ -88,7 +83,7 @@ namespace Parse {
             return nullptr;
         }
 
-        return ParseTypeExpr(Context);
+        return ParseExpression(Context);
     }
 
     auto
@@ -222,7 +217,7 @@ namespace Parse {
         return true;
     }
 
-    static auto
+    [[nodiscard]] static auto
     ParseInitExpressionIfFound(ParseContext &Context,
                                const Lex::TokenKind EndToken) noexcept
         -> AST::Expr *
@@ -248,7 +243,7 @@ namespace Parse {
         return ParseExpression(Context);
     }
 
-    static auto
+    [[nodiscard]] static auto
     ParseFunctionParamList(ParseContext &Context,
                            const Lex::Token ParenToken) noexcept
         -> std::expected<std::vector<AST::ParamVarDecl *>, ParseError>
@@ -475,7 +470,7 @@ namespace Parse {
                                      ReturnTypeOpt.value(), Body);
     }
 
-    static auto
+    [[nodiscard]] static auto
     ParseArrowFunctionLikeDecl(ParseContext &Context,
                                AST::Expr *&ReturnTypeOut) noexcept
         -> AST::Stmt *
@@ -562,7 +557,7 @@ namespace Parse {
 
         auto &TokenStream = Context.TokenStream;
         if (TokenStream.consumeIfIs(Lex::TokenKind::ThinArrow)) {
-            const auto ReturnTypeExpr = ParseTypeExpr(Context);
+            const auto ReturnTypeExpr = ParseExpression(Context);
             if (ReturnTypeExpr == nullptr) {
                 return nullptr;
             }
@@ -1198,7 +1193,7 @@ namespace Parse {
                                                          AtKeyLocQualifiers);
     }
 
-    static auto
+    [[nodiscard]] static auto
     ParseObjectDestructureFieldList(ParseContext &Context) noexcept
         -> std::expected<std::vector<AST::ObjectDestructureField *>, ParseError>
     {
@@ -1246,7 +1241,7 @@ namespace Parse {
         return DestructureItemList;
     }
 
-    static auto
+    [[nodiscard]] static auto
     ParseObjectDestructureVarDecl(ParseContext &Context,
                                   const AST::Qualifiers &PreQualifiers,
                                   const SourceLocation CurlyLoc) noexcept

@@ -9,8 +9,8 @@
 #include "Parse/ParseString.h"
 
 namespace Parse {
-    static auto
-    VerifyEscapeSequence(const char Ch, Lexer &Lexer) noexcept -> char {
+    [[nodiscard]] static
+    auto VerifyEscapeSequence(const char Ch, Lexer &Lexer) noexcept -> char {
         switch (Ch) {
             case 'a':
                 return '\a';
@@ -72,7 +72,6 @@ namespace Parse {
 
             return nullptr;
         }
-
 
         if (FirstChar != '\\') {
             if (Lexer.consume() != '\'') {

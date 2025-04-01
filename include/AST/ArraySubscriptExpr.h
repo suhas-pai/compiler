@@ -23,6 +23,13 @@ namespace AST {
         constexpr explicit
         ArraySubscriptExpr(const SourceLocation BracketLoc,
                            Expr *const Base,
+                           const std::span<Stmt *> DetailList) noexcept
+        : Expr(ObjKind), BracketLoc(BracketLoc), Base(Base),
+          DetailList(DetailList.begin(), DetailList.end()) {}
+
+        constexpr explicit
+        ArraySubscriptExpr(const SourceLocation BracketLoc,
+                           Expr *const Base,
                            std::vector<Stmt *> &&DetailList) noexcept
         : Expr(ObjKind), BracketLoc(BracketLoc), Base(Base),
           DetailList(std::move(DetailList)) {}

@@ -6,7 +6,6 @@
 #pragma once
 
 #include "AST/Qualifiers.h"
-
 #include "LvalueTypedDecl.h"
 
 namespace AST {

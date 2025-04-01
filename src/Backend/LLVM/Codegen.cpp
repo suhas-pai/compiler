@@ -648,7 +648,7 @@ namespace Backend::LLVM {
                                     *this,
                                     Builder,
                                     ValueMap);
-            case AST::NodeKind::IfStmt:
+            case AST::NodeKind::IfExpr:
                 return
                     IfStmtCodegen(llvm::cast<AST::IfExpr>(Stmt),
                                   *this,
@@ -667,6 +667,7 @@ namespace Backend::LLVM {
                                         Builder,
                                         ValueMap);
             case AST::NodeKind::DerefExpr:
+            case AST::NodeKind::DotIdentifierExpr:
             case AST::NodeKind::OptionalUnwrapExpr:
             case AST::NodeKind::StructDecl:
             case AST::NodeKind::ShapeDecl:

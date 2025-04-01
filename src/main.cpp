@@ -33,6 +33,7 @@
 #include "AST/CompoundStmt.h"
 #include "AST/DeclRefExpr.h"
 #include "AST/DerefExpr.h"
+#include "AST/DotIdentifierExpr.h"
 #include "AST/FieldExpr.h"
 #include "AST/ForStmt.h"
 #include "AST/IfExpr.h"
@@ -354,6 +355,13 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             return;
         }
+        case AST::NodeKind::DotIdentifierExpr: {
+            const auto DotIdentExpr = llvm::cast<AST::DotIdentifierExpr>(Stmt);
+            std::print("DotIdentifierForExpr<\"{}\">\n",
+                       DotIdentExpr->getIdentifier());
+
+            return;
+        }
         case AST::NodeKind::CallExpr: {
             const auto CallExpr = llvm::cast<AST::CallExpr>(Stmt);
 
@@ -373,18 +381,24 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             return;
         }
-        case AST::NodeKind::IfStmt: {
-            const auto IfStmt = llvm::cast<AST::IfExpr>(Stmt);
+        case AST::NodeKind::IfExpr: {
+            const auto IfExpr = llvm::cast<AST::IfExpr>(Stmt);
+            std::print("IfExpr\n");
 
-            std::print("IfStmt\n");
-            PrintAST(Handler, IfStmt->getCond(), Depth + 1);
+            PrintDepth(Depth + 1);
+            std::print("Cond\n");
 
-            std::print("\tThen\n");
-            PrintAST(Handler, IfStmt->getThen(), Depth + 2);
+            PrintAST(Handler, IfExpr->getCond(), Depth + 2);
 
-            std::print("\tElseStmt\n");
-            PrintAST(Handler, IfStmt->getElse(), Depth + 2);
+            PrintDepth(Depth + 1);
+            std::print("Then\n");
 
+            PrintAST(Handler, IfExpr->getThen(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+            std::print("Else\n");
+
+            PrintAST(Handler, IfExpr->getElse(), Depth + 2);
             return;
         }
         case AST::NodeKind::ReturnStmt: {

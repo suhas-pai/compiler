@@ -15,7 +15,7 @@ namespace Parse {
         EndToken
     };
 
-    auto
+    [[nodiscard]] auto
     ProceedToAndConsumeCommaOrEnd(ParseContext &Context,
                                   const Lex::TokenKind EndKind) noexcept
         -> ProceedResult;
