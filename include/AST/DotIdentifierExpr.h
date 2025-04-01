@@ -58,7 +58,11 @@ namespace AST {
             return this->Identifier;
         }
 
-        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
+            return this->Qualifiers;
+        }
+
+        [[nodiscard]] auto &getQualifiersRef() noexcept {
             return this->Qualifiers;
         }
     };
