@@ -671,6 +671,7 @@ namespace Backend::LLVM {
             case AST::NodeKind::OptionalUnwrapExpr:
             case AST::NodeKind::StructDecl:
             case AST::NodeKind::ShapeDecl:
+            case AST::NodeKind::UnionDecl:
             case AST::NodeKind::ArraySubscriptExpr:
             case AST::NodeKind::CastExpr:
             case AST::NodeKind::FieldDecl:

@@ -231,8 +231,7 @@ namespace Backend::LLVM {
                               ::Backend::LLVM::ValueMap &ValueMap,
                               llvm::IRBuilder<> &Builder) noexcept -> bool
     {
-        for (const auto &[Name, Decl] :
-                Handler.getUnit().getTopLevelDeclList())
+        for (const auto &[Name, Decl] : Handler.getUnit().getTopLevelDeclList())
         {
             if (const auto VarDecl = llvm::dyn_cast<AST::VarDecl>(Decl)) {
                 if (!VarDecl->getQualifiers().isMutable()) {

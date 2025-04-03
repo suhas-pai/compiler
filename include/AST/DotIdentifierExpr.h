@@ -8,17 +8,17 @@
 
 #include "AST/Expr.h"
 #include "AST/Qualifiers.h"
+
 #include "Source/SourceLocation.h"
 
 namespace AST {
     struct DotIdentifierExpr : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::DotIdentifierExpr;
-
     private:
         SourceLocation DotLoc;
-        AST::Qualifiers Qualifiers;
 
+        AST::Qualifiers Qualifiers;
         std::string Identifier;
     public:
         explicit

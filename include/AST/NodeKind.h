@@ -26,6 +26,7 @@ namespace AST {
         FunctionDecl,
         StructDecl,
         ShapeDecl,
+        UnionDecl,
 
         LvalueNamedDecl,
         EnumMemberDecl,

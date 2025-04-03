@@ -23,7 +23,11 @@ struct SourceLocation {
     }
 
     [[nodiscard]] constexpr static auto invalid() noexcept {
-        return SourceLocation{ .Index = 0, .Row = 0, .Column = 0 };
+        return SourceLocation {
+            .Index = UINT32_MAX,
+            .Row = 0,
+            .Column = 0
+        };
     }
 
     [[nodiscard]]

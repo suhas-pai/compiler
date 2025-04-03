@@ -29,6 +29,7 @@
 
 #include "Parse/ParseDecl.h"
 #include "Parse/ParseExpr.h"
+#include "Parse/ParseIfExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseString.h"
 
@@ -132,7 +133,32 @@ namespace Parse {
             TokenStream.goBack();
         }
 
-        return false;
+        const auto Result =
+            TokenStream.inWindow([](Lex::TokenStream &TokenStream) noexcept {
+                const auto TokenOpt =
+                    TokenStream.findNextAndConsume(Lex::TokenKind::CloseParen);
+
+                if (!TokenOpt.has_value()) {
+                    return false;
+                }
+
+                const auto NextTokenOpt = TokenStream.peek();
+                if (!NextTokenOpt.has_value()) {
+                    return false;
+                }
+
+                const auto NextToken = NextTokenOpt.value();
+                if (NextToken.Kind == Lex::TokenKind::ThinArrow ||
+                    NextToken.Kind == Lex::TokenKind::FatArrow ||
+                    NextToken.Kind == Lex::TokenKind::Colon)
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
+        return Result;
     }
 
     [[nodiscard]] static auto
@@ -470,6 +496,18 @@ done:
                 Root = Result.value();
                 break;
             }
+            case Lex::Keyword::Union: {
+                const auto Result =
+                    ParseUnionDecl(Context, KeywordTok, InPlaceOfStmt,
+                                   NameOpt);
+
+                if (!Result.has_value()) {
+                    return std::unexpected(Result.error());
+                }
+
+                Root = Result.value();
+                break;
+            }
             case Lex::Keyword::Interface:
             case Lex::Keyword::Impl:
             case Lex::Keyword::Enum:
@@ -481,7 +519,8 @@ done:
                 break;
             case Lex::Keyword::If: {
                 const auto Result =
-                    ParseIfExpr(Context, KeywordTok, ParseExpression);
+                    ParseIfExpr(Context, KeywordTok, ParseExpression,
+                                /*SeparatorOpt=*/std::nullopt);
 
                 if (!Result.has_value()) {
                     return std::unexpected(Result.error());
@@ -612,9 +651,7 @@ done:
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        const auto ParseResult =
-            Parse::ParseNumber(TokenStream.tokenContent(Token));
-
+        const auto ParseResult = ParseNumber(TokenStream.tokenContent(Token));
         switch (ParseResult.Error.Kind) {
             case ParseNumberErrorKind::None:
                 break;
@@ -715,18 +752,17 @@ done:
         auto &TokenStream = Context.TokenStream;
 
         const auto TokenString = TokenStream.tokenContent(Token);
-        const auto UnaryOpOpt =
-            Parse::UnaryOperatorToLexemeMap.keyFor(TokenString);
+        const auto UnaryOpOpt = UnaryOperatorToLexemeMap.keyFor(TokenString);
 
         assert(UnaryOpOpt.has_value() &&
                "Unary operator not found in lexeme map");
 
         const auto UnaryOp = UnaryOpOpt.value();
-        if (UnaryOp == Parse::UnaryOperator::Optional) {
+        if (UnaryOp == UnaryOperator::Optional) {
             return new AST::OptionalTypeExpr(Token.Loc, /*Operand=*/nullptr);
         }
 
-        if (UnaryOp == Parse::UnaryOperator::Pointer) {
+        if (UnaryOp == UnaryOperator::Pointer) {
             return new AST::PointerTypeExpr(Token.Loc, /*Operand=*/nullptr);
         }
 
@@ -947,7 +983,7 @@ done:
             }
 
             const auto ThisOperInfo =
-                Parse::OperatorInfoForToken(BinOpToken, BinOpTokenString);
+                OperatorInfoForToken(BinOpToken, BinOpTokenString);
 
             assert(ThisOperInfo.Precedence != Precedence::Unknown &&
                    "OperatorInfoForToken is missing a bin-op");
@@ -981,9 +1017,9 @@ done:
 
                 if (Lex::TokenKindIsBinOp(Token.Kind, TokenContent)) {
                     const auto ThisIsRightAssoc =
-                        ThisOperInfo.Assoc == Parse::OperatorAssoc::Right;
+                        ThisOperInfo.Assoc == OperatorAssoc::Right;
                     const auto NextOperInfo =
-                        Parse::OperatorInfoForToken(Token, TokenContent);
+                        OperatorInfoForToken(Token, TokenContent);
 
                     assert(NextOperInfo.Precedence != Precedence::Unknown &&
                            "OperatorInfoForToken missing entry for token");

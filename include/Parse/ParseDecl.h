@@ -9,6 +9,7 @@
 #include "AST/Decls/FunctionDecl.h"
 #include "AST/Decls/ShapeDecl.h"
 #include "AST/Decls/StructDecl.h"
+#include "AST/Decls/UnionDecl.h"
 
 #include "AST/Qualifiers.h"
 
@@ -46,6 +47,13 @@ namespace Parse {
                     bool IsLValue,
                     std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::StructDecl *, ParseError>;
+
+    [[nodiscard]] auto
+    ParseUnionDecl(ParseContext &Context,
+                   Lex::Token UnionKeywordToken,
+                   bool IsLValue,
+                   std::optional<Lex::Token> &NameTokenOptOut) noexcept
+        -> std::expected<AST::UnionDecl *, ParseError>;
 
     [[nodiscard]] auto
     ParseVarDecl(ParseContext &Context,

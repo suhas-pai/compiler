@@ -15,13 +15,13 @@ namespace Parse {
     auto
     ParseUnit::Create(const Lex::TokenBuffer &TokenBuffer,
                       DiagnosticConsumer &Diag,
-                      const Parse::ParseOptions Options) noexcept -> ParseUnit
+                      const ParseOptions Options) noexcept -> ParseUnit
     {
-        auto Stream = Lex::TokenStream(TokenBuffer);
-        auto Context = ParseContext(Stream, Diag, Options);
+        auto TokenStream = Lex::TokenStream(TokenBuffer);
+        auto Context = ParseContext(TokenStream, Diag, Options);
         auto Unit = ParseUnit();
 
-        while (!Stream.reachedEof()) {
+        while (!TokenStream.reachedEof()) {
             const auto StmtOpt = ParseStmt(Context);
             if (!StmtOpt.has_value()) {
                 break;
@@ -48,7 +48,7 @@ namespace Parse {
             }
 
             // All top level statements need ending semicolons, except top level
-            // functions.
+            // functions and if-statements.
 
             if (!llvm::isa<AST::FunctionDecl>(Stmt) &&
                 !llvm::isa<AST::IfExpr>(Stmt))
@@ -56,7 +56,7 @@ namespace Parse {
                 if (!ExpectSemicolon(Context)) {
                     Diag.consume({
                         .Level = DiagnosticLevel::Error,
-                        .Location = Stream.getCurrOrPrevLoc(),
+                        .Location = TokenStream.getCurrOrPrevLoc(),
                         .Message = "Expected a semicolon after declaration"
                     });
                 }

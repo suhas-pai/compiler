@@ -17,6 +17,7 @@
 #include "AST/Decls/ParamVarDecl.h"
 #include "AST/Decls/ShapeDecl.h"
 #include "AST/Decls/StructDecl.h"
+#include "AST/Decls/UnionDecl.h"
 #include "AST/Decls/VarDecl.h"
 
 #include "AST/Types/ArrayType.h"
@@ -439,6 +440,16 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             return;
         }
+        case AST::NodeKind::UnionDecl: {
+            const auto UnionDecl = llvm::cast<AST::UnionDecl>(Stmt);
+            std::print("UnionDecl\n");
+
+            for (const auto Field : UnionDecl->getFieldList()) {
+                PrintAST(Handler, Field, Depth + 1);
+            }
+
+            return;
+        }
         case AST::NodeKind::FieldDecl:
         case AST::NodeKind::OptionalFieldDecl: {
             const auto FieldDecl = llvm::cast<AST::FieldDecl>(Stmt);
@@ -708,7 +719,7 @@ HandlePrompt(const std::string_view &Prompt,
         fputc('\n', stdout);
     }
 
-    if (Diag.hasMessages()) {
+    if (Diag.hasErrors()) {
         return;
     }
 
@@ -722,7 +733,7 @@ HandlePrompt(const std::string_view &Prompt,
         return;
     }
 
-    if (Diag.hasMessages()) {
+    if (Diag.hasErrors()) {
         return;
     }
 

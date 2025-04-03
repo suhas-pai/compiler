@@ -35,8 +35,8 @@ namespace Parse {
                 break;
             }
 
-            const auto Stmt = ParseStmt(Context);
-            if (!Stmt.has_value()) {
+            const auto StmtOpt = ParseStmt(Context);
+            if (!StmtOpt.has_value()) {
                 return nullptr;
             }
 
@@ -44,7 +44,7 @@ namespace Parse {
                 return nullptr;
             }
 
-            StmtList.emplace_back(Stmt.value());
+            StmtList.emplace_back(StmtOpt.value());
         }
 
         return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
@@ -58,7 +58,6 @@ namespace Parse {
 
         if (Context.Options.RequireParensOnIfExpr) {
             if (!TokenStream.consumeIfIs(Lex::TokenKind::OpenParen)) {
-                // Expect '(' after 'if'
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
                     .Location = IfToken.Loc,
@@ -69,7 +68,6 @@ namespace Parse {
             }
         }
 
-        // Parse the condition expression
         const auto Condition = ParseExpression(Context);
         if (Condition == nullptr) {
             return std::unexpected(ParseError::FailedCouldNotProceed);
@@ -88,7 +86,6 @@ namespace Parse {
             }
         }
 
-        // Expect the 'then' part to be a compound statement
         const auto ThenOpt = ParseStmt(Context);
         if (!ThenOpt.has_value()) {
             Diag.consume({
@@ -102,23 +99,17 @@ namespace Parse {
         }
 
         auto Else = static_cast<AST::Stmt *>(nullptr);
-        if (TokenStream.peekIs(Lex::TokenKind::Keyword)) {
-            // Check if the next token is an 'else' keyword
-            const auto ElseToken = TokenStream.consume().value();
-            if (TokenStream.tokenKeyword(ElseToken) == Lex::Keyword::Else) {
-                const auto ElseOpt = ParseStmt(Context);
-                if (!ElseOpt.has_value()) {
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = TokenStream.getCurrOrPrevLoc(),
-                        .Message = "Expected a statement for 'else' part of "
-                                   "if-expression"
-                    });
+        if (TokenStream.consumeIfIsKeyword(Lex::Keyword::If)) {
+            const auto ElseOpt = ParseStmt(Context);
+            if (!ElseOpt.has_value()) {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Message = "Expected a statement after 'else' part of "
+                                "if-expression"
+                });
 
-                    return std::unexpected(ParseError::FailedCouldNotProceed);
-                }
-
-                Else = ElseOpt.value();
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
         }
 
@@ -266,6 +257,36 @@ namespace Parse {
                                 .Location = Token.Loc,
                                 .Message =
                                     "Expected name for top-level struct "
+                                    "declaration"
+                            });
+
+                            return nullptr;
+                        }
+
+                        const auto NameTok = NameTokOpt.value();
+                        const auto Name = TokenStream.tokenContent(NameTok);
+
+                        return new AST::LvalueNamedDecl(Name, NameTok.Loc,
+                                                        Result.value());
+                    }
+                    case Lex::Keyword::Union: {
+                        auto NameTokOpt =
+                            std::optional<Lex::Token>(std::nullopt);
+
+                        const auto Result =
+                            ParseUnionDecl(Context, Token, /*IsLValue=*/true,
+                                           NameTokOpt);
+
+                        if (!Result.has_value()) {
+                            return std::unexpected(Result.error());
+                        }
+
+                        if (!NameTokOpt.has_value()) {
+                            Diag.consume({
+                                .Level = DiagnosticLevel::Error,
+                                .Location = Token.Loc,
+                                .Message =
+                                    "Expected name for top-level union "
                                     "declaration"
                             });
 

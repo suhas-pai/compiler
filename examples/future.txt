@@ -55,13 +55,13 @@ func tupleExample(a: u32): tuple(uint32_t, meta.string) {
 
 // In structs, fields are mutable by default
 struct A {
-    a: u32 = 4;
-    b: u32 = 5;
+    a: u32 = 4,
+    b: u32 = 5,
 
     if (T) {
-        c: bit = false;
+        c: bit = false
     } else {
-        d: f64 = 4.0;
+        d: f64 = 4.0
     }
 
     for (let mut i = 0; i != 10; i++) {
@@ -81,14 +81,14 @@ export impl I for A {
 
 }
 
-func SGen(T: struct, a: u32) {
+func SGen(T: Struct, a: u32) {
     return struct {
         a: *T;
         b: u32 = ::a;
     };
 }
 
-impl I for SGen(T: struct, a: 2) = () => {
+impl I for SGen(T: Struct, a: 2) = () => {
     if (T == A) {
         doThing: func() {
             std::print("{}", T);
@@ -190,7 +190,7 @@ enum E {
 // constraint = (T: any) -> bit
 
 let Ec: constraint = E as constraint;
-let strict_type: constraint = struct or enum or union or wrapper or pointer;
+let strict_type: constraint = Struct or Enum or Union or Wrapper or Pointer;
 
 func D() {
     return (

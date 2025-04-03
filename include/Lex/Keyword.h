@@ -21,6 +21,7 @@ namespace Lex {
         Struct,
         Class,
         Shape,
+        Union,
         Interface,
         Impl,
         Enum,
@@ -37,7 +38,7 @@ namespace Lex {
     };
 
     const auto KeywordToLexemeMap =
-        ADT::SmallArrayMap<Keyword, std::string_view, 23>({
+        ADT::SmallArrayMap<Keyword, std::string_view, 24>({
             std::make_pair(Keyword::Let, "let"),
             std::make_pair(Keyword::Mut, "mut"),
             std::make_pair(Keyword::Function, "func"),
@@ -48,6 +49,7 @@ namespace Lex {
             std::make_pair(Keyword::Struct, "struct"),
             std::make_pair(Keyword::Class, "class"),
             std::make_pair(Keyword::Shape, "shape"),
+            std::make_pair(Keyword::Union, "shape"),
             std::make_pair(Keyword::Interface, "interface"),
             std::make_pair(Keyword::Impl, "impl"),
             std::make_pair(Keyword::Enum, "enum"),

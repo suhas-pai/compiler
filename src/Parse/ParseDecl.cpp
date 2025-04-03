@@ -16,6 +16,7 @@
 
 #include "Parse/ParseDecl.h"
 #include "Parse/ParseExpr.h"
+#include "Parse/ParseIfExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseStmt.h"
 
@@ -86,7 +87,109 @@ namespace Parse {
         return ParseExpression(Context);
     }
 
-    auto
+    [[nodiscard]] static auto
+    ParseFieldDecl(ParseContext &Context,
+                   const bool AllowOptionalFields) noexcept -> AST::FieldDecl *
+    {
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        if (TokenStream.peekIs(Lex::TokenKind::Keyword)) {
+            const auto Token = TokenStream.peek().value();
+            const auto TokenString = TokenStream.tokenContent(Token);
+
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message =
+                    std::format("Keyword \"{}\" cannot be used as a field name",
+                                TokenString)
+            });
+
+            return nullptr;
+        }
+
+        const auto NameTokenOpt = TokenStream.consume();
+        if (!NameTokenOpt.has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected a name for field declaration"
+            });
+
+            return nullptr;
+        }
+
+        const auto NameToken = NameTokenOpt.value();
+        if (!VerifyDeclName(Context, NameToken, "field")) {
+            return nullptr;
+        }
+
+        auto TypeExpr = static_cast<AST::Expr *>(nullptr);
+        const auto IsOptional =
+            TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark).has_value();
+
+        if (IsOptional) {
+            if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
+                if (!AllowOptionalFields) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = NameToken.Loc,
+                        .Message = "Optional fields are not allowed"
+                    });
+
+                    return nullptr;
+                }
+
+                TypeExpr =
+                    ParseTypeAnnotationIfFound(Context,
+                                               Lex::TokenKind::CloseCurlyBrace);
+
+                if (TypeExpr == nullptr) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = NameToken.Loc,
+                        .Message = "All fields must have a type annotation"
+                    });
+
+                    return nullptr;
+                }
+            }
+        } else {
+            TypeExpr =
+                ParseTypeAnnotationIfFound(Context,
+                                           Lex::TokenKind::CloseCurlyBrace);
+
+            if (TypeExpr == nullptr) {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = NameToken.Loc,
+                    .Message = "All fields must have a type annotation"
+                });
+
+                return nullptr;
+            }
+        }
+
+        auto InitExpr = static_cast<AST::Expr *>(nullptr);
+        if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
+            InitExpr = ParseExpression(Context);
+            if (InitExpr == nullptr) {
+                return nullptr;
+            }
+        }
+
+        const auto Name = TokenStream.tokenContent(NameToken);
+        if (IsOptional) {
+            return
+                new AST::OptionalFieldDecl(Name, NameToken.Loc, TypeExpr,
+                                           InitExpr);
+        }
+
+        return new AST::FieldDecl(Name, NameToken.Loc, TypeExpr, InitExpr);
+    }
+
+    [[nodiscard]] static auto
     ParseFieldList(ParseContext &Context,
                    const SourceLocation DeclLoc,
                    std::vector<AST::Stmt *> &FieldList,
@@ -100,115 +203,75 @@ namespace Parse {
         }
 
         while (true) {
-            if (TokenStream.peekIs(Lex::TokenKind::Keyword)) {
-                const auto Token = TokenStream.peek().value();
-                const auto TokenString = TokenStream.tokenContent(Token);
+            auto Stmt = static_cast<AST::Stmt *>(nullptr);
 
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
-                    .Message =
-                        std::format("Keyword \"{}\" cannot be used as a field "
-                                    "name",
-                                    TokenString)
-                });
+            auto WasControlFlowExpr = false;
+            auto CommaLocOpt = std::optional<SourceLocation>(std::nullopt);
 
-                return false;
-            }
+            if (const auto IfTokenOpt =
+                    TokenStream.consumeIfIsKeyword(Lex::Keyword::If))
+            {
+                const auto IfExprOpt =
+                    ParseIfExpr(Context, IfTokenOpt.value(),
+                                [=](ParseContext &Context) noexcept {
+                                    return ParseFieldDecl(Context,
+                                                          AllowOptionalFields);
+                                },
+                                Lex::TokenKind::Comma);
 
-            const auto NameTokenOpt = TokenStream.consume();
-            if (!NameTokenOpt.has_value()) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
-                    .Message = "Expected a name for field declaration"
-                });
+                if (!IfExprOpt.has_value()) {
+                    return false;
+                }
 
-                return false;
-            }
+                Stmt = IfExprOpt.value();
+                WasControlFlowExpr = true;
 
-            const auto NameToken = NameTokenOpt.value();
-            if (!VerifyDeclName(Context, NameToken, "field")) {
-                return false;
-            }
-
-            auto TypeExpr = static_cast<AST::Expr *>(nullptr);
-            const auto IsOptional =
-                TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark);
-
-            if (IsOptional) {
-                if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
-                    if (!AllowOptionalFields) {
-                        Diag.consume({
-                            .Level = DiagnosticLevel::Error,
-                            .Location = NameToken.Loc,
-                            .Message = "Optional fields are not allowed"
-                        });
-
-                        return false;
-                    }
-
-                    TypeExpr =
-                        ParseTypeAnnotationIfFound(
-                            Context,  Lex::TokenKind::CloseCurlyBrace);
-
-                    if (TypeExpr == nullptr) {
-                        Diag.consume({
-                            .Level = DiagnosticLevel::Error,
-                            .Location = NameToken.Loc,
-                            .Message = "All fields must have a type annotation"
-                        });
-
-                        return false;
-                    }
+                if (const auto CommaTokenOpt =
+                        TokenStream.consumeIfIs(Lex::TokenKind::Comma))
+                {
+                    CommaLocOpt = CommaTokenOpt.value().Loc;
                 }
             } else {
-                TypeExpr =
-                    ParseTypeAnnotationIfFound(Context,
-                                               Lex::TokenKind::CloseCurlyBrace);
-
-                if (TypeExpr == nullptr) {
+                Stmt = ParseFieldDecl(Context, AllowOptionalFields);
+                if (Stmt == nullptr) {
                     Diag.consume({
                         .Level = DiagnosticLevel::Error,
-                        .Location = NameToken.Loc,
-                        .Message = "All fields must have a type annotation"
+                        .Location = DeclLoc,
+                        .Message = "Failed to parse field declaration"
                     });
 
                     return false;
                 }
             }
 
-            auto InitExpr = static_cast<AST::Expr *>(nullptr);
-            if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
-                InitExpr = ParseExpression(Context);
-                if (InitExpr == nullptr) {
-                    return false;
-                }
-            }
-
-            const auto Name = TokenStream.tokenContent(NameToken);
-            if (IsOptional) {
-                FieldList.emplace_back(
-                    new AST::OptionalFieldDecl(Name, NameToken.Loc, TypeExpr,
-                                               InitExpr));
-            } else {
-                FieldList.emplace_back(
-                    new AST::FieldDecl(Name, NameToken.Loc, TypeExpr,
-                                       InitExpr));
-            }
-
+            FieldList.emplace_back(Stmt);
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
+                if (CommaLocOpt.has_value()) {
+                    // Allow trailing comma before closing curly brace, but
+                    // emit a warning for it.
+
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Warning,
+                        .Location = CommaLocOpt.value(),
+                        .Message =
+                            "Trailing comma before closing '}' in field list"
+                    });
+                }
+
                 break;
             }
 
-            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+            // Allow missing commas for control-flow expressions, but not for
+            // other cases.
+
+            if (WasControlFlowExpr) {
                 continue;
             }
 
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
                 .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Expected a comma after field declaration"
+                .Message = "Expected a ',' after field declaration"
             });
 
             return false;
@@ -705,6 +768,71 @@ namespace Parse {
 
         return new AST::StructDecl(StructKeywordToken.Loc,
                                    std::move(FieldList));
+    }
+
+    auto
+    ParseUnionDecl(ParseContext &Context,
+                   const Lex::Token UnionKeywordToken,
+                   const bool IsLValue,
+                   std::optional<Lex::Token> &NameTokenOptOut) noexcept
+        -> std::expected<AST::UnionDecl *, ParseError>
+    {
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        auto FieldList = std::vector<AST::Stmt *>();
+        const auto UnionKeywordTokenOpt = TokenStream.current();
+
+        if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
+            const auto UnionKeywordToken = UnionKeywordTokenOpt.value();
+            if (!ParseFieldList(Context, UnionKeywordToken.Loc, FieldList,
+                                /*AllowOptionalFields=*/false))
+            {
+                return nullptr;
+            }
+
+            NameTokenOptOut = std::nullopt;
+            return new AST::UnionDecl(UnionKeywordToken.Loc,
+                                      std::move(FieldList));
+        }
+
+        const auto NameTokenOpt = TokenStream.consume();
+        if (!NameTokenOpt.has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected a name for struct declaration"
+            });
+
+            return nullptr;
+        }
+
+        const auto NameToken = NameTokenOpt.value();
+        if (!VerifyDeclName(Context, NameToken, "struct")) {
+            if (!TokenStream.proceedToAndConsume(
+                    Lex::TokenKind::OpenCurlyBrace))
+            {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = NameToken.Loc,
+                    .Message = "Expected '{' after struct declaration"
+                });
+
+                return nullptr;
+            }
+        }
+
+        NameTokenOptOut = NameToken;
+        TokenStream.consume();
+
+        if (!ParseFieldList(Context, NameToken.Loc, FieldList,
+                            /*AllowOptionalFields=*/false))
+        {
+            return nullptr;
+        }
+
+        return new AST::UnionDecl(UnionKeywordToken.Loc,
+                                  std::move(FieldList));
     }
 
     [[nodiscard]] static auto

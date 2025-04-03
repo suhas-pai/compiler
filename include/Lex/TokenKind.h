@@ -266,8 +266,7 @@ namespace Lex {
         __builtin_unreachable();
     }
 
-    [[nodiscard]]
-    constexpr auto TokenKindGetName(const TokenKind Kind) noexcept
+    [[nodiscard]] constexpr auto TokenKindGetName(const TokenKind Kind) noexcept
         -> std::string_view
     {
         switch (Kind) {
@@ -360,9 +359,9 @@ namespace Lex {
             case TokenKind::CloseParen:
                 return "right-paren";
             case TokenKind::OpenCurlyBrace:
-                return "left-curly-brace";
+                return "open-curly-brace";
             case TokenKind::CloseCurlyBrace:
-                return "right-curly-brace";
+                return "close-curly-brace";
             case TokenKind::LeftSquareBracket:
                 return "left-square-bracket";
             case TokenKind::RightSquareBracket:
@@ -397,6 +396,135 @@ namespace Lex {
                 return "eof";
             case TokenKind::Invalid:
                 assert(false && "TokenKindGetName(): token is invalid");
+        }
+
+        __builtin_unreachable();
+    }
+
+    [[nodiscard]]
+    constexpr auto TokenKindGetLexeme(const TokenKind Kind) noexcept
+        -> std::optional<std::string_view>
+    {
+        switch (Kind) {
+            case TokenKind::IntegerLiteral:
+            case TokenKind::IntegerLiteralWithSuffix:
+            case TokenKind::FloatLiteral:
+            case TokenKind::FloatLiteralWithSuffix:
+            case TokenKind::CharLiteral:
+            case TokenKind::StringLiteral:
+            case TokenKind::Identifier:
+            case TokenKind::Keyword:
+                return std::nullopt;
+            case TokenKind::Plus:
+                return "+";
+            case TokenKind::Minus:
+                return "-";
+            case TokenKind::PlusEqual:
+                return "+=";
+            case TokenKind::MinusEqual:
+                return "-=";
+            case TokenKind::Star:
+                return "*";
+            case TokenKind::StarEqual:
+                return "*=";
+            case TokenKind::Slash:
+                return "/";
+            case TokenKind::SlashEqual:
+                return "/=";
+            case TokenKind::DoubleStar:
+                return "**";
+            case TokenKind::Percent:
+                return "%";
+            case TokenKind::PercentEqual:
+                return "%=";
+            case TokenKind::ShiftLeft:
+                return "<<";
+            case TokenKind::ShiftLeftEqual:
+                return "<<=";
+            case TokenKind::ShiftRight:
+                return ">>";
+            case TokenKind::ShiftRightEqual:
+                return ">>=";
+            case TokenKind::Caret:
+                return "^";
+            case TokenKind::CaretEqual:
+                return "^=";
+            case TokenKind::Ampersand:
+                return "&";
+            case TokenKind::AmpersandEqual:
+                return "&=";
+            case TokenKind::DoubleAmpersand:
+                return "&&";
+            case TokenKind::Pipe:
+                return "|";
+            case TokenKind::PipeEqual:
+                return "|=";
+            case TokenKind::DoublePipe:
+                return "||";
+            case TokenKind::Tilde:
+                return "~";
+            case TokenKind::TildeEqual:
+                return "~=";
+            case TokenKind::LessThan:
+                return "<";
+            case TokenKind::GreaterThan:
+                return ">";
+            case TokenKind::LessThanOrEqual:
+                return "<=";
+            case TokenKind::GreaterThanOrEqual:
+                return ">=";
+            case TokenKind::Equal:
+                return "=";
+            case TokenKind::Exclamation:
+                return "!";
+            case TokenKind::NotEqual:
+                return "!=";
+            case TokenKind::DoubleEqual:
+                return "==";
+            case TokenKind::QuestionMark:
+                return "?";
+            case TokenKind::OpenParen:
+                return "(";
+            case TokenKind::CloseParen:
+                return ")";
+            case TokenKind::OpenCurlyBrace:
+                return "{";
+            case TokenKind::CloseCurlyBrace:
+                return "}";
+            case TokenKind::LeftSquareBracket:
+                return "[";
+            case TokenKind::RightSquareBracket:
+                return "]";
+            case TokenKind::Comma:
+                return ",";
+            case TokenKind::Colon:
+                return ":";
+            case TokenKind::Semicolon:
+                return ";";
+            case TokenKind::Dot:
+                return ".";
+            case TokenKind::DotIdentifier:
+                return std::nullopt;
+            case TokenKind::DotStar:
+                return ".*";
+            case TokenKind::DotDot:
+                return "..";
+            case TokenKind::DotDotLessThan:
+                return "..<";
+            case TokenKind::DotDotGreaterThan:
+                return "..>";
+            case TokenKind::DotDotEqual:
+                return "..=";
+            case TokenKind::DotDotDot:
+                return "...";
+            case TokenKind::ThinArrow:
+                return "->";
+            case TokenKind::FatArrow:
+                return "=>";
+            case TokenKind::EOFToken:
+                return std::nullopt;
+            case TokenKind::Invalid:
+                assert(false && "TokenKindGetLexeme(): token is invalid");
         }
 
         __builtin_unreachable();

@@ -124,8 +124,8 @@ namespace Lex {
             return this->consume();
         }
 
-        [[nodiscard]] constexpr auto
-        consumeIfOneOf(const std::span<const Lex::TokenKind> Kinds) noexcept
+        [[nodiscard]]
+        constexpr auto consumeIfIsKeyword(const Lex::Keyword Kind) noexcept
             -> std::optional<Lex::Token>
         {
             const auto TokenOpt = this->peek();
@@ -134,7 +134,29 @@ namespace Lex {
             }
 
             const auto Token = TokenOpt.value();
-            for (const auto Kind : Kinds) {
+            if (Token.Kind != Lex::TokenKind::Keyword) {
+                return std::nullopt;
+            }
+
+            const auto TokenKind = this->tokenKeyword(Token);
+            if (TokenKind != Kind) {
+                return std::nullopt;
+            }
+
+            return this->consume();
+        }
+
+        [[nodiscard]] constexpr auto
+        consumeIfOneOf(const std::span<const Lex::TokenKind> KindList) noexcept
+            -> std::optional<Lex::Token>
+        {
+            const auto TokenOpt = this->peek();
+            if (!TokenOpt.has_value()) {
+                return std::nullopt;
+            }
+
+            const auto Token = TokenOpt.value();
+            for (const auto Kind : KindList) {
                 if (Token.Kind == Kind) {
                     return this->consume();
                 }
@@ -169,6 +191,32 @@ namespace Lex {
             }
 
             return std::nullopt;
+        }
+
+        enum class FindError {
+            None,
+            NotFound,
+
+            MismatchClosingToken,
+            UnexpectedClosingToken,
+
+            UnclosedToken,
+        };
+
+        auto findNextAndConsume(Lex::TokenKind Kind) noexcept
+            -> std::expected<Lex::Token, FindError>;
+
+        auto
+        findNextAndConsumeOneOf(
+            const std::initializer_list<const Lex::TokenKind> KindList) noexcept
+                -> std::expected<Lex::Token, FindError>;
+
+        constexpr auto inWindow(auto &&Func) noexcept {
+            const auto OriginalIndex = this->position();
+            const auto Result = Func(*this);
+
+            this->Index = OriginalIndex;
+            return Result;
         }
     };
 }

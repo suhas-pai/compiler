@@ -4,6 +4,7 @@
  */
 
 #include "Parse/ParseMisc.h"
+#include "Lex/Keyword.h"
 
 namespace Parse {
     auto
@@ -68,6 +69,7 @@ namespace Parse {
                 case Lex::Keyword::Struct:
                 case Lex::Keyword::Class:
                 case Lex::Keyword::Shape:
+                case Lex::Keyword::Union:
                 case Lex::Keyword::Interface:
                 case Lex::Keyword::Impl:
                 case Lex::Keyword::Enum:
