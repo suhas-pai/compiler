@@ -131,16 +131,6 @@ namespace Parse {
 
         if (IsOptional) {
             if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
-                if (!AllowOptionalFields) {
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = NameToken.Loc,
-                        .Message = "Optional fields are not allowed"
-                    });
-
-                    return nullptr;
-                }
-
                 TypeExpr =
                     ParseTypeAnnotationIfFound(Context,
                                                Lex::TokenKind::CloseCurlyBrace);
@@ -181,6 +171,16 @@ namespace Parse {
 
         const auto Name = TokenStream.tokenContent(NameToken);
         if (IsOptional) {
+            if (!AllowOptionalFields) {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = NameToken.Loc,
+                    .Message = "Optional fields are not allowed"
+                });
+
+                return nullptr;
+            }
+
             return
                 new AST::OptionalFieldDecl(Name, NameToken.Loc, TypeExpr,
                                            InitExpr);
@@ -510,6 +510,9 @@ namespace Parse {
 
         const auto CurlyToken = CurlyTokenOpt.value();
         if (CurlyToken.Kind != Lex::TokenKind::OpenCurlyBrace) {
+            const auto CurlyTokenContent =
+                TokenStream.tokenContent(CurlyToken);
+
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
                 .Location = CurlyToken.Loc,
@@ -517,7 +520,7 @@ namespace Parse {
                     std::format("Expected {} after function declaration, found "
                                 "'{}' instead",
                                 "{",
-                                TokenStream.tokenContent(CurlyToken))
+                                CurlyTokenContent)
             });
 
             return nullptr;
@@ -555,31 +558,28 @@ namespace Parse {
             // it.
         }
 
+        // Parse the body of the arrow function-like declaration.
+        //
+        // This can be a compound statement, a return statement or an
+        // expression. If it's an expression, it will be wrapped in a
+        // return-statement for consistency with other function declarations.
+
         auto Body = static_cast<AST::Stmt *>(nullptr);
         if (TokenStream.peekIs(Lex::TokenKind::OpenCurlyBrace)) {
             const auto CurlyToken = TokenStream.consume().value();
             Body = ParseCompoundStmt(Context, CurlyToken);
-        } else if (TokenStream.peekIs(Lex::TokenKind::Keyword)) {
-            const auto Token = TokenStream.peek().value();
-            const auto Keyword =
-                Lex::KeywordTokenGetKeyword(TokenStream.tokenContent(Token));
-
-            if (Keyword == Lex::Keyword::Return) {
-                TokenStream.consume();
-                Body = ParseReturnStmt(Context, Token).value();
-            } else {
-                // Unexpected token, pass error-handling to ParseExpression()
-                // instead of handling it here.
-
-                Body = ParseExpression(Context);
-            }
+        } else if (
+            const auto RetTokenOpt =
+                TokenStream.consumeIfIsKeyword(Lex::Keyword::Return))
+        {
+            const auto RetToken = RetTokenOpt.value();
+            Body = ParseReturnStmt(Context, RetToken).value();
         } else {
             Body = ParseExpression(Context);
-        }
-
-        // For arrow functions, wrap expressions in a return-statement
-        if (const auto BodyExpr = llvm::dyn_cast_if_present<AST::Expr>(Body)) {
-            return new AST::ReturnStmt(SourceLocation::invalid(), BodyExpr);
+            if (Body != nullptr) {
+                const auto BodyExpr = llvm::cast<AST::Expr>(Body);
+                Body = new AST::ReturnStmt(SourceLocation::invalid(), BodyExpr);
+            }
         }
 
         return Body;

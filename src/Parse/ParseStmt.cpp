@@ -125,7 +125,7 @@ namespace Parse {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        if (const auto Expr = ParseExpression(Context); Expr != nullptr) {
+        if (const auto Expr = ParseExpression(Context)) {
             if (ExpectSemicolon(Context)) {
                 return new AST::ReturnStmt(ReturnToken.Loc, Expr);
             }

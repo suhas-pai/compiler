@@ -131,8 +131,8 @@ namespace Parse {
             const auto CurlyToken = CurlyTokenOpt.value();
             const auto Result =
                 ParseIfElseExprCompoundStmt(Context, CurlyToken,
-                                           SeparatorOpt, Parser,
-                                           LastSeparatorLoc);
+                                            SeparatorOpt, Parser,
+                                            LastSeparatorLoc);
             if (!Result.has_value()) {
                 return std::unexpected(Result.error());
             }
