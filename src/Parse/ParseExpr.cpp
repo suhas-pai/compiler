@@ -50,8 +50,8 @@ namespace Parse {
 
         auto &Diag = Context.Diag;
         do {
-            if (const auto Expr = ParseExpression(Context)) {
-                DetailList.emplace_back(Expr);
+            if (const auto ExprOpt = ParseExpression(Context)) {
+                DetailList.emplace_back(ExprOpt.value());
                 if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
                     continue;
                 }
@@ -182,11 +182,12 @@ namespace Parse {
             TokenStream.peekIs(Lex::TokenKind::QuestionMark))
         {
             // We have an array-type
-            const auto Base = ParseLhs(Context, /*InPlaceOfStmt=*/false);
-            if (Base == nullptr) {
-                return nullptr;
+            const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
+            if (!BaseOpt.has_value()) {
+                return std::unexpected(BaseOpt.error());
             }
 
+            auto Base = BaseOpt.value();
             auto &DetailList = DetailListOpt.value();
             auto Quals = Sema::PointerBaseTypeQualifiers();
 
@@ -212,7 +213,7 @@ namespace Parse {
                     .Message = "Expected an expression inside parenthesis"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
         }
 
@@ -312,8 +313,8 @@ namespace Parse {
         }
 
         do {
-            if (const auto Expr = ParseExpression(Context)) {
-                ArgList.emplace_back(Expr);
+            if (const auto ExprOpt = ParseExpression(Context)) {
+                ArgList.emplace_back(ExprOpt.value());
                 if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
                     continue;
                 }
@@ -341,7 +342,7 @@ namespace Parse {
                         .Message = "Expected ',' or ')'",
                     });
 
-                    return nullptr;
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
                 case ProceedResult::Comma:
                     continue;
                 case ProceedResult::EndToken:
@@ -590,7 +591,7 @@ done:
 
     [[nodiscard]] static auto
     ParseParenExpr(ParseContext &Context, const Lex::Token ParenToken) noexcept
-        -> AST::Expr *
+        -> std::expected<AST::Expr *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -615,11 +616,11 @@ done:
                 .Message = "Expected an expression inside parenthesis"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        const auto ChildExpr = ParseExpression(Context);
-        if (ChildExpr == nullptr) {
+        const auto ChildExprOpt = ParseExpression(Context);
+        if (!ChildExprOpt.has_value()) {
             if (!TokenStream.proceedToAndConsume(Lex::TokenKind::CloseParen)) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
@@ -628,7 +629,7 @@ done:
                 });
             }
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         if (!TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
@@ -638,10 +639,10 @@ done:
                 .Message = "Expected closing parenthesis"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        return new AST::ParenExpr(ParenToken, ChildExpr);
+        return new AST::ParenExpr(ParenToken, ChildExprOpt.value());
     }
 
     [[nodiscard]] static auto
@@ -747,7 +748,7 @@ done:
 
     auto
     ParseUnaryOperation(ParseContext &Context, const Lex::Token Token) noexcept
-        -> AST::Expr *
+        -> std::expected<AST::Expr *, ParseError>
     {
         auto &TokenStream = Context.TokenStream;
 
@@ -770,7 +771,7 @@ done:
     }
 
     auto ParseLhs(ParseContext &Context, const bool InPlaceOfStmt) noexcept
-        -> AST::Expr *
+        -> std::expected<AST::Expr *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -800,7 +801,7 @@ done:
                             ParseIdentifierForLhs(Context, Qualifiers, Token);
 
                         if (!Result.has_value()) {
-                            return nullptr;
+                            return std::unexpected(Result.error());
                         }
 
                         Expr = Result.value();
@@ -812,7 +813,7 @@ done:
                                                InPlaceOfStmt);
 
                         if (!Result.has_value()) {
-                            return nullptr;
+                            return std::unexpected(Result.error());
                         }
 
                         Expr = Result.value();
@@ -828,15 +829,21 @@ done:
                     case Lex::TokenKind::StringLiteral:
                         Expr = ParseStringLiteral(Context, Token);
                         break;
-                    case Lex::TokenKind::OpenParen:
-                        Expr = ParseParenExpr(Context, Token);
+                    case Lex::TokenKind::OpenParen: {
+                        const auto Result = ParseParenExpr(Context, Token);
+                        if (!Result.has_value()) {
+                            return std::unexpected(Result.error());
+                        }
+
+                        Expr = Result.value();
                         break;
+                    }
                     case Lex::TokenKind::LeftSquareBracket: {
                         const auto Result =
                             ParseExprWithSquareBracket(Context, Token);
 
                         if (!Result.has_value()) {
-                            return nullptr;
+                            return std::unexpected(Result.error());
                         }
 
                         Expr = Result.value();
@@ -908,21 +915,23 @@ done:
                                             TokenStream.tokenContent(Token))
                         });
 
-                        return nullptr;
+                        return std::unexpected(
+                            ParseError::FailedCouldNotProceed);
                 }
             } else {
-                Expr = ParseUnaryOperation(Context, Token);
-            }
+                const auto Result = ParseUnaryOperation(Context, Token);
+                if (!Result.has_value()) {
+                    return std::unexpected(Result.error());
+                }
 
-            if (Expr == nullptr) {
-                return nullptr;
+                Expr = Result.value();
             }
 
             const auto ParseResult =
                 ParseCallAndFieldExprs(Context, Expr, Qualifiers);
 
             if (!ParseResult.has_value()) {
-                return nullptr;
+                return std::unexpected(ParseResult.error());
             }
 
             Expr = ParseResult.value();
@@ -964,7 +973,7 @@ done:
                                     AST::Expr *Lhs,
                                     const uint32_t MinPrec,
                                     const bool InPlaceOfStmt) noexcept
-        -> AST::Expr *
+        -> std::expected<AST::Expr *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -1002,15 +1011,17 @@ done:
                                     BinOpTokenString)
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
-            auto Rhs = ParseLhs(Context, InPlaceOfStmt);
-            if (Rhs == nullptr) {
-                return nullptr;
+            const auto RhsOpt = ParseLhs(Context, InPlaceOfStmt);
+            if (!RhsOpt.has_value()) {
+                return std::unexpected(RhsOpt.error());
             }
 
+            auto Rhs = RhsOpt.value();
             TokenOpt = TokenStream.peek();
+
             if (TokenOpt.has_value()) {
                 const auto Token = TokenOpt.value();
                 const auto TokenContent = TokenStream.tokenContent(Token);
@@ -1033,12 +1044,13 @@ done:
                                 static_cast<uint64_t>(ThisOperInfo.Precedence) +
                                 !ThisIsRightAssoc);
 
-                        Rhs =
+                        const auto RhsOpt =
                             ParseBinaryOperationWithRhsPrec(Context, Rhs,
                                                             InPlaceOfStmt,
                                                             NextMinPrec);
-                        if (Rhs == nullptr) {
-                            return Rhs;
+
+                        if (!RhsOpt.has_value()) {
+                            return std::unexpected(RhsOpt.error());
                         }
                     }
                 }
@@ -1062,24 +1074,28 @@ done:
         __builtin_unreachable();
     }
 
-    auto ParseExpression(ParseContext &Context) noexcept -> AST::Expr * {
-        const auto Lhs = ParseLhs(Context, /*InPlaceOfStmt=*/false);
-        if (Lhs == nullptr) {
-            return nullptr;
+    auto ParseExpression(ParseContext &Context) noexcept
+        -> std::expected<AST::Expr *, ParseError>
+    {
+        const auto LhsOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
+        if (!LhsOpt.has_value()) {
+            return std::unexpected(LhsOpt.error());
         }
 
+        const auto Lhs = LhsOpt.value();
         return ParseBinaryOperationWithRhsPrec(Context, Lhs, /*MinPrec=*/0,
                                                /*InPlaceOfStmt=*/false);
     }
 
     auto ParseExpressionInPlaceOfStmt(ParseContext &Context) noexcept
-        -> AST::Expr *
+        -> std::expected<AST::Expr *, ParseError>
     {
-        const auto Lhs = ParseLhs(Context, /*InPlaceOfStmt=*/true);
-        if (Lhs == nullptr) {
-            return nullptr;
+        const auto LhsOpt = ParseLhs(Context, /*InPlaceOfStmt=*/true);
+        if (!LhsOpt.has_value()) {
+            return std::unexpected(LhsOpt.error());
         }
 
+        const auto Lhs = LhsOpt.value();
         return ParseBinaryOperationWithRhsPrec(Context, Lhs, /*MinPrec=*/0,
                                                /*InPlaceOfStmt=*/true);
     }

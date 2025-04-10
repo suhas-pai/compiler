@@ -19,7 +19,7 @@ protected:
     std::string FilePath;
     std::vector<DiagnosticMessage> MessageList;
 
-    bool HasErrors : 1;
+    bool HasErrors : 1 = false;
 public:
     explicit
     SourceFileDiagnosticConsumer(const std::string_view FilePath) noexcept

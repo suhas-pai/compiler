@@ -27,6 +27,6 @@ namespace Parse {
     void
     MargeQualifiers(AST::Qualifiers &Lhs, const AST::Qualifiers &Rhs) noexcept;
 
-    [[nodiscard]] bool ExpectSemicolon(ParseContext &Context) noexcept;
+    bool ExpectSemicolon(ParseContext &Context) noexcept;
     [[nodiscard]] bool ProceedToSemicolon(ParseContext &Context) noexcept;
 }

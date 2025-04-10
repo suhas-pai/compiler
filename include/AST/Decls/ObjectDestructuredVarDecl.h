@@ -77,8 +77,7 @@ namespace AST {
             const std::span<ArrayDestructureItem *> ItemList) noexcept
         : ObjectDestructureField(ObjectDestructureFieldKind::Array, Key,
                                  KeyLoc),
-          Qualifiers(Qualifiers),
-          ItemList(ItemList.begin(), ItemList.end()) {}
+          Qualifiers(Qualifiers), ItemList(ItemList.begin(), ItemList.end()) {}
 
         explicit
         ObjectDestructureFieldArray(

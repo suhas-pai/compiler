@@ -5,6 +5,7 @@
 
 #include "Parse/ParseDecl.h"
 #include "Parse/ParseExpr.h"
+#include "Parse/ParseIfExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseStmt.h"
 
@@ -12,7 +13,7 @@ namespace Parse {
     auto
     ParseCompoundStmt(ParseContext &Context,
                       const Lex::Token CurlyToken) noexcept
-        -> AST::CompoundStmt *
+        -> std::expected<AST::CompoundStmt *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -28,7 +29,7 @@ namespace Parse {
                                "statement"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
@@ -37,13 +38,10 @@ namespace Parse {
 
             const auto StmtOpt = ParseStmt(Context);
             if (!StmtOpt.has_value()) {
-                return nullptr;
+                return std::unexpected(StmtOpt.error());
             }
 
-            if (!ExpectSemicolon(Context)) {
-                return nullptr;
-            }
-
+            ExpectSemicolon(Context);
             StmtList.emplace_back(StmtOpt.value());
         }
 
@@ -53,68 +51,8 @@ namespace Parse {
     auto ParseIfStmt(ParseContext &Context, const Lex::Token IfToken) noexcept
         -> std::expected<AST::IfExpr *, ParseError>
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
-
-        if (Context.Options.RequireParensOnIfExpr) {
-            if (!TokenStream.consumeIfIs(Lex::TokenKind::OpenParen)) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = IfToken.Loc,
-                    .Message = "Expected '(' after 'if' keyword"
-                });
-
-                return std::unexpected(ParseError::FailedCouldNotProceed);
-            }
-        }
-
-        const auto Condition = ParseExpression(Context);
-        if (Condition == nullptr) {
-            return std::unexpected(ParseError::FailedCouldNotProceed);
-        }
-
-        if (Context.Options.RequireParensOnIfExpr) {
-            if (!TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
-                    .Message = "Expected ')' to close condition of 'if' "
-                               "expression"
-                });
-
-                return std::unexpected(ParseError::FailedCouldNotProceed);
-            }
-        }
-
-        const auto ThenOpt = ParseStmt(Context);
-        if (!ThenOpt.has_value()) {
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Expected a statement for 'then' part of "
-                           "if-expression"
-            });
-
-            return std::unexpected(ParseError::FailedCouldNotProceed);
-        }
-
-        auto Else = static_cast<AST::Stmt *>(nullptr);
-        if (TokenStream.consumeIfIsKeyword(Lex::Keyword::If)) {
-            const auto ElseOpt = ParseStmt(Context);
-            if (!ElseOpt.has_value()) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
-                    .Message = "Expected a statement after 'else' part of "
-                                "if-expression"
-                });
-
-                return std::unexpected(ParseError::FailedCouldNotProceed);
-            }
-        }
-
-        const auto Then = ThenOpt.value();
-        return new AST::IfExpr(IfToken.Loc, *Condition, Then, Else);
+        return ParseIfExpr(Context, IfToken, ParseStmt,
+                           Lex::TokenKind::Semicolon);
     }
 
     auto
@@ -125,9 +63,9 @@ namespace Parse {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        if (const auto Expr = ParseExpression(Context)) {
+        if (const auto ExprOpt = ParseExpression(Context)) {
             if (ExpectSemicolon(Context)) {
-                return new AST::ReturnStmt(ReturnToken.Loc, Expr);
+                return new AST::ReturnStmt(ReturnToken.Loc, ExprOpt.value());
             }
         }
 
@@ -182,7 +120,7 @@ namespace Parse {
                 .Message = "Unexpected end of file"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto Token = TokenOpt.value();
@@ -217,7 +155,8 @@ namespace Parse {
                                     "declaration"
                             });
 
-                            return nullptr;
+                            return std::unexpected(
+                                ParseError::FailedCouldNotProceed);
                         }
 
                         const auto NameTok = NameTokOpt.value();
@@ -231,6 +170,7 @@ namespace Parse {
                         return ParseIfStmt(Context, Token);
                     case Lex::Keyword::Else:
                         // return this->parseExpressionAndEnd();
+                        __builtin_unreachable();
                     case Lex::Keyword::Return: {
                         const auto ResultOpt = ParseReturnStmt(Context, Token);
                         if (!ResultOpt.has_value()) {
@@ -260,7 +200,8 @@ namespace Parse {
                                     "declaration"
                             });
 
-                            return nullptr;
+                            return std::unexpected(
+                                ParseError::FailedCouldNotProceed);
                         }
 
                         const auto NameTok = NameTokOpt.value();
@@ -290,7 +231,8 @@ namespace Parse {
                                     "declaration"
                             });
 
-                            return nullptr;
+                            return std::unexpected(
+                                ParseError::FailedCouldNotProceed);
                         }
 
                         const auto NameTok = NameTokOpt.value();
@@ -322,7 +264,8 @@ namespace Parse {
                                     "declaration"
                             });
 
-                            return nullptr;
+                            return std::unexpected(
+                                ParseError::FailedCouldNotProceed);
                         }
 
                         const auto NameTok = NameTokOpt.value();
@@ -345,7 +288,8 @@ namespace Parse {
                             .Message = "Unexpected 'and' keyword"
                         });
 
-                        return nullptr;
+                        return std::unexpected(
+                            ParseError::FailedCouldNotProceed);
                     case Lex::Keyword::Or:
                         Diag.consume({
                             .Level = DiagnosticLevel::Error,
@@ -353,7 +297,8 @@ namespace Parse {
                             .Message = "Unexpected 'or' keyword"
                         });
 
-                        return nullptr;
+                        return std::unexpected(
+                            ParseError::FailedCouldNotProceed);
                     case Lex::Keyword::In:
                         Diag.consume({
                             .Level = DiagnosticLevel::Error,
@@ -361,7 +306,8 @@ namespace Parse {
                             .Message = "Unexpected 'in' keyword"
                         });
 
-                        return nullptr;
+                        return std::unexpected(
+                            ParseError::FailedCouldNotProceed);
                     case Lex::Keyword::While:
                         __builtin_unreachable();
                     case Lex::Keyword::Default:
@@ -371,7 +317,8 @@ namespace Parse {
                             .Message = "Unexpected 'default' keyword"
                         });
 
-                        return nullptr;
+                        return std::unexpected(
+                            ParseError::FailedCouldNotProceed);
                     case Lex::Keyword::As:
                         Diag.consume({
                             .Level = DiagnosticLevel::Error,
@@ -379,22 +326,26 @@ namespace Parse {
                             .Message = "Unexpected 'as' keyword"
                         });
 
-                        return nullptr;
+                        return std::unexpected(
+                            ParseError::FailedCouldNotProceed);
                 }
 
                 [[fallthrough]];
             }
             case Lex::TokenKind::OpenCurlyBrace:
                 return ParseCompoundStmt(Context, Token);
-            default:
+            default: {
                 TokenStream.goBack();
-                if (const auto Expr = ParseExpressionInPlaceOfStmt(Context)) {
-                    return Expr;
+
+                const auto ExprOpt = ParseExpressionInPlaceOfStmt(Context);
+                if (!ExprOpt.has_value()) {
+                    return std::unexpected(ExprOpt.error());
                 }
 
-                return nullptr;
+                return ExprOpt.value();
+            }
         }
 
-        return nullptr;
+        __builtin_unreachable();
     }
 }

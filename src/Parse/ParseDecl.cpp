@@ -20,8 +20,6 @@
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseStmt.h"
 
-#include "llvm/Support/Casting.h"
-
 namespace Parse {
     [[nodiscard]] static bool
     VerifyDeclName(ParseContext &Context,
@@ -62,7 +60,7 @@ namespace Parse {
     [[nodiscard]] static auto
     ParseTypeAnnotationIfFound(ParseContext &Context,
                                const Lex::TokenKind EndToken) noexcept
-        -> AST::Expr *
+        -> std::expected<AST::Expr *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -81,7 +79,7 @@ namespace Parse {
                 .Message = "Expected a type annotation expression after ':'"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         return ParseExpression(Context);
@@ -89,7 +87,8 @@ namespace Parse {
 
     [[nodiscard]] static auto
     ParseFieldDecl(ParseContext &Context,
-                   const bool AllowOptionalFields) noexcept -> AST::FieldDecl *
+                   const bool AllowOptionalFields) noexcept
+        -> std::expected<AST::FieldDecl *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -106,7 +105,7 @@ namespace Parse {
                                 TokenString)
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto NameTokenOpt = TokenStream.consume();
@@ -117,12 +116,12 @@ namespace Parse {
                 .Message = "Expected a name for field declaration"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto NameToken = NameTokenOpt.value();
         if (!VerifyDeclName(Context, NameToken, "field")) {
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         auto TypeExpr = static_cast<AST::Expr *>(nullptr);
@@ -131,9 +130,16 @@ namespace Parse {
 
         if (IsOptional) {
             if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
-                TypeExpr =
+                const auto TypeExprOpt =
                     ParseTypeAnnotationIfFound(Context,
                                                Lex::TokenKind::CloseCurlyBrace);
+
+                if (!TypeExprOpt.has_value()) {
+                    // FIXME: We should skip to the next field, not the end of
+                    // the struct.
+
+                    return std::unexpected(TypeExprOpt.error());
+                }
 
                 if (TypeExpr == nullptr) {
                     Diag.consume({
@@ -142,13 +148,20 @@ namespace Parse {
                         .Message = "All fields must have a type annotation"
                     });
 
-                    return nullptr;
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
                 }
             }
         } else {
-            TypeExpr =
+            const auto TypeExprOpt =
                 ParseTypeAnnotationIfFound(Context,
                                            Lex::TokenKind::CloseCurlyBrace);
+
+            if (!TypeExprOpt.has_value()) {
+                // FIXME: We should skip to the next field, not the end of
+                // the struct.
+
+                return std::unexpected(TypeExprOpt.error());
+            }
 
             if (TypeExpr == nullptr) {
                 Diag.consume({
@@ -157,15 +170,15 @@ namespace Parse {
                     .Message = "All fields must have a type annotation"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
         }
 
         auto InitExpr = static_cast<AST::Expr *>(nullptr);
         if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
-            InitExpr = ParseExpression(Context);
-            if (InitExpr == nullptr) {
-                return nullptr;
+            const auto InitExprOpt = ParseExpression(Context);
+            if (!InitExprOpt.has_value()) {
+                return std::unexpected(InitExprOpt.error());
             }
         }
 
@@ -178,7 +191,7 @@ namespace Parse {
                     .Message = "Optional fields are not allowed"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             return
@@ -193,13 +206,14 @@ namespace Parse {
     ParseFieldList(ParseContext &Context,
                    const SourceLocation DeclLoc,
                    std::vector<AST::Stmt *> &FieldList,
-                   const bool AllowOptionalFields) noexcept -> bool
+                   const bool AllowOptionalFields) noexcept
+        -> ParseError
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
-            return true;
+            return ParseError::None;
         }
 
         while (true) {
@@ -220,7 +234,7 @@ namespace Parse {
                                 Lex::TokenKind::Comma);
 
                 if (!IfExprOpt.has_value()) {
-                    return false;
+                    return IfExprOpt.error();
                 }
 
                 Stmt = IfExprOpt.value();
@@ -232,15 +246,17 @@ namespace Parse {
                     CommaLocOpt = CommaTokenOpt.value().Loc;
                 }
             } else {
-                Stmt = ParseFieldDecl(Context, AllowOptionalFields);
-                if (Stmt == nullptr) {
+                const auto DeclOpt =
+                    ParseFieldDecl(Context, AllowOptionalFields);
+
+                if (!DeclOpt.has_value()) {
                     Diag.consume({
                         .Level = DiagnosticLevel::Error,
                         .Location = DeclLoc,
                         .Message = "Failed to parse field declaration"
                     });
 
-                    return false;
+                    return DeclOpt.error();
                 }
             }
 
@@ -274,16 +290,16 @@ namespace Parse {
                 .Message = "Expected a ',' after field declaration"
             });
 
-            return false;
+            return ParseError::FailedCouldNotProceed;
         }
 
-        return true;
+        return ParseError::None;
     }
 
     [[nodiscard]] static auto
     ParseInitExpressionIfFound(ParseContext &Context,
                                const Lex::TokenKind EndToken) noexcept
-        -> AST::Expr *
+        -> std::expected<AST::Expr *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -300,7 +316,7 @@ namespace Parse {
                 .Message = "Expected a initial value expression after '='"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         return ParseExpression(Context);
@@ -363,11 +379,22 @@ namespace Parse {
             }
 
             const auto Name = TokenStream.tokenContent(NameToken);
-            const auto TypeExpr =
+            const auto TypeExprOpt =
                 ParseTypeAnnotationIfFound(Context, Lex::TokenKind::Comma);
 
-            const auto InitExpr =
+            if (!TypeExprOpt.has_value()) {
+                return std::unexpected(TypeExprOpt.error());
+            }
+
+            const auto InitExprOpt =
                 ParseInitExpressionIfFound(Context, Lex::TokenKind::Comma);
+
+            if (!InitExprOpt.has_value()) {
+                return std::unexpected(InitExprOpt.error());
+            }
+
+            const auto TypeExpr = TypeExprOpt.value();
+            const auto InitExpr = InitExprOpt.value();
 
             List.emplace_back(
                 new AST::ParamVarDecl(Name, NameToken.Loc, TypeExpr, InitExpr));
@@ -401,7 +428,7 @@ namespace Parse {
 
     [[nodiscard]] static
     auto ParseFunctionTypeReturnTypeIfFound(ParseContext &Context) noexcept
-        -> std::optional<AST::Expr *>
+        -> std::expected<AST::Expr *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -423,7 +450,7 @@ namespace Parse {
                 .Message = "Expected a return type expression after '->'"
             });
 
-            return std::nullopt;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         return ParseExpression(Context);
@@ -447,7 +474,7 @@ namespace Parse {
                            "function declaration"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         // L-value functions (statements) must have names, but r-value function
@@ -458,7 +485,7 @@ namespace Parse {
 
         if (NameOrParenToken.Kind != Lex::TokenKind::OpenParen) {
             if (!VerifyDeclName(Context, NameOrParenToken, "function")) {
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             if (!TokenStream.peekIs(Lex::TokenKind::OpenParen)) {
@@ -523,30 +550,35 @@ namespace Parse {
                                 CurlyTokenContent)
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        const auto Body = ParseCompoundStmt(Context, CurlyToken);
-        if (Body == nullptr) {
-            return nullptr;
+        const auto BodyOpt = ParseCompoundStmt(Context, CurlyToken);
+        if (!BodyOpt.has_value()) {
+            return std::unexpected(BodyOpt.error());;
         }
 
         auto &ParamList = ParamListOpt.value();
         return new AST::FunctionDecl(KeywordToken.Loc, std::move(ParamList),
-                                     ReturnTypeOpt.value(), Body);
+                                     ReturnTypeOpt.value(), BodyOpt.value());
     }
 
     [[nodiscard]] static auto
     ParseArrowFunctionLikeDecl(ParseContext &Context,
                                AST::Expr *&ReturnTypeOut) noexcept
-        -> AST::Stmt *
+        -> std::expected<AST::Stmt *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        ReturnTypeOut =
+        const auto ReturnTypeOpt =
             ParseTypeAnnotationIfFound(Context, Lex::TokenKind::FatArrow);
 
+        if (!ReturnTypeOpt.has_value()) {
+            return std::unexpected(ReturnTypeOpt.error());
+        }
+
+        ReturnTypeOut = ReturnTypeOpt.value();
         if (!TokenStream.consumeIfIs(Lex::TokenKind::FatArrow)) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
@@ -567,7 +599,13 @@ namespace Parse {
         auto Body = static_cast<AST::Stmt *>(nullptr);
         if (TokenStream.peekIs(Lex::TokenKind::OpenCurlyBrace)) {
             const auto CurlyToken = TokenStream.consume().value();
-            Body = ParseCompoundStmt(Context, CurlyToken);
+            const auto Result = ParseCompoundStmt(Context, CurlyToken);
+
+            if (!Result.has_value()) {
+                return std::unexpected(Result.error());
+            }
+
+            Body = Result.value();
         } else if (
             const auto RetTokenOpt =
                 TokenStream.consumeIfIsKeyword(Lex::Keyword::Return))
@@ -575,11 +613,13 @@ namespace Parse {
             const auto RetToken = RetTokenOpt.value();
             Body = ParseReturnStmt(Context, RetToken).value();
         } else {
-            Body = ParseExpression(Context);
-            if (Body != nullptr) {
-                const auto BodyExpr = llvm::cast<AST::Expr>(Body);
-                Body = new AST::ReturnStmt(SourceLocation::invalid(), BodyExpr);
+            const auto Result = ParseExpression(Context);
+            if (!Result.has_value()) {
+                return std::unexpected(Result.error());
             }
+
+            Body =
+                new AST::ReturnStmt(SourceLocation::invalid(), Result.value());
         }
 
         return Body;
@@ -597,13 +637,16 @@ namespace Parse {
         }
 
         auto ReturnTypeExpr = static_cast<AST::Expr *>(nullptr);
-        const auto Body = ParseArrowFunctionLikeDecl(Context, ReturnTypeExpr);
+        const auto BodyOpt =
+            ParseArrowFunctionLikeDecl(Context, ReturnTypeExpr);
 
-        if (Body == nullptr) {
-            return nullptr;
+        if (!BodyOpt.has_value()) {
+            return std::unexpected(BodyOpt.error());
         }
 
         auto &ParamList = ParamListOpt.value();
+        auto Body = BodyOpt.value();
+
         return new AST::ClosureDecl(ParenToken.Loc, std::move(CaptureList),
                                     std::move(ParamList), ReturnTypeExpr, Body);
     }
@@ -620,26 +663,31 @@ namespace Parse {
 
         auto &TokenStream = Context.TokenStream;
         if (TokenStream.consumeIfIs(Lex::TokenKind::ThinArrow)) {
-            const auto ReturnTypeExpr = ParseExpression(Context);
-            if (ReturnTypeExpr == nullptr) {
-                return nullptr;
+            const auto ReturnTypeExprOpt = ParseExpression(Context);
+            if (!ReturnTypeExprOpt.has_value()) {
+                return std::unexpected(ReturnTypeExprOpt.error());
             }
 
             auto &ParamList = ParamListOpt.value();
+            const auto ReturnTypeExpr = ReturnTypeExprOpt.value();
+
             return new AST::FunctionTypeExpr(ParenToken.Loc,
                                              std::move(ParamList),
                                              ReturnTypeExpr);
         }
 
         auto ReturnTypeExpr = static_cast<AST::Expr *>(nullptr);
-        const auto Body = ParseArrowFunctionLikeDecl(Context, ReturnTypeExpr);
+        const auto BodyOpt =
+            ParseArrowFunctionLikeDecl(Context, ReturnTypeExpr);
 
-        if (Body == nullptr) {
-            return nullptr;
+        if (!BodyOpt.has_value()) {
+            return std::unexpected(BodyOpt.error());
         }
 
         // Function Decl.
         auto &ParamList = ParamListOpt.value();
+        const auto Body = BodyOpt.value();
+
         return new AST::FunctionDecl(ParenToken.Loc, std::move(ParamList),
                                      ReturnTypeExpr, Body);
     }
@@ -656,10 +704,12 @@ namespace Parse {
 
         auto FieldList = std::vector<AST::Stmt *>();
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
-            if (!ParseFieldList(Context, ShapeKeywordToken.Loc, FieldList,
-                                /*AllowOptionalFields=*/true))
+            if (const auto Error =
+                    ParseFieldList(Context, ShapeKeywordToken.Loc, FieldList,
+                                   /*AllowOptionalFields=*/true);
+                Error != ParseError::None)
             {
-                return nullptr;
+                return std::unexpected(Error);
             }
 
             NameTokenOptOut = std::nullopt;
@@ -675,7 +725,7 @@ namespace Parse {
                 .Message = "Expected a name for struct declaration"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto NameToken = NameTokenOpt.value();
@@ -689,17 +739,19 @@ namespace Parse {
                     .Message = "Expected '{' after shape declaration"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
         }
 
         NameTokenOptOut = NameToken;
         TokenStream.consume();
 
-        if (!ParseFieldList(Context, NameToken.Loc, FieldList,
-                            /*AllowOptionalFields=*/true))
+        if (const auto Error =
+                ParseFieldList(Context, NameToken.Loc, FieldList,
+                               /*AllowOptionalFields=*/true);
+            Error != ParseError::None)
         {
-            return nullptr;
+            return std::unexpected(Error);
         }
 
         return new AST::ShapeDecl(NameToken.Loc, std::move(FieldList));
@@ -720,10 +772,12 @@ namespace Parse {
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             const auto StructKeywordToken = StructKeywordTokenOpt.value();
-            if (!ParseFieldList(Context, StructKeywordToken.Loc, FieldList,
-                                /*AllowOptionalFields=*/false))
+            if (const auto Error =
+                    ParseFieldList(Context, StructKeywordToken.Loc, FieldList,
+                                   /*AllowOptionalFields=*/false);
+                Error != ParseError::None)
             {
-                return nullptr;
+                return std::unexpected(Error);
             }
 
             NameTokenOptOut = std::nullopt;
@@ -739,7 +793,7 @@ namespace Parse {
                 .Message = "Expected a name for struct declaration"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto NameToken = NameTokenOpt.value();
@@ -753,17 +807,19 @@ namespace Parse {
                     .Message = "Expected '{' after struct declaration"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
         }
 
         NameTokenOptOut = NameToken;
         TokenStream.consume();
 
-        if (!ParseFieldList(Context, NameToken.Loc, FieldList,
-                            /*AllowOptionalFields=*/false))
+        if (const auto Error =
+                ParseFieldList(Context, NameToken.Loc, FieldList,
+                               /*AllowOptionalFields=*/false);
+            Error != ParseError::None)
         {
-            return nullptr;
+            return std::unexpected(Error);
         }
 
         return new AST::StructDecl(StructKeywordToken.Loc,
@@ -785,10 +841,12 @@ namespace Parse {
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             const auto UnionKeywordToken = UnionKeywordTokenOpt.value();
-            if (!ParseFieldList(Context, UnionKeywordToken.Loc, FieldList,
-                                /*AllowOptionalFields=*/false))
+            if (const auto Error =
+                    ParseFieldList(Context, UnionKeywordToken.Loc, FieldList,
+                                   /*AllowOptionalFields=*/false);
+                Error != ParseError::None)
             {
-                return nullptr;
+                return std::unexpected(Error);
             }
 
             NameTokenOptOut = std::nullopt;
@@ -804,7 +862,7 @@ namespace Parse {
                 .Message = "Expected a name for struct declaration"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto NameToken = NameTokenOpt.value();
@@ -818,17 +876,19 @@ namespace Parse {
                     .Message = "Expected '{' after struct declaration"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
         }
 
         NameTokenOptOut = NameToken;
         TokenStream.consume();
 
-        if (!ParseFieldList(Context, NameToken.Loc, FieldList,
-                            /*AllowOptionalFields=*/false))
+        if (const auto Error =
+                ParseFieldList(Context, NameToken.Loc, FieldList,
+                               /*AllowOptionalFields=*/false);
+            Error != ParseError::None)
         {
-            return nullptr;
+            return std::unexpected(Error);
         }
 
         return new AST::UnionDecl(UnionKeywordToken.Loc,
@@ -848,7 +908,8 @@ namespace Parse {
     ParseRightSideOfArrayDestructureItemColon(
         ParseContext &Context,
         AST::Expr *const IndexExpr,
-        const SourceLocation IndexLoc) noexcept -> AST::ArrayDestructureItem *
+        const SourceLocation IndexLoc) noexcept
+            -> std::expected<AST::ArrayDestructureItem *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -862,7 +923,7 @@ namespace Parse {
                 ParseArrayDestructureItemList(Context);
 
             if (!ArrayDestructureItemListOpt.has_value()) {
-                return nullptr;
+                return std::unexpected(ArrayDestructureItemListOpt.error());
             }
 
             auto &ArrayDestructureItemList =
@@ -889,7 +950,7 @@ namespace Parse {
                 ParseObjectDestructureFieldList(Context);
 
             if (!ObjectDestructureListOpt.has_value()) {
-                return nullptr;
+                return std::unexpected(ObjectDestructureListOpt.error());
             }
 
             auto &ObjectDestructureList = ObjectDestructureListOpt.value();
@@ -917,14 +978,14 @@ namespace Parse {
                            "destructuring"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto NameToken = NameTokenOpt.value();
         const auto Name = TokenStream.tokenContent(NameToken);
 
         if (!VerifyDeclName(Context, NameToken, "variable")) {
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         if (IndexExpr == nullptr) {
@@ -948,7 +1009,7 @@ namespace Parse {
 
     [[nodiscard]] static auto
     ParseSingleArrayDestructureItem(ParseContext &Context) noexcept
-        -> AST::ArrayDestructureItem *
+        -> std::expected<AST::ArrayDestructureItem *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -987,7 +1048,7 @@ namespace Parse {
             auto ItemListOpt = ParseArrayDestructureItemList(Context);
 
             if (!ItemListOpt.has_value()) {
-                return nullptr;
+                return std::unexpected(ItemListOpt.error());
             }
 
             auto &ItemList = ItemListOpt.value();
@@ -1002,7 +1063,7 @@ namespace Parse {
             auto ItemListOpt = ParseObjectDestructureFieldList(Context);
 
             if (!ItemListOpt.has_value()) {
-                return nullptr;
+                return std::unexpected(ItemListOpt.error());
             }
 
             auto &ItemList = ItemListOpt.value();
@@ -1023,7 +1084,7 @@ namespace Parse {
                     .Message = "Expected a name expression for spread operator"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             const auto NameToken = NameTokenOpt.value();
@@ -1034,11 +1095,11 @@ namespace Parse {
                     .Message = "Spread operator missing a name"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             if (!VerifyDeclName(Context, NameToken, "variable")) {
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             const auto Name = TokenStream.tokenContent(NameToken);
@@ -1052,13 +1113,14 @@ namespace Parse {
         }
 
         const auto IndexLoc = TokenStream.getCurrOrPrevLoc();
-        const auto IndexExpr = ParseExpression(Context);
+        const auto IndexExprOpt = ParseExpression(Context);
 
-        if (IndexExpr == nullptr) {
-            return nullptr;
+        if (IndexExprOpt.has_value()) {
+            return std::unexpected(IndexExprOpt.error());
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::Colon)) {
+            const auto IndexExpr = IndexExprOpt.value();
             const auto DestructureItem =
                 ParseRightSideOfArrayDestructureItemColon(Context, IndexExpr,
                                                           IndexLoc);
@@ -1067,7 +1129,7 @@ namespace Parse {
         }
 
         // FIXME: We're missing a colon here, recover here.
-        return nullptr;
+        return std::unexpected(ParseError::FailedCouldNotProceed);
     }
 
     [[nodiscard]]
@@ -1079,27 +1141,29 @@ namespace Parse {
 
         auto DestructureItemList = std::vector<AST::ArrayDestructureItem *>();
         do {
-            const auto DestructureItem =
+            const auto DestructureItemOpt =
                 ParseSingleArrayDestructureItem(Context);
 
-            if (DestructureItem != nullptr) {
-                DestructureItemList.emplace_back(DestructureItem);
-                if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket))
-                {
-                    break;
-                }
-
-                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                    continue;
-                }
-
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
-                    .Message = "Expected ',' or ']' after array-like "
-                               "destructuring item"
-                });
+            if (!DestructureItemOpt.has_value()) {
+                return std::unexpected(DestructureItemOpt.error());
             }
+
+            DestructureItemList.emplace_back(DestructureItemOpt.value());
+            if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket))
+            {
+                break;
+            }
+
+            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                continue;
+            }
+
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected ',' or ']' after array-like "
+                            "destructuring item"
+            });
 
             const auto ProceedResult =
                 ProceedToAndConsumeCommaOrEnd(
@@ -1171,7 +1235,7 @@ namespace Parse {
 
     [[nodiscard]] static
     auto ParseSingleObjectDestructureField(ParseContext &Context) noexcept
-        -> AST::ObjectDestructureField *
+        -> std::expected<AST::ObjectDestructureField *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -1187,7 +1251,7 @@ namespace Parse {
                 .Message = "Expected a name for object-like destructuring"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto KeyToken = KeyTokenOpt.value();
@@ -1200,12 +1264,12 @@ namespace Parse {
                     .Message = "Expected a variable name to use spread operator"
                 });
 
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             const auto NameToken = NameTokenOpt.value();
             if (!VerifyDeclName(Context, NameToken, "variable")) {
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             const auto Name = TokenStream.tokenContent(NameToken);
@@ -1224,7 +1288,7 @@ namespace Parse {
                 .Message = "Expected a name for object-like destructuring"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto KeyLoc = KeyToken.Loc;
@@ -1262,7 +1326,7 @@ namespace Parse {
 
             if (!ArrayDestructureItemListOpt.has_value()) {
                 // FIXME: Properly recover here.
-                return nullptr;
+                return std::unexpected(ArrayDestructureItemListOpt.error());
             }
 
             auto &ArrayDestructureItemList =
@@ -1279,7 +1343,7 @@ namespace Parse {
 
             if (!ObjectDestructureFieldListOpt.has_value()) {
                 // FIXME: Properly recover here.
-                return nullptr;
+                return std::unexpected(ObjectDestructureFieldListOpt.error());
             }
 
             auto &ObjectDestructureFieldList =
@@ -1298,7 +1362,7 @@ namespace Parse {
                 .Message = "Expected a name for object-like destructuring"
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         NameToken = NameTokenOpt.value();
@@ -1312,7 +1376,7 @@ namespace Parse {
                                 TokenStream.tokenContent(NameToken))
             });
 
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto Name = TokenStream.tokenContent(NameToken);
@@ -1330,18 +1394,20 @@ namespace Parse {
 
         auto DestructureItemList = std::vector<AST::ObjectDestructureField *>();
         do {
-            const auto DestructureItem =
+            const auto DestructureItemOpt =
                 ParseSingleObjectDestructureField(Context);
 
-            if (DestructureItem != nullptr) {
-                DestructureItemList.emplace_back(DestructureItem);
-                if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
-                    break;
-                }
+            if (!DestructureItemOpt.has_value()) {
+                return std::unexpected(DestructureItemOpt.error());
+            }
 
-                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                    continue;
-                }
+            DestructureItemList.emplace_back(DestructureItemOpt.value());
+            if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
+                break;
+            }
+
+            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                continue;
             }
 
             const auto ProceedResult =
@@ -1424,7 +1490,7 @@ namespace Parse {
             }
 
             if (!VerifyDeclName(Context, NameToken, "variable")) {
-                return nullptr;
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             DeclLoc = NameTokenOpt.value().Loc;
@@ -1439,30 +1505,14 @@ namespace Parse {
             DeclLoc = TokenStream.getCurrOrPrevLoc();
         }
 
-        const auto TypeExpr =
+        const auto TypeExprOpt =
             ParseTypeAnnotationIfFound(Context, Lex::TokenKind::Semicolon);
 
-        if (!TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Variable declarations must have an initial value"
-            });
-
-            return nullptr;
+        if (!TypeExprOpt.has_value()) {
+            return std::unexpected(TypeExprOpt.error());
         }
 
-        const auto InitExpr = ParseExpression(Context);
-        if (!ExpectSemicolon(Context)) {
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Expected ';' after variable declaration"
-            });
-
-            return nullptr;
-        }
-
+        const auto TypeExpr = TypeExprOpt.value();
         const auto NameLoc =
             NameTokenOpt.has_value() ? NameTokenOpt.value().Loc : DeclLoc;
         const auto Name =
@@ -1470,6 +1520,30 @@ namespace Parse {
                 TokenStream.tokenContent(NameTokenOpt.value()) :
                 std::string_view();
 
-        return new AST::VarDecl(Name, NameLoc, Qualifiers, TypeExpr, InitExpr);
+        if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
+            const auto InitExprOpt = ParseExpression(Context);
+            if (!ExpectSemicolon(Context)) {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Message = "Expected ';' after variable declaration"
+                });
+
+                // Error-out but otherwise ignore missing semicolons
+            }
+
+            const auto InitExpr = InitExprOpt.value();
+            return new AST::VarDecl(Name, NameLoc, Qualifiers, TypeExpr,
+                                    InitExpr);
+        }
+
+        Diag.consume({
+            .Level = DiagnosticLevel::Error,
+            .Location = TokenStream.getCurrOrPrevLoc(),
+            .Message = "Variable declarations must have an initial value"
+        });
+
+        return new AST::VarDecl(Name, NameLoc, Qualifiers, TypeExpr,
+                                /*InitExpr=*/nullptr);
     }
 }

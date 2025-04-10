@@ -14,6 +14,14 @@
 
 namespace Parse {
     [[nodiscard]] auto
+    ParseIfExpr(
+        ParseContext &Context,
+        const Lex::Token IfToken,
+        auto &&Parser,
+        std::optional<Lex::TokenKind> SeparatorOpt) noexcept
+            -> std::expected<AST::IfExpr *, ParseError>;
+
+    [[nodiscard]] auto
     ParseIfElseExprCompoundStmt(
         ParseContext &Context,
         const Lex::Token CurlyToken,
@@ -32,8 +40,23 @@ namespace Parse {
 
         // Parse the first statement in the compound statement
         while (true) {
-            const auto Stmt = Parser(Context);
-            if (Stmt == nullptr) {
+            if (const auto IfTokenOpt =
+                    TokenStream.consumeIfIsKeyword(Lex::Keyword::If))
+            {
+                const auto IfToken = IfTokenOpt.value();
+                const auto IfExprOpt =
+                    ParseIfExpr(Context, IfToken, Parser, SeparatorOpt);
+
+                if (!IfExprOpt.has_value()) {
+                    return std::unexpected(IfExprOpt.error());
+                }
+
+                StmtList.emplace_back(IfExprOpt.value());
+                continue;
+            }
+
+            const auto StmtOpt = Parser(Context);
+            if (!StmtOpt.has_value()) {
                 return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
@@ -45,7 +68,7 @@ namespace Parse {
                 }
             }
 
-            StmtList.emplace_back(Stmt);
+            StmtList.emplace_back(StmtOpt.value());
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
                 if (SeparatorLoc.has_value()) {
                     const auto Separator = SeparatorOpt.value();
@@ -98,14 +121,6 @@ namespace Parse {
         return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
     }
 
-    [[nodiscard]] auto
-    ParseIfExpr(
-        ParseContext &Context,
-        const Lex::Token IfToken,
-        auto &&Parser,
-        std::optional<Lex::TokenKind> SeparatorOpt) noexcept
-            -> std::expected<AST::IfExpr *, ParseError>;
-
     auto
     ParseElseExpr(ParseContext &Context,
                   const Lex::Token IfToken,
@@ -119,7 +134,8 @@ namespace Parse {
                 TokenStream.consumeIfIsKeyword(Lex::Keyword::If))
         {
             const auto IfToken = IfTokenOpt.value();
-            return ParseIfExpr(Context, IfToken, Parser);
+            return ParseIfExpr(Context, IfToken, Parser,
+                               /*SeparatorOpt=*/std::nullopt);
         }
 
         if (const auto CurlyTokenOpt =
@@ -130,17 +146,18 @@ namespace Parse {
 
             const auto CurlyToken = CurlyTokenOpt.value();
             const auto Result =
-                ParseIfElseExprCompoundStmt(Context, CurlyToken,
-                                            SeparatorOpt, Parser,
-                                            LastSeparatorLoc);
+                ParseIfElseExprCompoundStmt(Context, CurlyToken, SeparatorOpt,
+                                            Parser, LastSeparatorLoc);
+
             if (!Result.has_value()) {
                 return std::unexpected(Result.error());
             }
 
             if (LastSeparatorLoc.has_value()) {
                 auto &Diag = Context.Diag;
-                const auto Lexeme =
-                    Lex::TokenKindGetLexeme(SeparatorOpt.value()).value();
+
+                const auto Separator = SeparatorOpt.value();
+                const auto Lexeme = Lex::TokenKindGetLexeme(Separator).value();
 
                 Diag.consume({
                     .Level = DiagnosticLevel::Warning,
@@ -182,9 +199,9 @@ namespace Parse {
             }
         }
 
-        auto Condition = ParseExpression(Context);
-        if (Condition == nullptr) {
-            return std::unexpected(ParseError::FailedCouldNotProceed);
+        auto ConditionOpt = ParseExpression(Context);
+        if (!ConditionOpt.has_value()) {
+            return std::unexpected(ConditionOpt.error());
         }
 
         if (Context.Options.RequireParensOnIfExpr) {
@@ -195,7 +212,12 @@ namespace Parse {
                     .Message = "Expected ')' after 'if' condition"
                 });
 
-                return std::unexpected(ParseError::FailedCouldNotProceed);
+                const auto ProceedResult =
+                    TokenStream.proceedToAndConsume(Lex::TokenKind::CloseParen);
+
+                if (!ProceedResult.has_value()) {
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
+                }
             }
         }
 
@@ -230,10 +252,25 @@ namespace Parse {
 
             Then = Result.value();
         } else {
-            Then = Parser(Context);
-            if (Then == nullptr) {
+            const auto Result = Parser(Context);
+            if (!Result.has_value()) {
                 return std::unexpected(ParseError::FailedCouldNotProceed);
             }
+
+            Then = Result.value();
+        }
+
+        if (const auto IfTokenOpt =
+                TokenStream.consumeIfIsKeyword(Lex::Keyword::If))
+        {
+            const auto IfExprOpt =
+                ParseIfExpr(Context, IfTokenOpt.value(), Parser, SeparatorOpt);
+
+            if (!IfExprOpt.has_value()) {
+                return std::unexpected(IfExprOpt.error());
+            }
+
+            return IfExprOpt.value();
         }
 
         auto Else = static_cast<AST::Stmt *>(nullptr);
@@ -278,13 +315,16 @@ namespace Parse {
 
                 Else = Result.value();
             } else {
-                Else = Parser(Context);
-                if (Else == nullptr) {
+                const auto Result = Parser(Context);
+                if (!Result.has_value()) {
                     return std::unexpected(ParseError::FailedCouldNotProceed);
                 }
+
+                Else = Result.value();
             }
         }
 
+        const auto Condition = ConditionOpt.value();
         return new AST::IfExpr(IfToken.Loc, *Condition, Then, Else);
     }
 }
