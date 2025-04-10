@@ -531,27 +531,27 @@ PrintAST(Backend::LLVM::Handler &Handler,
             return;
         }
         case AST::NodeKind::ClosureDecl: {
-            const auto LambdaDecl = llvm::cast<AST::ClosureDecl>(Stmt);
-            std::print("LambdaDecl\n");
+            const auto ClosureDeck = llvm::cast<AST::ClosureDecl>(Stmt);
+            std::print("ClosureDecl\n");
 
             PrintDepth(Depth + 1);
             std::print("CaptureList\n");
 
-            for (const auto Capture : LambdaDecl->getCaptureList()) {
+            for (const auto Capture : ClosureDeck->getCaptureList()) {
                 PrintAST(Handler, Capture, Depth + 2);
             }
 
             PrintDepth(Depth + 1);
             std::print("Arguments\n");
 
-            for (const auto Param : LambdaDecl->getParamList()) {
+            for (const auto Param : ClosureDeck->getParamList()) {
                 PrintAST(Handler, Param, Depth + 2);
             }
 
             PrintDepth(Depth + 1);
             std::print("Body\n");
 
-            PrintAST(Handler, LambdaDecl->getBody(), Depth + 2);
+            PrintAST(Handler, ClosureDeck->getBody(), Depth + 2);
             return;
         }
         case AST::NodeKind::CommaSepStmtList: {
@@ -628,6 +628,12 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             return;
         }
+        case AST::NodeKind::CaptureAllByRefExpr:
+            std::print("CaptureAllByRefExpr\n");
+            return;
+        case AST::NodeKind::CaptureAllByValueExpr:
+            std::print("CaptureAllByValueExpr\n");
+            return;
         case AST::NodeKind::ArrayType: {
             const auto ArrayTypeExpr = llvm::cast<AST::ArrayTypeExpr>(Stmt);
 

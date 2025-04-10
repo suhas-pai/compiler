@@ -66,6 +66,8 @@ namespace Parse {
                     .Location = TokenStream.getCurrOrPrevLoc(),
                     .Message = "Expected ']'",
                 });
+            } else {
+                return std::unexpected(ExprOpt.error());
             }
 
             const auto ProceedResult =
@@ -92,10 +94,10 @@ namespace Parse {
         return DetailList;
     }
 
-    [[nodiscard]] static auto IsLikelyParamList(ParseContext &Context) noexcept
+    [[nodiscard]]
+    static auto IsLikelyParamList(Lex::TokenStream &TokenStream) noexcept
         -> std::optional<bool>
     {
-        auto &TokenStream = Context.TokenStream;
         if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
             if (TokenStream.peekIs(Lex::TokenKind::ThinArrow) ||
                 TokenStream.peekIs(Lex::TokenKind::FatArrow) ||
@@ -166,6 +168,39 @@ namespace Parse {
                                const Lex::Token BracketToken) noexcept
         -> std::expected<AST::Expr *, ParseError>
     {
+        auto &TokenStream = Context.TokenStream;
+        const auto IsClosureCaptureList =
+            TokenStream.inWindow([](Lex::TokenStream &TokenStream) noexcept {
+                const auto TokenOpt =
+                    TokenStream.findNextAndConsume(
+                        Lex::TokenKind::RightSquareBracket);
+
+                if (!TokenOpt.has_value()) {
+                    return false;
+                }
+
+                const auto NextTokenOpt = TokenStream.peek();
+                if (!NextTokenOpt.has_value()) {
+                    return false;
+                }
+
+                const auto NextToken = NextTokenOpt.value();
+                if (NextToken.Kind != Lex::TokenKind::OpenParen) {
+                    return false;
+                }
+
+                TokenStream.consume();
+                if (const auto Opt = IsLikelyParamList(TokenStream)) {
+                    return Opt.value();
+                }
+
+                return false;
+            });
+
+        if (IsClosureCaptureList) {
+            return ParseClosureDecl(Context, BracketToken);
+        }
+
         auto DetailListOpt = ParseArrayDetailList(Context, BracketToken);
         if (!DetailListOpt.has_value()) {
             return std::unexpected(DetailListOpt.error());
@@ -174,9 +209,7 @@ namespace Parse {
         // We have two possibilities for the kinds of expressions we have:
         //  (a) We have an array
         //  (b) We have an array-type
-        //  (c) We have a lambda expression
 
-        auto &TokenStream = Context.TokenStream;
         if (TokenStream.peekIs(Lex::TokenKind::Identifier) ||
             TokenStream.peekIs(Lex::TokenKind::Star) ||
             TokenStream.peekIs(Lex::TokenKind::QuestionMark))
@@ -193,28 +226,6 @@ namespace Parse {
 
             return new AST::ArrayTypeExpr(BracketToken.Loc,
                                           std::move(DetailList), Base, Quals);
-        }
-
-        if (TokenStream.peekIs(Lex::TokenKind::OpenParen)) {
-            // We have a lambda expression or an array-type
-            TokenStream.consume();
-            if (const auto IsParamListOpt = IsLikelyParamList(Context)) {
-                if (IsParamListOpt.value()) {
-                    // Assume this is a lambda expression.
-                    auto &CaptureList = DetailListOpt.value();
-                    return ParseClosureDecl(Context, BracketToken,
-                                            std::move(CaptureList));
-                }
-            } else {
-                // Empty parenthesis
-                Context.Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
-                    .Message = "Expected an expression inside parenthesis"
-                });
-
-                return std::unexpected(ParseError::FailedCouldNotProceed);
-            }
         }
 
         auto &DetailList = DetailListOpt.value();
@@ -602,7 +613,7 @@ done:
         // The two possibilities that indicate a non-paren expr are an empty
         // parenthesis, or a parenthesis with an identifier.
 
-        if (const auto IsParamListOpt = IsLikelyParamList(Context)) {
+        if (const auto IsParamListOpt = IsLikelyParamList(TokenStream)) {
             if (IsParamListOpt.value()) {
                 const auto FuncOpt =
                     ParseArrowFunctionDeclOrFunctionType(Context, ParenToken);

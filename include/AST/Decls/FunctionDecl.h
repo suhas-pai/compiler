@@ -23,6 +23,25 @@ namespace AST {
 
         Expr *ReturnTypeExpr;
         Stmt *Body;
+
+        explicit
+        FunctionDecl(const NodeKind ObjKind,
+                     const SourceLocation Loc,
+                     std::vector<ParamVarDecl *> &&ParamList,
+                     Expr *const ReturnTypeExpr,
+                     Stmt *const Body) noexcept
+        : Expr(ObjKind), ParamDeclList(std::move(ParamList)),
+          Loc(Loc), ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
+
+        explicit
+        FunctionDecl(const NodeKind ObjKind,
+                     const SourceLocation Loc,
+                     const std::span<ParamVarDecl *> ParamDeclList,
+                     Expr *const ReturnTypeExpr,
+                     Stmt *const Body) noexcept
+        : Expr(ObjKind),
+          ParamDeclList(ParamDeclList.begin(), ParamDeclList.end()), Loc(Loc),
+          ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
     public:
         explicit
         FunctionDecl(const SourceLocation Loc,

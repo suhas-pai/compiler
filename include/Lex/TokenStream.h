@@ -54,6 +54,11 @@ namespace Lex {
             return false;
         }
 
+        constexpr auto goToPosition(const uint32_t Position) noexcept {
+            assert(Position <= this->TokenBuffer.getTokenList().size());
+            this->Index = Position;
+        }
+
         [[nodiscard]] constexpr auto peek() const noexcept
             -> std::optional<Lex::Token>
         {

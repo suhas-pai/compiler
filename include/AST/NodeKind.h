@@ -46,6 +46,9 @@ namespace AST {
         CastExpr,
         DerefExpr,
 
+        CaptureAllByRefExpr,
+        CaptureAllByValueExpr,
+
         ArrayType,
         ClosureType,
         EnumType,

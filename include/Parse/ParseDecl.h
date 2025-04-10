@@ -19,8 +19,7 @@
 namespace Parse {
     auto
     ParseClosureDecl(ParseContext &Context,
-                     const Lex::Token ParenToken,
-                     std::vector<AST::Stmt *> &&CaptureList) noexcept
+                     const Lex::Token BracketToken) noexcept
         -> std::expected<AST::ClosureDecl *, ParseError>;
 
     [[nodiscard]] auto

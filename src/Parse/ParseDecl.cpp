@@ -14,6 +14,9 @@
 #include "AST/Types/FunctionType.h"
 #include "AST/NumberLiteral.h"
 
+#include "AST/CaptureAllByRefExpr.h"
+#include "AST/CaptureAllByValueExpr.h"
+
 #include "Parse/ParseDecl.h"
 #include "Parse/ParseExpr.h"
 #include "Parse/ParseIfExpr.h"
@@ -625,12 +628,128 @@ namespace Parse {
         return Body;
     }
 
+    [[nodiscard]] static auto
+    ParseClosureCaptureList(ParseContext &Context,
+                            const Lex::Token BracketToken) noexcept
+        -> std::expected<std::vector<AST::Stmt *>, ParseError>
+    {
+        auto &TokenStream = Context.TokenStream;
+        auto CaptureList = std::vector<AST::Stmt *>();
+
+        if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
+            return CaptureList;
+        }
+
+        auto &Diag = Context.Diag;
+        do {
+            if (TokenStream.consumeIfIs(Lex::TokenKind::Ampersand)) {
+                auto Pos = TokenStream.position() - 1;
+                auto Qualifiers = AST::Qualifiers();
+
+                ParseQualifiers(Context, Qualifiers);
+                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                    CaptureList.emplace_back(
+                        new AST::CaptureAllByRefExpr(BracketToken.Loc,
+                                                     std::move(Qualifiers)));
+                    continue;
+                }
+
+                if (TokenStream.consumeIfIs(
+                        Lex::TokenKind::RightSquareBracket))
+                {
+                    CaptureList.emplace_back(
+                        new AST::CaptureAllByRefExpr(BracketToken.Loc,
+                                                     std::move(Qualifiers)));
+                    break;
+                }
+
+                TokenStream.goToPosition(Pos);
+            }
+
+            if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
+                auto Pos = TokenStream.position() - 1;
+                auto Qualifiers = AST::Qualifiers();
+
+                ParseQualifiers(Context, Qualifiers);
+                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                    CaptureList.emplace_back(
+                        new AST::CaptureAllByValueExpr(BracketToken.Loc,
+                                                       std::move(Qualifiers)));
+                    continue;
+                }
+
+                if (TokenStream.consumeIfIs(
+                        Lex::TokenKind::RightSquareBracket))
+                {
+                    CaptureList.emplace_back(
+                        new AST::CaptureAllByValueExpr(BracketToken.Loc,
+                                                       std::move(Qualifiers)));
+                    break;
+                }
+
+                TokenStream.goToPosition(Pos);
+            }
+
+            const auto ExprOpt = ParseExpression(Context);
+            if (!ExprOpt.has_value()) {
+                return std::unexpected(ExprOpt.error());
+            }
+
+            CaptureList.emplace_back(ExprOpt.value());
+            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                continue;
+            }
+
+            if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
+                break;
+            }
+
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected ']'",
+            });
+
+            const auto ProceedResult =
+                ProceedToAndConsumeCommaOrEnd(
+                    Context, Lex::TokenKind::RightSquareBracket);
+
+            switch (ProceedResult) {
+                case ProceedResult::Failed:
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = BracketToken.Loc,
+                        .Message = "Expected ']'",
+                    });
+
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
+                case ProceedResult::Comma:
+                    continue;
+                case ProceedResult::EndToken:
+                    goto done;
+            }
+        } while (true);
+
+    done:
+        return CaptureList;
+    }
+
     auto
     ParseClosureDecl(ParseContext &Context,
-                     const Lex::Token ParenToken,
-                     std::vector<AST::Stmt *> &&CaptureList) noexcept
+                     const Lex::Token BracketToken) noexcept
         -> std::expected<AST::ClosureDecl *, ParseError>
     {
+        auto CaptureListOpt = ParseClosureCaptureList(Context, BracketToken);
+        if (!CaptureListOpt.has_value()) {
+            return std::unexpected(CaptureListOpt.error());
+        }
+
+        auto &TokenStream = Context.TokenStream;
+        auto ParenToken = TokenStream.consume().value();
+
+        assert(ParenToken.Kind == Lex::TokenKind::OpenParen &&
+               "Token should be '(' after closure capture-list");
+
         auto ParamListOpt = ParseFunctionParamList(Context, ParenToken);
         if (!ParamListOpt.has_value()) {
             return std::unexpected(ParamListOpt.error());
@@ -644,10 +763,11 @@ namespace Parse {
             return std::unexpected(BodyOpt.error());
         }
 
+        auto &CaptureList = CaptureListOpt.value();
         auto &ParamList = ParamListOpt.value();
-        auto Body = BodyOpt.value();
 
-        return new AST::ClosureDecl(ParenToken.Loc, std::move(CaptureList),
+        auto Body = BodyOpt.value();
+        return new AST::ClosureDecl(BracketToken.Loc, std::move(CaptureList),
                                     std::move(ParamList), ReturnTypeExpr, Body);
     }
 
@@ -1522,14 +1642,8 @@ namespace Parse {
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
             const auto InitExprOpt = ParseExpression(Context);
-            if (!ExpectSemicolon(Context)) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
-                    .Message = "Expected ';' after variable declaration"
-                });
-
-                // Error-out but otherwise ignore missing semicolons
+            if (!InitExprOpt.has_value()) {
+                return std::unexpected(InitExprOpt.error());
             }
 
             const auto InitExpr = InitExprOpt.value();

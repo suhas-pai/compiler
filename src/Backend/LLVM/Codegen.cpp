@@ -667,6 +667,8 @@ namespace Backend::LLVM {
                                         Builder,
                                         ValueMap);
             case AST::NodeKind::DerefExpr:
+            case AST::NodeKind::CaptureAllByRefExpr:
+            case AST::NodeKind::CaptureAllByValueExpr:
             case AST::NodeKind::DotIdentifierExpr:
             case AST::NodeKind::OptionalUnwrapExpr:
             case AST::NodeKind::StructDecl:

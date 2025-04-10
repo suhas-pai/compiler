@@ -19,7 +19,7 @@ namespace AST {
                     const std::span<ParamVarDecl *> ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
-        : FunctionDecl(Loc, ParamList, ReturnType, Body),
+        : FunctionDecl(ObjKind, Loc, ParamList, ReturnType, Body),
           CaptureList(CaptureList.begin(), CaptureList.end()) {}
 
         explicit
@@ -28,7 +28,7 @@ namespace AST {
                     const std::span<ParamVarDecl *> ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
-        : FunctionDecl(Loc, ParamList, ReturnType, Body),
+        : FunctionDecl(ObjKind, Loc, ParamList, ReturnType, Body),
           CaptureList(std::move(CaptureList)) {}
 
         explicit
@@ -37,7 +37,7 @@ namespace AST {
                     std::vector<ParamVarDecl *> &&ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
-        : FunctionDecl(Loc, std::move(ParamList), ReturnType, Body),
+        : FunctionDecl(ObjKind, Loc, std::move(ParamList), ReturnType, Body),
           CaptureList(CaptureList.begin(), CaptureList.end()) {}
 
         explicit
@@ -46,7 +46,7 @@ namespace AST {
                     std::vector<ParamVarDecl *> &&ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
-        : FunctionDecl(Loc, std::move(ParamList), ReturnType, Body),
+        : FunctionDecl(ObjKind, Loc, std::move(ParamList), ReturnType, Body),
           CaptureList(std::move(CaptureList)) {}
 
         [[nodiscard]]
