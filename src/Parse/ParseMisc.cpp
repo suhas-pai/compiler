@@ -131,6 +131,7 @@ namespace Parse {
             }
         }
 
+        TokenStream.goBack();
         return true;
     }
 }

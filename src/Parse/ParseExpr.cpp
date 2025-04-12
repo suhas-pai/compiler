@@ -510,8 +510,7 @@ done:
             }
             case Lex::Keyword::Union: {
                 const auto Result =
-                    ParseUnionDecl(Context, KeywordTok, InPlaceOfStmt,
-                                   NameOpt);
+                    ParseUnionDecl(Context, KeywordTok, InPlaceOfStmt, NameOpt);
 
                 if (!Result.has_value()) {
                     return std::unexpected(Result.error());
@@ -525,7 +524,7 @@ done:
             case Lex::Keyword::Enum:
                 //Root = ParseEnumDecl(Context, UnusedNameTokenOpt);
                 if (Root == nullptr) {
-                    return nullptr;
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
                 }
 
                 break;
@@ -617,6 +616,10 @@ done:
             if (IsParamListOpt.value()) {
                 const auto FuncOpt =
                     ParseArrowFunctionDeclOrFunctionType(Context, ParenToken);
+
+                if (!FuncOpt.has_value()) {
+                    return std::unexpected(FuncOpt.error());
+                }
 
                 return FuncOpt.value();
             }
@@ -797,7 +800,11 @@ done:
 
             const auto TokenOpt = TokenStream.consume();
             if (!TokenOpt.has_value()) {
-                return Root;
+                if (Root != nullptr) {
+                    return Root;
+                }
+
+                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             const auto Token = TokenOpt.value();

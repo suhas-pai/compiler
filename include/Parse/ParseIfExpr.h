@@ -57,7 +57,7 @@ namespace Parse {
 
             const auto StmtOpt = Parser(Context);
             if (!StmtOpt.has_value()) {
-                return std::unexpected(ParseError::FailedCouldNotProceed);
+                return std::unexpected(StmtOpt.error());
             }
 
             auto SeparatorLoc = std::optional<SourceLocation>(std::nullopt);
@@ -115,7 +115,7 @@ namespace Parse {
             });
 
             // FIXME: Proceed to next separator or end of statement
-            return nullptr;
+            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
@@ -170,11 +170,7 @@ namespace Parse {
             return Result.value();
         }
 
-        if (const auto Else = Parser(Context)) {
-            return Else;
-        }
-
-        return std::unexpected(ParseError::FailedCouldNotProceed);
+        return Parser(Context);
     }
 
     auto
@@ -225,8 +221,7 @@ namespace Parse {
         if (const auto CurlyTokenOpt =
                 TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace))
         {
-            auto LastSeparatorLoc =
-                std::optional<SourceLocation>(std::nullopt);
+            auto LastSeparatorLoc = std::optional<SourceLocation>(std::nullopt);
 
             const auto CurlyToken = CurlyTokenOpt.value();
             const auto Result =
@@ -239,14 +234,14 @@ namespace Parse {
 
             if (LastSeparatorLoc.has_value()) {
                 auto &Diag = Context.Diag;
-                const auto Lexeme =
-                    Lex::TokenKindGetLexeme(SeparatorOpt.value()).value();
+
+                const auto Separator = SeparatorOpt.value();
+                const auto Lexeme = Lex::TokenKindGetLexeme(Separator).value();
 
                 Diag.consume({
                     .Level = DiagnosticLevel::Warning,
                     .Location = LastSeparatorLoc.value(),
-                    .Message =
-                        std::format("Extra '{}' in statement", Lexeme)
+                    .Message = std::format("Extra '{}' in statement", Lexeme)
                 });
             }
 
@@ -254,7 +249,7 @@ namespace Parse {
         } else {
             const auto Result = Parser(Context);
             if (!Result.has_value()) {
-                return std::unexpected(ParseError::FailedCouldNotProceed);
+                return std::unexpected(Result.error());
             }
 
             Then = Result.value();
@@ -317,7 +312,7 @@ namespace Parse {
             } else {
                 const auto Result = Parser(Context);
                 if (!Result.has_value()) {
-                    return std::unexpected(ParseError::FailedCouldNotProceed);
+                    return std::unexpected(Result.error());
                 }
 
                 Else = Result.value();

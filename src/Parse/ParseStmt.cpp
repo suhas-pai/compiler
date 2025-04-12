@@ -60,47 +60,12 @@ namespace Parse {
                     const Lex::Token ReturnToken) noexcept
         -> std::expected<AST::ReturnStmt *, ParseError>
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
-
-        if (const auto ExprOpt = ParseExpression(Context)) {
-            if (ExpectSemicolon(Context)) {
-                return new AST::ReturnStmt(ReturnToken.Loc, ExprOpt.value());
-            }
+        const auto ExprOpt = ParseExpression(Context);
+        if (!ExprOpt.has_value()) {
+            return std::unexpected(ExprOpt.error());
         }
 
-        const auto CurrentOpt = TokenStream.current();
-        if (!CurrentOpt.has_value()) {
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Expected ';', found end of file"
-            });
-
-            return std::unexpected(ParseError::FailedCouldNotProceed);
-        }
-
-        const auto Current = CurrentOpt.value();
-        const auto CurrentString = TokenStream.tokenContent(Current);
-
-        Diag.consume({
-            .Level = DiagnosticLevel::Error,
-            .Location = TokenStream.getCurrOrPrevLoc(),
-            .Message =
-                std::format("Expected ';', found \"{}\" instead", CurrentString)
-        });
-
-        if (ProceedToSemicolon(Context)) {
-            return std::unexpected(ParseError::FailedAndProceeded);
-        }
-
-        Diag.consume({
-            .Level = DiagnosticLevel::Error,
-            .Location = TokenStream.getCurrOrPrevLoc(),
-            .Message = "Failed to find ';' to end return statement"
-        });
-
-        return std::unexpected(ParseError::FailedCouldNotProceed);
+        return new AST::ReturnStmt(ReturnToken.Loc, ExprOpt.value());
     }
 
     auto ParseStmt(ParseContext &Context) noexcept

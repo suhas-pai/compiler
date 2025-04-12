@@ -10,7 +10,7 @@ namespace AST {
     struct LvalueTypedDecl : public LvalueNamedDecl {
     protected:
         Expr *TypeExpr;
-    public:
+
         constexpr explicit
         LvalueTypedDecl(const NodeKind ObjKind,
                         const std::string_view Name,
@@ -28,7 +28,7 @@ namespace AST {
                         Expr *const RvalueExpr) noexcept
         : LvalueNamedDecl(ObjKind, Name, NameLoc, RvalueExpr),
           TypeExpr(TypeExpr) {}
-
+    public:
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() >= NodeKind::LvalueTypedDeclBase &&
