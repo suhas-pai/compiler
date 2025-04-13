@@ -88,6 +88,18 @@ namespace Parse {
         return ParseExpression(Context);
     }
 
+    [[nodiscard]]
+    static auto ParseInitExpressionIfFound(ParseContext &Context) noexcept
+        -> std::expected<AST::Expr *, ParseError>
+    {
+        auto &TokenStream = Context.TokenStream;
+        if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
+            return ParseExpression(Context);
+        }
+
+        return nullptr;
+    }
+
     [[nodiscard]] static auto
     ParseFieldDecl(ParseContext &Context,
                    const bool AllowOptionalFields) noexcept
@@ -127,65 +139,39 @@ namespace Parse {
             return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        auto TypeExpr = static_cast<AST::Expr *>(nullptr);
         const auto IsOptional =
             TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark).has_value();
 
-        if (IsOptional) {
-            if (TokenStream.peekIs(Lex::TokenKind::Colon)) {
-                const auto TypeExprOpt =
-                    ParseTypeAnnotationIfFound(Context,
-                                               Lex::TokenKind::CloseCurlyBrace);
+        const auto TypeExprOpt =
+            ParseTypeAnnotationIfFound(Context,
+                                       Lex::TokenKind::CloseCurlyBrace);
 
-                if (!TypeExprOpt.has_value()) {
-                    // FIXME: We should skip to the next field, not the end of
-                    // the struct.
+        if (!TypeExprOpt.has_value()) {
+            // FIXME: We should skip to the next field, not the end of
+            // the struct.
 
-                    return std::unexpected(TypeExprOpt.error());
-                }
-
-                if (TypeExpr == nullptr) {
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = NameToken.Loc,
-                        .Message = "All fields must have a type annotation"
-                    });
-
-                    // Ignore
-                }
-            }
-        } else {
-            const auto TypeExprOpt =
-                ParseTypeAnnotationIfFound(Context,
-                                           Lex::TokenKind::CloseCurlyBrace);
-
-            if (!TypeExprOpt.has_value()) {
-                // FIXME: We should skip to the next field, not the end of
-                // the struct.
-
-                return std::unexpected(TypeExprOpt.error());
-            }
-
-            if (TypeExpr == nullptr) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = NameToken.Loc,
-                    .Message = "All fields must have a type annotation"
-                });
-
-                return std::unexpected(ParseError::FailedCouldNotProceed);
-            }
+            return std::unexpected(TypeExprOpt.error());
         }
 
-        auto InitExpr = static_cast<AST::Expr *>(nullptr);
-        if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
-            const auto InitExprOpt = ParseExpression(Context);
-            if (!InitExprOpt.has_value()) {
-                return std::unexpected(InitExprOpt.error());
-            }
+        const auto TypeExpr = TypeExprOpt.value();
+        if (TypeExpr == nullptr) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = NameToken.Loc,
+                .Message = "All fields must have a type annotation"
+            });
+
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
+        const auto InitExprOpt = ParseInitExpressionIfFound(Context);
+        if (!InitExprOpt.has_value()) {
+            return std::unexpected(InitExprOpt.error());
         }
 
         const auto Name = TokenStream.tokenContent(NameToken);
+        const auto InitExpr = InitExprOpt.value();
+
         if (IsOptional) {
             if (!AllowOptionalFields) {
                 Diag.consume({
@@ -193,8 +179,6 @@ namespace Parse {
                     .Location = NameToken.Loc,
                     .Message = "Optional fields are not allowed"
                 });
-
-                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             return
@@ -261,13 +245,15 @@ namespace Parse {
 
                     return DeclOpt.error();
                 }
+
+                Stmt = DeclOpt.value();
             }
 
             FieldList.emplace_back(Stmt);
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
                 if (CommaLocOpt.has_value()) {
-                    // Allow trailing comma before closing curly brace, but
-                    // emit a warning for it.
+                    // Allow trailing comma before closing curly brace, but emit
+                    // a warning for it.
 
                     Diag.consume({
                         .Level = DiagnosticLevel::Warning,
@@ -297,18 +283,6 @@ namespace Parse {
         }
 
         return ParseError::None;
-    }
-
-    [[nodiscard]]
-    static auto ParseInitExpressionIfFound(ParseContext &Context) noexcept
-        -> std::expected<AST::Expr *, ParseError>
-    {
-        auto &TokenStream = Context.TokenStream;
-        if (!TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
-            return nullptr;
-        }
-
-        return ParseExpression(Context);
     }
 
     [[nodiscard]] static auto
