@@ -211,8 +211,7 @@ namespace Parse {
         //  (b) We have an array-type
 
         if (TokenStream.peekIs(Lex::TokenKind::Identifier) ||
-            TokenStream.peekIs(Lex::TokenKind::Star) ||
-            TokenStream.peekIs(Lex::TokenKind::QuestionMark))
+            TokenStream.peekIs(Lex::TokenKind::Star))
         {
             // We have an array-type
             const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
@@ -226,6 +225,29 @@ namespace Parse {
 
             return new AST::ArrayTypeExpr(BracketToken.Loc,
                                           std::move(DetailList), Base, Quals);
+        }
+
+        if (TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark)) {
+            if (TokenStream.peekIs(Lex::TokenKind::Star) ||
+                TokenStream.peekIs(Lex::TokenKind::Identifier))
+            {
+                TokenStream.goBack();
+
+                const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
+                if (!BaseOpt.has_value()) {
+                    return std::unexpected(BaseOpt.error());
+                }
+
+                auto Base = BaseOpt.value();
+                auto &DetailList = DetailListOpt.value();
+                auto Quals = Sema::PointerBaseTypeQualifiers();
+
+                return new AST::ArrayTypeExpr(BracketToken.Loc,
+                                              std::move(DetailList), Base,
+                                              Quals);
+            }
+
+            TokenStream.goBack();
         }
 
         auto &DetailList = DetailListOpt.value();
@@ -394,24 +416,31 @@ done:
                 continue;
             }
 
-            if (TokenStream.peekIs(Lex::TokenKind::QuestionMark)) {
-                const auto Token = TokenStream.consume().value();
-                if (TokenStream.peekIs(Lex::TokenKind::OpenParen) ||
-                    TokenStream.peekIs(Lex::TokenKind::LeftSquareBracket) ||
-                    TokenStream.peekIs(Lex::TokenKind::Dot) ||
-                    TokenStream.peekIs(Lex::TokenKind::DotIdentifier))
+            if (!llvm::isa<AST::OptionalTypeExpr>(Root) &&
+                !llvm::isa<AST::PointerTypeExpr>(Root) &&
+                !llvm::isa<AST::ArrayTypeExpr>(Root))
+            {
+                if (const auto TokenOpt =
+                        TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark))
                 {
-                    Root = new AST::OptionalUnwrapExpr(Token.Loc, Root);
-                    continue;
+                    const auto Token = TokenOpt.value();
+                    if (TokenStream.peekIs(Lex::TokenKind::OpenParen) ||
+                        TokenStream.peekIs(Lex::TokenKind::LeftSquareBracket) ||
+                        TokenStream.peekIs(Lex::TokenKind::Dot) ||
+                        TokenStream.peekIs(Lex::TokenKind::DotIdentifier))
+                    {
+                        Root = new AST::OptionalUnwrapExpr(Token.Loc, Root);
+                        continue;
+                    }
+
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = Token.Loc,
+                        .Message = "Expected '(' or '[' or '.' after '?'"
+                    });
+
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
                 }
-
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = Token.Loc,
-                    .Message = "Expected '(' or '[' or '.' after '?'"
-                });
-
-                return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
             if (TokenStream.peekIs(Lex::TokenKind::LeftSquareBracket)) {

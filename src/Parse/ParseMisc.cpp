@@ -15,7 +15,7 @@ namespace Parse {
         auto &TokenStream = Context.TokenStream;
 
         const auto SkipToList = { Lex::TokenKind::Comma, EndKind };
-        const auto TokenOpt = TokenStream.proceedToAndConsumeOneOf(SkipToList);
+        const auto TokenOpt = TokenStream.findNextAndConsumeOneOf(SkipToList);
 
         if (!TokenOpt.has_value()) {
             return ProceedResult::Failed;
