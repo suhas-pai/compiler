@@ -32,7 +32,7 @@ namespace Lex {
             }
 
             if (CurrentLineInfo.ByteOffset != LineInfo.ByteOffset) {
-                LineInfoList.push_back(LineInfo);
+                LineInfoList.emplace_back(LineInfo);
                 CurrentLineInfo = LineInfo;
             }
         }

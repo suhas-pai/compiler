@@ -641,7 +641,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintAST(Handler, ArrayTypeExpr->getBase(), Depth + 1);
 
             PrintDepth(Depth + 1);
-            std::print("Detail-List\n");
+            std::print("DetailList\n");
 
             for (const auto &Detail : ArrayTypeExpr->getDetailList()) {
                 PrintAST(Handler, Detail, Depth + 2);

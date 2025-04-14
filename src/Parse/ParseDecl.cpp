@@ -193,8 +193,7 @@ namespace Parse {
     ParseFieldList(ParseContext &Context,
                    const SourceLocation DeclLoc,
                    std::vector<AST::Stmt *> &FieldList,
-                   const bool AllowOptionalFields) noexcept
-        -> ParseError
+                   const bool AllowOptionalFields) noexcept -> ParseError
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;

@@ -27,8 +27,7 @@ namespace Lex {
         TokenBuffer(const ADT::SourceBuffer &SrcBuffer,
                     std::vector<LineInfo> &&LineInfoList,
                     std::vector<Token> &&TokenList) noexcept
-        : SrcBuffer(SrcBuffer),
-          LineInfoList(std::move(LineInfoList)),
+        : SrcBuffer(SrcBuffer), LineInfoList(std::move(LineInfoList)),
           TokenList(std::move(TokenList)) {}
     public:
         static auto

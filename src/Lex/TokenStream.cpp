@@ -58,7 +58,7 @@ namespace Lex {
 
     auto
     TokenStream::findNextAndConsumeOneOf(
-        const std::initializer_list<const Lex::TokenKind> KindList) noexcept
+        const std::initializer_list<Lex::TokenKind> KindList) noexcept
             -> std::expected<Lex::Token, FindError>
     {
         auto Stack = std::vector<Lex::Token>();
