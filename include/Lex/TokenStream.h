@@ -59,6 +59,16 @@ namespace Lex {
             this->Index = Position;
         }
 
+        [[nodiscard]]
+        constexpr auto tokenIsUnaryOp(const Lex::Token Token) const noexcept {
+            return Lex::TokenKindIsUnaryOp(Token.Kind);
+        }
+
+        [[nodiscard]]
+        constexpr auto tokenIsBinOp(const Lex::Token Token) const noexcept {
+            return Lex::TokenKindIsBinOp(Token.Kind, this->tokenContent(Token));
+        }
+
         [[nodiscard]] constexpr auto peek() const noexcept
             -> std::optional<Lex::Token>
         {

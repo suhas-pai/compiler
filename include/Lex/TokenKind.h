@@ -209,7 +209,6 @@ namespace Lex {
             case TokenKind::DoubleEqual:
             case TokenKind::Equal:
             case TokenKind::NotEqual:
-            case TokenKind::QuestionMark:
                 return true;
             case TokenKind::IntegerLiteral:
             case TokenKind::IntegerLiteralWithSuffix:
@@ -218,6 +217,7 @@ namespace Lex {
             case TokenKind::CharLiteral:
             case TokenKind::StringLiteral:
             case TokenKind::Identifier:
+            case TokenKind::QuestionMark:
                 return false;
             case TokenKind::Keyword:
                 if (Text == KeywordToLexemeMap[Keyword::As]) {

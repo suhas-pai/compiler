@@ -210,8 +210,9 @@ namespace Parse {
         //  (a) We have an array
         //  (b) We have an array-type
 
-        if (TokenStream.peekIs(Lex::TokenKind::Identifier) ||
-            TokenStream.peekIs(Lex::TokenKind::Star))
+        if (const auto PeekTokenOpt = TokenStream.peek();
+            (!TokenStream.tokenIsBinOp(PeekTokenOpt.value()) &&
+             PeekTokenOpt.value().Kind != Lex::TokenKind::DotIdentifier))
         {
             // We have an array-type
             const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
@@ -225,29 +226,6 @@ namespace Parse {
 
             return new AST::ArrayTypeExpr(BracketToken.Loc,
                                           std::move(DetailList), Base, Quals);
-        }
-
-        if (TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark)) {
-            if (TokenStream.peekIs(Lex::TokenKind::Star) ||
-                TokenStream.peekIs(Lex::TokenKind::Identifier))
-            {
-                TokenStream.goBack();
-
-                const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
-                if (!BaseOpt.has_value()) {
-                    return std::unexpected(BaseOpt.error());
-                }
-
-                auto Base = BaseOpt.value();
-                auto &DetailList = DetailListOpt.value();
-                auto Quals = Sema::PointerBaseTypeQualifiers();
-
-                return new AST::ArrayTypeExpr(BracketToken.Loc,
-                                              std::move(DetailList), Base,
-                                              Quals);
-            }
-
-            TokenStream.goBack();
         }
 
         auto &DetailList = DetailListOpt.value();
