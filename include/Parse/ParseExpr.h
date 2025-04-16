@@ -21,8 +21,7 @@ namespace Parse {
                                     bool InPlaceOfStmt) noexcept
         -> std::expected<AST::Expr *, ParseError>;
 
-    [[nodiscard]]
-    auto ParseExpression(ParseContext &Context) noexcept
+    [[nodiscard]] auto ParseExpression(ParseContext &Context) noexcept
         -> std::expected<AST::Expr *, ParseError>;
 
     [[nodiscard]]

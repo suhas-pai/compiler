@@ -6,10 +6,9 @@
 #include <cstdio>
 
 #include "AST/Decls/ArrayDecl.h"
-#include "AST/Decls/ArrayDestructredVarDecl.h"
 #include "AST/Decls/ClosureDecl.h"
 #include "AST/Decls/InterfaceDecl.h"
-#include "AST/Decls/ObjectDestructuredVarDecl.h"
+#include "AST/Decls/ObjectBindingVarDecl.h"
 #include "AST/Decls/EnumDecl.h"
 #include "AST/Decls/EnumMemberDecl.h"
 #include "AST/Decls/FieldDecl.h"
@@ -69,85 +68,85 @@ PrintAST(Backend::LLVM::Handler &Handler,
          const uint8_t Depth) noexcept;
 
 static void
-PrintArrayDestructureItemIndex(Backend::LLVM::Handler &Handler,
-                               const AST::ArrayDestructureIndex &Item,
-                               const uint8_t Depth) noexcept
+PrintArrayBindingItemIndex(Backend::LLVM::Handler &Handler,
+                           const AST::ArrayBindingIndex &Item,
+                           const uint8_t Depth) noexcept
 {
     PrintDepth(Depth);
-    std::print("ArrayDestructureIndex\n");
+    std::print("ArrayBindingIndex\n");
 
     PrintAST(Handler, Item.IndexExpr, Depth + 1);
 }
 
 static void
-PrintObjectDestructureFieldList(
+PrintObjectBindingFieldList(
     Backend::LLVM::Handler &Handler,
-    const std::span<AST::ObjectDestructureField *const> FieldList,
+    const std::span<AST::ObjectBindingField *const> FieldList,
     const uint8_t Depth) noexcept;
 
 static void
-PrintArrayDestructureItemList(
+PrintArrayBindingItemList(
     Backend::LLVM::Handler &Handler,
-    const std::span<AST::ArrayDestructureItem *const> ItemList,
+    const std::span<AST::ArrayBindingItem *const> ItemList,
     const uint8_t Depth) noexcept
 {
     for (const auto Item : ItemList) {
         PrintDepth(Depth);
         switch (Item->getKind()) {
-            case AST::ArrayDestructureItemKind::Identifier: {
+            case AST::ArrayBindingItemKind::Identifier: {
                 const auto IdentifierItem =
-                    llvm::cast<AST::ArrayDestructureItemIdentifier>(Item);
+                    llvm::cast<AST::ArrayBindingItemIdentifier>(Item);
 
-                std::print("ArrayDestructureItemIdentifier<\"{}\">\n",
+                std::print("ArrayBindingItemIdentifier<\"{}\">\n",
                            IdentifierItem->Name);
 
                 if (Item->Index.has_value()) {
-                    PrintArrayDestructureItemIndex(Handler, Item->Index.value(),
-                                                   Depth + 1);
+                    PrintArrayBindingItemIndex(Handler, Item->Index.value(),
+                                               Depth + 1);
                 }
 
                 continue;
             }
-            case AST::ArrayDestructureItemKind::Array: {
+            case AST::ArrayBindingItemKind::Array: {
                 const auto ArrayItem =
-                    llvm::cast<AST::ArrayDestructureItemArray>(Item);
+                    llvm::cast<AST::ArrayBindingItemArray>(Item);
 
-                std::print("ArrayDestructureItemArray\n");
-                PrintArrayDestructureItemList(Handler, ArrayItem->ItemList,
-                                              Depth + 1);
+                std::print("ArrayBindingItemArray\n");
+                PrintArrayBindingItemList(Handler, ArrayItem->ItemList,
+                                          Depth + 1);
 
                 if (const auto Index = Item->Index) {
-                    PrintArrayDestructureItemIndex(Handler, Index.value(),
-                                                   Depth + 1);
+                    PrintArrayBindingItemIndex(Handler, Index.value(),
+                                               Depth + 1);
                 }
 
                 continue;
             }
-            case AST::ArrayDestructureItemKind::Object: {
+            case AST::ArrayBindingItemKind::Object: {
                 const auto ObjectItem =
-                    llvm::cast<AST::ArrayDestructureItemObject>(Item);
+                    llvm::cast<AST::ArrayBindingItemObject>(Item);
 
-                std::print("ArrayDestructureItemObject\n");
-                PrintObjectDestructureFieldList(Handler, ObjectItem->FieldList,
-                                                Depth + 1);
+                std::print("ArrayBindingItemObject\n");
+                PrintObjectBindingFieldList(Handler, ObjectItem->FieldList,
+                                            Depth + 1);
 
                 if (const auto Index = Item->Index) {
-                    PrintArrayDestructureItemIndex(Handler, Index.value(),
-                                                   Depth + 1);
+                    PrintArrayBindingItemIndex(Handler, Index.value(),
+                                               Depth + 1);
                 }
 
                 continue;
             }
-            case AST::ArrayDestructureItemKind::Spread: {
+            case AST::ArrayBindingItemKind::Spread: {
                 const auto SpreadItem =
-                    llvm::cast<AST::ArrayDestructureItemSpread>(Item);
+                    llvm::cast<AST::ArrayBindingItemSpread>(Item);
 
-                std::print("ArrayDestructureItemSpread<\"{}\">\n",
+                std::print("ArrayBindingItemSpread<\"{}\">\n",
                            SpreadItem->Name);
 
                 if (const auto Index = Item->Index) {
-                    PrintArrayDestructureItemIndex(Handler, Index.value(),
-                                                   Depth + 1);
+                    PrintArrayBindingItemIndex(Handler, Index.value(),
+                                               Depth + 1);
                 }
 
                 continue;
@@ -159,54 +158,54 @@ PrintArrayDestructureItemList(
 }
 
 static void
-PrintObjectDestructureFieldList(
+PrintObjectBindingFieldList(
     Backend::LLVM::Handler &Handler,
-    const std::span<AST::ObjectDestructureField *const> FieldList,
+    const std::span<AST::ObjectBindingField *const> FieldList,
     const uint8_t Depth) noexcept
 {
     for (const auto Item : FieldList) {
         PrintDepth(Depth);
         switch (Item->getKind()) {
-            case AST::ObjectDestructureFieldKind::Identifier: {
-                const auto ObjectDestructureIdentifier =
-                    llvm::cast<AST::ObjectDestructureFieldIdentifier>(Item);
+            case AST::ObjectBindingFieldKind::Identifier: {
+                const auto ObjectBindingIdentifier =
+                    llvm::cast<AST::ObjectBindingFieldIdentifier>(Item);
 
-                std::print("ObjectDestructureItemIdentifier<\"{}\">\n",
-                           ObjectDestructureIdentifier->Name);
-
-                continue;
-            }
-            case AST::ObjectDestructureFieldKind::Array: {
-                const auto ObjectDestructureArray =
-                    llvm::cast<AST::ObjectDestructureFieldArray>(Item);
-
-                std::print("ObjectDestructureItemArray<\"{}\">\n",
-                           ObjectDestructureArray->Key);
-
-                PrintArrayDestructureItemList(Handler,
-                                              ObjectDestructureArray->ItemList,
-                                              Depth + 1);
+                std::print("ObjectBindingItemIdentifier<\"{}\">\n",
+                           ObjectBindingIdentifier->Name);
 
                 continue;
             }
-            case AST::ObjectDestructureFieldKind::Object: {
-                const auto ObjectDestructureObject =
-                    llvm::cast<AST::ObjectDestructureFieldObject>(Item);
+            case AST::ObjectBindingFieldKind::Array: {
+                const auto ObjectBindingArray =
+                    llvm::cast<AST::ObjectBindingFieldArray>(Item);
 
-                std::print("ObjectDestructureItemObject<\"{}\">\n",
-                           ObjectDestructureObject->Key);
+                std::print("ObjectBindingItemArray<\"{}\">\n",
+                           ObjectBindingArray->Key);
 
-                PrintObjectDestructureFieldList(
-                    Handler, ObjectDestructureObject->FieldList, Depth + 1);
+                PrintArrayBindingItemList(Handler, ObjectBindingArray->ItemList,
+                                          Depth + 1);
 
                 continue;
             }
-            case AST::ObjectDestructureFieldKind::Spread: {
-                const auto ObjectDestructureSpread =
-                    llvm::cast<AST::ObjectDestructureFieldSpread>(Item);
+            case AST::ObjectBindingFieldKind::Object: {
+                const auto ObjectBindingObject =
+                    llvm::cast<AST::ObjectBindingFieldObject>(Item);
 
-                std::print("ObjectDestructureItemSpread<\"{}\">\n",
-                           ObjectDestructureSpread->Key);
+                std::print("ObjectBindingItemObject<\"{}\">\n",
+                           ObjectBindingObject->Key);
+
+                PrintObjectBindingFieldList(Handler,
+                                            ObjectBindingObject->FieldList,
+                                            Depth + 1);
+
+                continue;
+            }
+            case AST::ObjectBindingFieldKind::Spread: {
+                const auto ObjectBindingSpread =
+                    llvm::cast<AST::ObjectBindingFieldSpread>(Item);
+
+                std::print("ObjectBindingItemSpread<\"{}\">\n",
+                           ObjectBindingSpread->Key);
 
                 continue;
             }
@@ -587,33 +586,31 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             return;
         }
-        case AST::NodeKind::ArrayDestructuredVarDecl: {
-            const auto ArrayDestructuredVarDecl =
-                llvm::cast<AST::ArrayDestructuredVarDecl>(Stmt);
+        case AST::NodeKind::ArrayBindingVarDecl: {
+            const auto ArrayBindingVarDecl =
+                llvm::cast<AST::ArrayBindingVarDecl>(Stmt);
 
-            std::print("ArrayDestructuredVarDecl\n");
-            PrintArrayDestructureItemList(
-                Handler, ArrayDestructuredVarDecl->getItemList(), Depth + 1);
+            std::print("ArrayBindingVarDecl\n");
+            PrintArrayBindingItemList(Handler,
+                                      ArrayBindingVarDecl->getItemList(),
+                                      Depth + 1);
 
             PrintDepth(Depth + 1);
             std::print("InitExpr\n");
 
-            PrintAST(Handler, ArrayDestructuredVarDecl->getInitExpr(),
-                     Depth + 2);
-
+            PrintAST(Handler, ArrayBindingVarDecl->getInitExpr(), Depth + 2);
             return;
         }
-        case AST::NodeKind::ObjectDestructuredVarDecl: {
-            auto ObjectDestructuredVarDecl =
-                llvm::cast<AST::ObjectDestructuredVarDecl>(Stmt);
+        case AST::NodeKind::ObjectBindingVarDecl: {
+            auto ObjectBindingVarDecl =
+                llvm::cast<AST::ObjectBindingVarDecl>(Stmt);
 
-            std::print("ObjectDestructuredVarDecl\n");
-            PrintObjectDestructureFieldList(
-                Handler, ObjectDestructuredVarDecl->getFieldList(), Depth + 1);
+            std::print("ObjectBindingVarDecl\n");
+            PrintObjectBindingFieldList(Handler,
+                                        ObjectBindingVarDecl->getFieldList(),
+                                        Depth + 1);
 
-            PrintAST(Handler, ObjectDestructuredVarDecl->getInitExpr(),
-                     Depth + 1);
-
+            PrintAST(Handler, ObjectBindingVarDecl->getInitExpr(), Depth + 1);
             return;
         }
         case AST::NodeKind::CastExpr: {

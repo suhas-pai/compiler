@@ -37,8 +37,8 @@ namespace AST {
         VarDecl,
         ParamVarDecl,
 
-        ArrayDestructuredVarDecl,
-        ObjectDestructuredVarDecl,
+        ArrayBindingVarDecl,
+        ObjectBindingVarDecl,
 
         CallExpr,
         FieldExpr,

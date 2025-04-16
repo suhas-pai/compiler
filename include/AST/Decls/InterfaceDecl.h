@@ -8,7 +8,6 @@
 #include <span>
 #include <vector>
 
-#include "AST/Decls/FieldDecl.h"
 #include "AST/Expr.h"
 
 namespace AST {

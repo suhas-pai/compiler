@@ -686,8 +686,8 @@ namespace Backend::LLVM {
             case AST::NodeKind::EnumDecl:
             case AST::NodeKind::ArrayDecl:
             case AST::NodeKind::ClosureDecl:
-            case AST::NodeKind::ArrayDestructuredVarDecl:
-            case AST::NodeKind::ObjectDestructuredVarDecl:
+            case AST::NodeKind::ArrayBindingVarDecl:
+            case AST::NodeKind::ObjectBindingVarDecl:
             case AST::NodeKind::ForStmt:
             case AST::NodeKind::CommaSepStmtList:
             case AST::NodeKind::ArrayType:

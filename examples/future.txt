@@ -323,7 +323,7 @@ let D: constraint = (T: type): bit => return true
 let C: constraint = bit or u64;
 
 func cons_example(a: %D) {
-
+    let fl = 0x1234.0xf64
 }
 
 let mut d: int = 3;

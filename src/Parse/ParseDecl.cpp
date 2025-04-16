@@ -3,12 +3,12 @@
  * © suhas pai
  */
 
-#include "AST/Decls/ArrayDestructredVarDecl.h"
-#include "AST/Decls/InterfaceDecl.h"
-#include "AST/Decls/ObjectDestructuredVarDecl.h"
+#include "AST/Decls/ArrayBindingVarDecl.h"
+#include "AST/Decls/ObjectBindingVarDecl.h"
 
 #include "AST/Decls/FieldDecl.h"
 #include "AST/Decls/OptionalFieldDecl.h"
+#include "AST/Decls/InterfaceDecl.h"
 #include "AST/Decls/ParamVarDecl.h"
 #include "AST/Decls/VarDecl.h"
 
@@ -1036,20 +1036,20 @@ namespace Parse {
     }
 
     [[nodiscard]] static auto
-    ParseArrayDestructureItemList(ParseContext &Context) noexcept
-        -> std::expected<std::vector<AST::ArrayDestructureItem *>, ParseError>;
+    ParseArrayBindingItemList(ParseContext &Context) noexcept
+        -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>;
 
     [[nodiscard]] static auto
-    ParseObjectDestructureFieldList(ParseContext &Context) noexcept
-        -> std::expected<std::vector<AST::ObjectDestructureField *>,
+    ParseObjectBindingFieldList(ParseContext &Context) noexcept
+        -> std::expected<std::vector<AST::ObjectBindingField *>,
                          ParseError>;
 
     [[nodiscard]] static auto
-    ParseRightSideOfArrayDestructureItemColon(
+    ParseRightSideOfArrayBindingItemColon(
         ParseContext &Context,
         AST::Expr *const IndexExpr,
         const SourceLocation IndexLoc) noexcept
-            -> std::expected<AST::ArrayDestructureItem *, ParseError>
+            -> std::expected<AST::ArrayBindingItem *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -1059,52 +1059,48 @@ namespace Parse {
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket)) {
             auto ItemLoc = TokenStream.getCurrOrPrevLoc();
-            auto ArrayDestructureItemListOpt =
-                ParseArrayDestructureItemList(Context);
+            auto ArrayBindingItemListOpt = ParseArrayBindingItemList(Context);
 
-            if (!ArrayDestructureItemListOpt.has_value()) {
-                return std::unexpected(ArrayDestructureItemListOpt.error());
+            if (!ArrayBindingItemListOpt.has_value()) {
+                return std::unexpected(ArrayBindingItemListOpt.error());
             }
 
-            auto &ArrayDestructureItemList =
-                ArrayDestructureItemListOpt.value();
-
+            auto &ArrayBindingItemList = ArrayBindingItemListOpt.value();
             auto IndexItem =
-                std::optional<AST::ArrayDestructureIndex>(std::nullopt);
+                std::optional<AST::ArrayBindingIndex>(std::nullopt);
 
             if (IndexExpr != nullptr) {
                 IndexItem.emplace(IndexExpr, IndexLoc);
             }
 
             const auto Result =
-                new AST::ArrayDestructureItemArray(
-                    Qualifiers, IndexItem, std::move(ArrayDestructureItemList),
-                    ItemLoc);
+                new AST::ArrayBindingItemArray(Qualifiers, IndexItem,
+                                               std::move(ArrayBindingItemList),
+                                               ItemLoc);
 
             return Result;
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             auto ItemLoc = TokenStream.getCurrOrPrevLoc();
-            auto ObjectDestructureListOpt =
-                ParseObjectDestructureFieldList(Context);
+            auto ObjectBindingListOpt = ParseObjectBindingFieldList(Context);
 
-            if (!ObjectDestructureListOpt.has_value()) {
-                return std::unexpected(ObjectDestructureListOpt.error());
+            if (!ObjectBindingListOpt.has_value()) {
+                return std::unexpected(ObjectBindingListOpt.error());
             }
 
-            auto &ObjectDestructureList = ObjectDestructureListOpt.value();
+            auto &ObjectBindingList = ObjectBindingListOpt.value();
             auto IndexItem =
-                std::optional<AST::ArrayDestructureIndex>(std::nullopt);
+                std::optional<AST::ArrayBindingIndex>(std::nullopt);
 
             if (IndexExpr != nullptr) {
                 IndexItem.emplace(IndexExpr, IndexLoc);
             }
 
             const auto Result =
-                new AST::ArrayDestructureItemObject(
-                    Qualifiers, IndexItem, std::move(ObjectDestructureList),
-                    ItemLoc);
+                new AST::ArrayBindingItemObject(Qualifiers, IndexItem,
+                                                std::move(ObjectBindingList),
+                                                ItemLoc);
 
             return Result;
         }
@@ -1130,26 +1126,26 @@ namespace Parse {
 
         if (IndexExpr == nullptr) {
             return
-                new AST::ArrayDestructureItemIdentifier(Qualifiers,
-                                                        /*Index=*/std::nullopt,
-                                                        Name, NameToken.Loc);
+                new AST::ArrayBindingItemIdentifier(Qualifiers,
+                                                    /*Index=*/std::nullopt,
+                                                    Name, NameToken.Loc);
         }
 
-        const auto IndexItem = AST::ArrayDestructureIndex(IndexExpr, IndexLoc);
+        const auto IndexItem = AST::ArrayBindingIndex(IndexExpr, IndexLoc);
         const auto Result =
-            new AST::ArrayDestructureItemIdentifier(Qualifiers, IndexItem, Name,
-                                                    NameToken.Loc);
+            new AST::ArrayBindingItemIdentifier(Qualifiers, IndexItem, Name,
+                                                NameToken.Loc);
 
         return Result;
     }
 
     [[nodiscard]]
-    static auto ParseArrayDestructureItemList(ParseContext &Context) noexcept
-        -> std::expected<std::vector<AST::ArrayDestructureItem *>, ParseError>;
+    static auto ParseArrayBindingItemList(ParseContext &Context) noexcept
+        -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>;
 
     [[nodiscard]] static auto
-    ParseSingleArrayDestructureItem(ParseContext &Context) noexcept
-        -> std::expected<AST::ArrayDestructureItem *, ParseError>
+    ParseSingleArrayBindingItem(ParseContext &Context) noexcept
+        -> std::expected<AST::ArrayBindingItem *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -1161,7 +1157,7 @@ namespace Parse {
         //
         // Note that `name` can be either an identifier, or an object
         // destructuring expression. This is handled in
-        // `ParseRightSideOfArrayDestructureItemColon`.
+        // `ParseRightSideOfArrayBindingItemColon`.
 
         // Quick check to see if we just have a name, and not an index
         // expression
@@ -1176,7 +1172,7 @@ namespace Parse {
                 TokenStream.goBack();
 
                 const auto IndexLoc = SourceLocation::invalid();
-                return ParseRightSideOfArrayDestructureItemColon(
+                return ParseRightSideOfArrayBindingItemColon(
                     Context, /*IndexExpr=*/nullptr, IndexLoc);
             }
 
@@ -1185,32 +1181,31 @@ namespace Parse {
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket)) {
             auto ItemLoc = TokenStream.getCurrOrPrevLoc();
-            auto ItemListOpt = ParseArrayDestructureItemList(Context);
+            auto ItemListOpt = ParseArrayBindingItemList(Context);
 
             if (!ItemListOpt.has_value()) {
                 return std::unexpected(ItemListOpt.error());
             }
 
             auto &ItemList = ItemListOpt.value();
-            return new AST::ArrayDestructureItemArray(Qualifiers,
-                                                      /*Index=*/std::nullopt,
-                                                      std::move(ItemList),
-                                                      ItemLoc);
+            return new AST::ArrayBindingItemArray(Qualifiers,
+                                                  /*Index=*/std::nullopt,
+                                                  std::move(ItemList), ItemLoc);
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             auto ItemLoc = TokenStream.getCurrOrPrevLoc();
-            auto ItemListOpt = ParseObjectDestructureFieldList(Context);
+            auto ItemListOpt = ParseObjectBindingFieldList(Context);
 
             if (!ItemListOpt.has_value()) {
                 return std::unexpected(ItemListOpt.error());
             }
 
             auto &ItemList = ItemListOpt.value();
-            return new AST::ArrayDestructureItemObject(Qualifiers,
-                                                       /*Index=*/std::nullopt,
-                                                       std::move(ItemList),
-                                                       ItemLoc);
+            return new AST::ArrayBindingItemObject(Qualifiers,
+                                                   /*Index=*/std::nullopt,
+                                                   std::move(ItemList),
+                                                   ItemLoc);
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::DotDotDot)) {
@@ -1244,10 +1239,9 @@ namespace Parse {
 
             const auto Name = TokenStream.tokenContent(NameToken);
             const auto Result =
-                new AST::ArrayDestructureItemSpread(Qualifiers,
-                                                    /*Index=*/std::nullopt,
-                                                    Name, NameToken.Loc,
-                                                    ItemLoc);
+                new AST::ArrayBindingItemSpread(Qualifiers,
+                                                /*Index=*/std::nullopt,
+                                                Name, NameToken.Loc, ItemLoc);
 
             return Result;
         }
@@ -1261,11 +1255,11 @@ namespace Parse {
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::Colon)) {
             const auto IndexExpr = IndexExprOpt.value();
-            const auto DestructureItem =
-                ParseRightSideOfArrayDestructureItemColon(Context, IndexExpr,
-                                                          IndexLoc);
+            const auto BindingItem =
+                ParseRightSideOfArrayBindingItemColon(Context, IndexExpr,
+                                                      IndexLoc);
 
-            return DestructureItem;
+            return BindingItem;
         }
 
         // FIXME: We're missing a colon here, recover here.
@@ -1273,24 +1267,21 @@ namespace Parse {
     }
 
     [[nodiscard]]
-    static auto ParseArrayDestructureItemList(ParseContext &Context) noexcept
-        -> std::expected<std::vector<AST::ArrayDestructureItem *>, ParseError>
+    static auto ParseArrayBindingItemList(ParseContext &Context) noexcept
+        -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        auto DestructureItemList = std::vector<AST::ArrayDestructureItem *>();
+        auto BindingItemList = std::vector<AST::ArrayBindingItem *>();
         do {
-            const auto DestructureItemOpt =
-                ParseSingleArrayDestructureItem(Context);
-
-            if (!DestructureItemOpt.has_value()) {
-                return std::unexpected(DestructureItemOpt.error());
+            const auto BindingItemOpt = ParseSingleArrayBindingItem(Context);
+            if (!BindingItemOpt.has_value()) {
+                return std::unexpected(BindingItemOpt.error());
             }
 
-            DestructureItemList.emplace_back(DestructureItemOpt.value());
-            if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket))
-            {
+            BindingItemList.emplace_back(BindingItemOpt.value());
+            if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
                 break;
             }
 
@@ -1327,21 +1318,21 @@ namespace Parse {
         } while (true);
 
     done:
-        return DestructureItemList;
+        return BindingItemList;
     }
 
     [[nodiscard]] static auto
-    ParseArrayDestructureVarDecl(ParseContext &Context,
-                                 const AST::Qualifiers &PreIntroducerQualifiers,
-                                 const SourceLocation SquareBracketLoc) noexcept
+    ParseArrayBindingVarDecl(ParseContext &Context,
+                             const AST::Qualifiers &PreIntroducerQualifiers,
+                             const SourceLocation SquareBracketLoc) noexcept
         -> std::expected<AST::Stmt *, ParseError>
     {
         auto Qualifiers = AST::Qualifiers();
         ParseQualifiers(Context, Qualifiers);
 
-        auto DestructureItemListOpt = ParseArrayDestructureItemList(Context);
-        if (!DestructureItemListOpt.has_value()) {
-            return std::unexpected(DestructureItemListOpt.error());
+        auto BindingItemListOpt = ParseArrayBindingItemList(Context);
+        if (!BindingItemListOpt.has_value()) {
+            return std::unexpected(BindingItemListOpt.error());
         }
 
         const auto InitExprOpt = ParseInitExpressionIfFound(Context);
@@ -1349,15 +1340,15 @@ namespace Parse {
             return std::unexpected(InitExprOpt.error());
         }
 
-        auto &DestructureItemList = DestructureItemListOpt.value();
-        return new AST::ArrayDestructuredVarDecl(SquareBracketLoc, Qualifiers,
-                                                 std::move(DestructureItemList),
-                                                 InitExprOpt.value());
+        auto &BindingItemList = BindingItemListOpt.value();
+        return new AST::ArrayBindingVarDecl(SquareBracketLoc, Qualifiers,
+                                            std::move(BindingItemList),
+                                            InitExprOpt.value());
     }
 
-    [[nodiscard]] static
-    auto ParseSingleObjectDestructureField(ParseContext &Context) noexcept
-        -> std::expected<AST::ObjectDestructureField *, ParseError>
+    [[nodiscard]]
+    static auto ParseSingleObjectBindingField(ParseContext &Context) noexcept
+        -> std::expected<AST::ObjectBindingField *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -1396,9 +1387,9 @@ namespace Parse {
 
             const auto Name = TokenStream.tokenContent(NameToken);
             const auto Result =
-                new AST::ObjectDestructureFieldSpread(Name, NameToken.Loc,
-                                                      KeyToken.Loc,
-                                                      AtKeyLocQualifiers);
+                new AST::ObjectBindingFieldSpread(Name, NameToken.Loc,
+                                                  KeyToken.Loc,
+                                                  AtKeyLocQualifiers);
 
             return Result;
         }
@@ -1432,7 +1423,7 @@ namespace Parse {
             const auto Key = TokenStream.tokenContent(KeyToken);
             const auto Name = TokenStream.tokenContent(NameToken);
 
-            return new AST::ObjectDestructureFieldIdentifier(
+            return new AST::ObjectBindingFieldIdentifier(
                 Key, KeyLoc, Name, NameLoc, AtKeyLocQualifiers);
         }
 
@@ -1443,37 +1434,31 @@ namespace Parse {
 
         const auto Key = TokenStream.tokenContent(KeyToken);
         if (TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket)) {
-            auto ArrayDestructureItemListOpt =
-                ParseArrayDestructureItemList(Context);
-
-            if (!ArrayDestructureItemListOpt.has_value()) {
+            auto ArrayBindingItemListOpt = ParseArrayBindingItemList(Context);
+            if (!ArrayBindingItemListOpt.has_value()) {
                 // FIXME: Properly recover here.
-                return std::unexpected(ArrayDestructureItemListOpt.error());
+                return std::unexpected(ArrayBindingItemListOpt.error());
             }
 
-            auto &ArrayDestructureItemList =
-                ArrayDestructureItemListOpt.value();
-
-            return new AST::ObjectDestructureFieldArray(
+            auto &ArrayBindingItemList = ArrayBindingItemListOpt.value();
+            return new AST::ObjectBindingFieldArray(
                 Key, KeyLoc, AtKeyLocQualifiers,
-                std::move(ArrayDestructureItemList));
+                std::move(ArrayBindingItemList));
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
-            auto ObjectDestructureFieldListOpt =
-                ParseObjectDestructureFieldList(Context);
+            auto ObjectBindingFieldListOpt =
+                ParseObjectBindingFieldList(Context);
 
-            if (!ObjectDestructureFieldListOpt.has_value()) {
+            if (!ObjectBindingFieldListOpt.has_value()) {
                 // FIXME: Properly recover here.
-                return std::unexpected(ObjectDestructureFieldListOpt.error());
+                return std::unexpected(ObjectBindingFieldListOpt.error());
             }
 
-            auto &ObjectDestructureFieldList =
-                ObjectDestructureFieldListOpt.value();
-
-            return new AST::ObjectDestructureFieldObject(
+            auto &ObjectBindingFieldList = ObjectBindingFieldListOpt.value();
+            return new AST::ObjectBindingFieldObject(
                 Key, KeyLoc, AtKeyLocQualifiers,
-                std::move(ObjectDestructureFieldList));
+                std::move(ObjectBindingFieldList));
         }
 
         const auto NameTokenOpt = TokenStream.consume();
@@ -1502,19 +1487,19 @@ namespace Parse {
         }
 
         const auto Name = TokenStream.tokenContent(NameToken);
-        return new AST::ObjectDestructureFieldIdentifier(Key, KeyLoc, Name,
-                                                         NameToken.Loc,
-                                                         AtKeyLocQualifiers);
+        return new AST::ObjectBindingFieldIdentifier(Key, KeyLoc, Name,
+                                                     NameToken.Loc,
+                                                     AtKeyLocQualifiers);
     }
 
-    [[nodiscard]] static auto
-    ParseObjectDestructureFieldList(ParseContext &Context) noexcept
-        -> std::expected<std::vector<AST::ObjectDestructureField *>, ParseError>
+    [[nodiscard]]
+    static auto ParseObjectBindingFieldList(ParseContext &Context) noexcept
+        -> std::expected<std::vector<AST::ObjectBindingField *>, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        auto DestructureItemList = std::vector<AST::ObjectDestructureField *>();
+        auto BindingItemList = std::vector<AST::ObjectBindingField *>();
         if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
@@ -1527,14 +1512,12 @@ namespace Parse {
         }
 
         do {
-            const auto DestructureItemOpt =
-                ParseSingleObjectDestructureField(Context);
-
-            if (!DestructureItemOpt.has_value()) {
-                return std::unexpected(DestructureItemOpt.error());
+            const auto BindingItemOpt = ParseSingleObjectBindingField(Context);
+            if (!BindingItemOpt.has_value()) {
+                return std::unexpected(BindingItemOpt.error());
             }
 
-            DestructureItemList.emplace_back(DestructureItemOpt.value());
+            BindingItemList.emplace_back(BindingItemOpt.value());
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
                 break;
             }
@@ -1565,24 +1548,24 @@ namespace Parse {
         } while (true);
 
     done:
-        return DestructureItemList;
+        return BindingItemList;
     }
 
     [[nodiscard]] static auto
-    ParseObjectDestructureVarDecl(ParseContext &Context,
-                                  const AST::Qualifiers &PreQualifiers,
-                                  const SourceLocation CurlyLoc) noexcept
+    ParseObjectBindingVarDecl(ParseContext &Context,
+                              const AST::Qualifiers &PreQualifiers,
+                              const SourceLocation CurlyLoc) noexcept
         -> std::expected<AST::Stmt *, ParseError>
     {
         auto Qualifiers = AST::Qualifiers();
         ParseQualifiers(Context, Qualifiers);
 
-        auto DestructureItemListOpt = ParseObjectDestructureFieldList(Context);
-        if (!DestructureItemListOpt.has_value()) {
-            return std::unexpected(DestructureItemListOpt.error());
+        auto BindingItemListOpt = ParseObjectBindingFieldList(Context);
+        if (!BindingItemListOpt.has_value()) {
+            return std::unexpected(BindingItemListOpt.error());
         }
 
-        auto &DestructureItemList = DestructureItemListOpt.value();
+        auto &BindingItemList = BindingItemListOpt.value();
         const auto InitExprOpt = ParseInitExpressionIfFound(Context);
 
         if (!InitExprOpt.has_value()) {
@@ -1590,10 +1573,9 @@ namespace Parse {
         }
 
         const auto InitExpr = InitExprOpt.value();
-        return new AST::ObjectDestructuredVarDecl(CurlyLoc, Qualifiers,
-                                                  std::move(
-                                                    DestructureItemList),
-                                                  InitExpr);
+        return new AST::ObjectBindingVarDecl(CurlyLoc, Qualifiers,
+                                             std::move(BindingItemList),
+                                             InitExpr);
     }
 
     auto
@@ -1604,8 +1586,8 @@ namespace Parse {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        auto Qualifiers = AST::Qualifiers();
         auto DeclLoc = SourceLocation();
+        auto Qualifiers = AST::Qualifiers();
 
         ParseQualifiers(Context, Qualifiers);
 
@@ -1613,13 +1595,13 @@ namespace Parse {
         if (NameTokenOpt.has_value()) {
             const auto NameToken = NameTokenOpt.value();
             if (NameToken.Kind == Lex::TokenKind::LeftSquareBracket) {
-                return ParseArrayDestructureVarDecl(Context, PreQualifiers,
-                                                    NameToken.Loc);
+                return ParseArrayBindingVarDecl(Context, PreQualifiers,
+                                                NameToken.Loc);
             }
 
             if (NameToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
-                return ParseObjectDestructureVarDecl(Context, PreQualifiers,
-                                                     NameToken.Loc);
+                return ParseObjectBindingVarDecl(Context, PreQualifiers,
+                                                 NameToken.Loc);
             }
 
             if (!VerifyDeclName(Context, NameToken, "variable")) {
@@ -1650,7 +1632,8 @@ namespace Parse {
             NameTokenOpt
                 .transform([&](const auto &Token) noexcept {
                     return Token.Loc;
-                }).value_or(DeclLoc);
+                })
+                .value_or(DeclLoc);
 
         const auto Name =
             NameTokenOpt
@@ -1659,24 +1642,20 @@ namespace Parse {
                 })
                 .value_or(std::string_view());
 
-        if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
-            const auto InitExprOpt = ParseExpression(Context);
-            if (!InitExprOpt.has_value()) {
-                return std::unexpected(InitExprOpt.error());
-            }
-
-            const auto InitExpr = InitExprOpt.value();
-            return new AST::VarDecl(Name, NameLoc, Qualifiers, TypeExpr,
-                                    InitExpr);
+        const auto InitExprOpt = ParseInitExpressionIfFound(Context);
+        if (!InitExprOpt.has_value()) {
+            return std::unexpected(InitExprOpt.error());
         }
 
-        Diag.consume({
-            .Level = DiagnosticLevel::Error,
-            .Location = TokenStream.getCurrOrPrevLoc(),
-            .Message = "Variable declarations must have an initial value"
-        });
+        const auto InitExpr = InitExprOpt.value();
+        if (InitExpr == nullptr) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Variable declarations must have an initial value"
+            });
+        }
 
-        return new AST::VarDecl(Name, NameLoc, Qualifiers, TypeExpr,
-                                /*InitExpr=*/nullptr);
+        return new AST::VarDecl(Name, NameLoc, Qualifiers, TypeExpr, InitExpr);
     }
 }
