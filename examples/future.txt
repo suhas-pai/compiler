@@ -8,6 +8,9 @@ func ttest<let T: u32 or u64, let U>(a: std.vector<U>(T)): u32 {
 
 }
 
+func gttest<let T>(a: T, b: () -> T)
+func gttest2(a: T, b: () -> typeof(a))
+
 extern let ptr: pointer;
 func b_func(): type {
     return <let T>(a: T): T => {

@@ -7,6 +7,7 @@
 
 #include "AST/Decls/ClosureDecl.h"
 #include "AST/Decls/FunctionDecl.h"
+#include "AST/Decls/InterfaceDecl.h"
 #include "AST/Decls/ShapeDecl.h"
 #include "AST/Decls/StructDecl.h"
 #include "AST/Decls/UnionDecl.h"
@@ -32,6 +33,13 @@ namespace Parse {
     ParseArrowFunctionDeclOrFunctionType(ParseContext &Context,
                                          Lex::Token ParenToken) noexcept
         -> std::expected<AST::Expr *, ParseError>;
+
+    [[nodiscard]] auto
+    ParseInterfaceDecl(ParseContext &Context,
+                       Lex::Token InterfaceKeywordToken,
+                       bool IsLValue,
+                       std::optional<Lex::Token> &NameTokenOptOut) noexcept
+        -> std::expected<AST::InterfaceDecl *, ParseError>;
 
     [[nodiscard]] auto
     ParseShapeDecl(ParseContext &Context,

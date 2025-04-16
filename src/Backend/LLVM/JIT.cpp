@@ -68,8 +68,11 @@ namespace Backend::LLVM {
                     }),
         CompileLayer(*this->ES, ObjectLayer,
                      std::make_unique<llvm::orc::ConcurrentIRCompiler>(
-                        std::move(JTMB))),
+                     std::move(JTMB))),
         OptimizeLayer(*this->ES, CompileLayer, optimizeModule),
+        IPLayer(*this->ES, OptimizeLayer),
+        CODLayer(*this->ES, IPLayer, this->EPCIU->getLazyCallThroughManager(),
+                 [this] { return this->EPCIU->createIndirectStubsManager(); }),
         MainJD(this->ES->createBareJITDylib("<main>")), Unit(Unit)
     {
         MainJD.addGenerator(
@@ -380,7 +383,7 @@ namespace Backend::LLVM {
 
         // Get the symbol's address and cast it to the right type (takes no
         // arguments, returns a double) so we can call it as a native function.
-        double (*const FP)() = ExprSymbol.getAddress().toPtr<double (*)()>();
+        double (*const FP)() = ExprSymbol.toPtr<double (*)()>();
         std::print(stdout, "{}{}{}", Prefix, FP(), Suffix);
 
         // Delete the anonymous expression module from the JIT.

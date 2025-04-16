@@ -24,6 +24,7 @@ namespace AST {
         ClosureDecl,
         EnumDecl,
         FunctionDecl,
+        InterfaceDecl,
         StructDecl,
         ShapeDecl,
         UnionDecl,

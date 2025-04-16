@@ -1,9 +1,10 @@
 /*
- * Parse/ParseVarDecl.cpp
+ * Parse/ParseDecl.cpp
  * © suhas pai
  */
 
 #include "AST/Decls/ArrayDestructredVarDecl.h"
+#include "AST/Decls/InterfaceDecl.h"
 #include "AST/Decls/ObjectDestructuredVarDecl.h"
 
 #include "AST/Decls/FieldDecl.h"
@@ -203,9 +204,9 @@ namespace Parse {
         }
 
         while (true) {
-            auto Stmt = static_cast<AST::Stmt *>(nullptr);
-
             auto WasControlFlowExpr = false;
+
+            auto Stmt = static_cast<AST::Stmt *>(nullptr);
             auto CommaLocOpt = std::optional<SourceLocation>(std::nullopt);
 
             if (const auto IfTokenOpt =
@@ -217,7 +218,7 @@ namespace Parse {
                                     return ParseFieldDecl(Context,
                                                           AllowOptionalFields);
                                 },
-                                Lex::TokenKind::Comma);
+                                /*SeparatorOpt=*/Lex::TokenKind::Comma);
 
                 if (!IfExprOpt.has_value()) {
                     return IfExprOpt.error();
@@ -229,7 +230,7 @@ namespace Parse {
                 if (const auto CommaTokenOpt =
                         TokenStream.consumeIfIs(Lex::TokenKind::Comma))
                 {
-                    CommaLocOpt = CommaTokenOpt.value().Loc;
+                    CommaLocOpt = CommaTokenOpt->Loc;
                 }
             } else {
                 const auto DeclOpt =
@@ -764,6 +765,72 @@ namespace Parse {
 
         return new AST::FunctionDecl(ParenToken.Loc, std::move(ParamList),
                                      ReturnTypeExpr, Body);
+    }
+
+    auto
+    ParseInterfaceDecl(ParseContext &Context,
+                       const Lex::Token InterfaceKeywordToken,
+                       const bool IsLValue,
+                       std::optional<Lex::Token> &NameTokenOptOut) noexcept
+        -> std::expected<AST::InterfaceDecl *, ParseError>
+    {
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        auto FieldList = std::vector<AST::Stmt *>();
+        if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
+            if (const auto Error =
+                    ParseFieldList(Context, InterfaceKeywordToken.Loc,
+                                   FieldList, /*AllowOptionalFields=*/true);
+                Error != ParseError::None)
+            {
+                return std::unexpected(Error);
+            }
+
+            NameTokenOptOut = std::nullopt;
+            return new AST::InterfaceDecl(InterfaceKeywordToken.Loc,
+                                          std::move(FieldList));
+        }
+
+        const auto NameTokenOpt = TokenStream.consume();
+        if (!NameTokenOpt.has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected a name for interface declaration"
+            });
+
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
+        const auto NameToken = NameTokenOpt.value();
+        if (!VerifyDeclName(Context, NameToken, "interface")) {
+            if (!TokenStream.proceedToAndConsume(
+                    Lex::TokenKind::OpenCurlyBrace))
+            {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = NameToken.Loc,
+                    .Message = "Expected '{' after interface declaration"
+                });
+
+                return std::unexpected(ParseError::FailedCouldNotProceed);
+            }
+        }
+
+        NameTokenOptOut = NameToken;
+        TokenStream.consume();
+
+        if (const auto Error =
+                ParseFieldList(Context, NameToken.Loc, FieldList,
+                               /*AllowOptionalFields=*/true);
+            Error != ParseError::None)
+        {
+            return std::unexpected(Error);
+        }
+
+        return new AST::InterfaceDecl(InterfaceKeywordToken.Loc,
+                                      std::move(FieldList));
     }
 
     auto

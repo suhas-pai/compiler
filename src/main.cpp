@@ -8,6 +8,7 @@
 #include "AST/Decls/ArrayDecl.h"
 #include "AST/Decls/ArrayDestructredVarDecl.h"
 #include "AST/Decls/ClosureDecl.h"
+#include "AST/Decls/InterfaceDecl.h"
 #include "AST/Decls/ObjectDestructuredVarDecl.h"
 #include "AST/Decls/EnumDecl.h"
 #include "AST/Decls/EnumMemberDecl.h"
@@ -333,7 +334,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("Args\n");
 
             const auto &ParamList = FuncDecl->getParamList();
-            for (const auto &Param : ParamList) {
+            for (const auto Param : ParamList) {
                 PrintAST(Handler, Param, Depth + 2);
             }
 
@@ -376,7 +377,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("Args\n");
 
-            for (const auto &Arg : CallExpr->getArgs()) {
+            for (const auto Arg : CallExpr->getArgs()) {
                 PrintAST(Handler, Arg, Depth + 2);
             }
 
@@ -414,8 +415,18 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto CompoundStmt = llvm::cast<AST::CompoundStmt>(Stmt);
             std::print("CompoundStmt\n");
 
-            for (const auto &Stmt : CompoundStmt->getStmtList()) {
+            for (const auto Stmt : CompoundStmt->getStmtList()) {
                 PrintAST(Handler, Stmt, Depth + 1);
+            }
+
+            return;
+        }
+        case AST::NodeKind::InterfaceDecl: {
+            const auto InterfaceDecl = llvm::cast<AST::InterfaceDecl>(Stmt);
+            std::print("InterfaceDecl\n");
+
+            for (const auto Field : InterfaceDecl->getFieldList()) {
+                PrintAST(Handler, Field, Depth + 1);
             }
 
             return;
@@ -643,7 +654,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("DetailList\n");
 
-            for (const auto &Detail : ArrayTypeExpr->getDetailList()) {
+            for (const auto Detail : ArrayTypeExpr->getDetailList()) {
                 PrintAST(Handler, Detail, Depth + 2);
             }
 
@@ -656,7 +667,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("ParamList\n");
 
-            for (const auto &Param : FuncTypeExpr->getParamList()) {
+            for (const auto Param : FuncTypeExpr->getParamList()) {
                 PrintAST(Handler, Param, Depth + 2);
             }
 
@@ -718,7 +729,7 @@ HandlePrompt(const std::string_view &Prompt,
         auto TokenList = TokenBuffer->getTokenList();
         fputs("Tokens:\n", stdout);
 
-        for (const auto &Token : TokenList) {
+        for (const auto Token : TokenList) {
             std::print("\t{}\n", Lex::TokenKindGetName(Token.Kind));
         }
 
@@ -817,7 +828,7 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
             auto TokenList = TokenBuffer->getTokenList();
             fputs("Tokens:\n", stdout);
 
-            for (const auto &Token : TokenList) {
+            for (const auto Token : TokenList) {
                 std::print("\t{}\n", Lex::TokenKindGetName(Token.Kind));
             }
 

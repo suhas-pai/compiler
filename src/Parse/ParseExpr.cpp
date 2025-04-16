@@ -548,7 +548,18 @@ done:
                 Root = Result.value();
                 break;
             }
-            case Lex::Keyword::Interface:
+            case Lex::Keyword::Interface: {
+                const auto Result =
+                    ParseInterfaceDecl(Context, KeywordTok, InPlaceOfStmt,
+                                       NameOpt);
+
+                if (!Result.has_value()) {
+                    return std::unexpected(Result.error());
+                }
+
+                Root = Result.value();
+                break;
+            }
             case Lex::Keyword::Impl:
             case Lex::Keyword::Enum:
                 //Root = ParseEnumDecl(Context, UnusedNameTokenOpt);

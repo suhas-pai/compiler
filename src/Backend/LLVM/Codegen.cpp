@@ -672,6 +672,7 @@ namespace Backend::LLVM {
             case AST::NodeKind::DotIdentifierExpr:
             case AST::NodeKind::OptionalUnwrapExpr:
             case AST::NodeKind::StructDecl:
+            case AST::NodeKind::InterfaceDecl:
             case AST::NodeKind::ShapeDecl:
             case AST::NodeKind::UnionDecl:
             case AST::NodeKind::ArraySubscriptExpr:

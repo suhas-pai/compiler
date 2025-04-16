@@ -43,7 +43,7 @@ namespace Backend::LLVM {
         this->SI =
             std::make_unique<llvm::StandardInstrumentations>(
                 *TheContext,
-                /*DebugLogging*/true);
+                /*DebugLogging=*/true);
 
         this->SI->registerCallbacks(*PIC, MAM.get());
         // Add transform passes.

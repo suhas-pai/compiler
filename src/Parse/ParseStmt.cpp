@@ -239,7 +239,34 @@ namespace Parse {
                         return new AST::LvalueNamedDecl(Name, NameTok.Loc,
                                                         Result.value());
                     }
-                    case Lex::Keyword::Interface:
+                    case Lex::Keyword::Interface: {
+                        auto NameTokOpt =
+                            std::optional<Lex::Token>(std::nullopt);
+
+                        const auto Result =
+                            ParseInterfaceDecl(Context, Token, /*IsLValue=*/true,
+                                               NameTokOpt);
+
+                        if (!Result.has_value()) {
+                            return std::unexpected(Result.error());
+                        }
+
+                        if (!NameTokOpt.has_value()) {
+                            Diag.consume({
+                                .Level = DiagnosticLevel::Error,
+                                .Location = Token.Loc,
+                                .Message =
+                                    "Expected name for top-level interface "
+                                    "declaration"
+                            });
+                        }
+
+                        const auto NameTok = NameTokOpt.value();
+                        const auto Name = TokenStream.tokenContent(NameTok);
+
+                        return new AST::LvalueNamedDecl(Name, NameTok.Loc,
+                                                        Result.value());
+                    }
                     case Lex::Keyword::Impl:
                         __builtin_unreachable();
                     case Lex::Keyword::Enum:

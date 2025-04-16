@@ -14,9 +14,11 @@
 #include "llvm/ADT/StringRef.h"
 
 #include "llvm/ExecutionEngine/Orc/Core.h"
+#include "llvm/ExecutionEngine/Orc/CompileOnDemandLayer.h"
 #include "llvm/ExecutionEngine/Orc/EPCIndirectionUtils.h"
 #include "llvm/ExecutionEngine/Orc/ExecutorProcessControl.h"
 #include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
+#include "llvm/ExecutionEngine/Orc/IRPartitionLayer.h"
 #include "llvm/ExecutionEngine/Orc/IRTransformLayer.h"
 #include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -37,6 +39,8 @@ namespace Backend::LLVM {
         llvm::orc::RTDyldObjectLinkingLayer ObjectLayer;
         llvm::orc::IRCompileLayer CompileLayer;
         llvm::orc::IRTransformLayer OptimizeLayer;
+        llvm::orc::IRPartitionLayer IPLayer;
+        llvm::orc::CompileOnDemandLayer CODLayer;
 
         llvm::orc::JITDylib &MainJD;
         const Parse::ParseUnit &Unit;
@@ -80,7 +84,7 @@ namespace Backend::LLVM {
                 RT = this->MainJD.getDefaultResourceTracker();
             }
 
-            return this->CompileLayer.add(RT, std::move(TSM));
+            return this->CODLayer.add(RT, std::move(TSM));
         }
 
         [[nodiscard]] auto lookup(const llvm::StringRef Name) noexcept
