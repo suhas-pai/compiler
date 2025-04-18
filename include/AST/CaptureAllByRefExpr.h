@@ -18,12 +18,12 @@ namespace AST {
     public:
         explicit
         CaptureAllByRefExpr(const SourceLocation Loc,
-                         const struct Qualifiers &Qualifiers) noexcept
+                            const struct Qualifiers &Qualifiers) noexcept
         : Expr(ObjKind), Loc(Loc), Qualifiers(Qualifiers) {}
 
         explicit
         CaptureAllByRefExpr(const SourceLocation Loc,
-                         struct Qualifiers &&Qualifiers) noexcept
+                            struct Qualifiers &&Qualifiers) noexcept
         : Expr(ObjKind), Loc(Loc), Qualifiers(std::move(Qualifiers)) {}
 
         [[nodiscard]]
@@ -36,7 +36,8 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] SourceLocation getLoc() const noexcept override {
+        [[nodiscard]]
+        constexpr SourceLocation getLoc() const noexcept override {
             return this->Loc;
         }
 
