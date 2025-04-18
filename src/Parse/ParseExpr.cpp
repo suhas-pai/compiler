@@ -190,8 +190,9 @@ namespace Parse {
                 }
 
                 TokenStream.consume();
-                if (const auto Opt = IsLikelyParamList(TokenStream)) {
-                    return Opt.value();
+                if (const auto IsParamListOpt = IsLikelyParamList(TokenStream))
+                {
+                    return IsParamListOpt.value();
                 }
 
                 return false;
@@ -210,22 +211,67 @@ namespace Parse {
         //  (a) We have an array
         //  (b) We have an array-type
 
-        if (const auto PeekTokenOpt = TokenStream.peek();
-            (!TokenStream.tokenIsBinOp(PeekTokenOpt.value()) &&
-             PeekTokenOpt.value().Kind != Lex::TokenKind::DotIdentifier))
-        {
-            // We have an array-type
-            const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
-            if (!BaseOpt.has_value()) {
-                return std::unexpected(BaseOpt.error());
+        // (a) is the case where we have an array-type.
+        //
+        // Here, we expect an expression that is not a binary operation or
+        // expression or a member-access expression (a dot-identifier token).
+
+        if (const auto PeekTokenOpt = TokenStream.peek()) {
+            const auto PeekToken = PeekTokenOpt.value();
+            if (!TokenStream.tokenIsBinOp(PeekToken) &&
+                PeekToken.Kind != Lex::TokenKind::DotIdentifier)
+            {
+                // If we have a question-mark, we need to check if the
+                // programmer intended to use an optional-type or if they
+                // (mistakenly) used a question-mark to unwrap a non-optional
+                // array.
+                //
+                // If they intended to use an optional-type, we need to parse
+                // the expression after the question-mark as the operand of
+                // the optional-type.
+                //
+                // If they (mistakenly) used a question-mark to unwrap a
+                // non-optional array, we need to parse the expression after
+                // the question-mark as a simple array.
+
+                if (PeekToken.Kind == Lex::TokenKind::QuestionMark) {
+                    TokenStream.consume();
+
+                    const auto PeekToken2Opt = TokenStream.peek();
+                    if (!PeekToken2Opt.has_value()) {
+                        TokenStream.goBack();
+
+                        auto &DetailList = DetailListOpt.value();
+                        return new AST::ArrayDecl(BracketToken.Loc,
+                                                  std::move(DetailList));
+                    }
+
+                    const auto PeekToken2 = PeekToken2Opt.value();
+                    if (TokenStream.tokenIsBinOp(PeekToken2) ||
+                        PeekToken2.Kind == Lex::TokenKind::DotIdentifier)
+                    {
+                        TokenStream.goBack();
+
+                        auto &DetailList = DetailListOpt.value();
+                        return new AST::ArrayDecl(BracketToken.Loc,
+                                                  std::move(DetailList));
+                    }
+                }
+
+                // We have an array-type
+                const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
+                if (!BaseOpt.has_value()) {
+                    return std::unexpected(BaseOpt.error());
+                }
+
+                auto Base = BaseOpt.value();
+                auto &DetailList = DetailListOpt.value();
+                auto Quals = Sema::PointerBaseTypeQualifiers();
+
+                return new AST::ArrayTypeExpr(BracketToken.Loc,
+                                              std::move(DetailList), Base,
+                                              Quals);
             }
-
-            auto Base = BaseOpt.value();
-            auto &DetailList = DetailListOpt.value();
-            auto Quals = Sema::PointerBaseTypeQualifiers();
-
-            return new AST::ArrayTypeExpr(BracketToken.Loc,
-                                          std::move(DetailList), Base, Quals);
         }
 
         auto &DetailList = DetailListOpt.value();
@@ -379,9 +425,7 @@ done:
             Lex::TokenKind::ThinArrow
         };
 
-        auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
-
         while (true) {
             if (TokenStream.peekIsOneOf(FieldTokenList)) {
                 const auto Token = TokenStream.consume().value();
@@ -402,22 +446,9 @@ done:
                         TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark))
                 {
                     const auto Token = TokenOpt.value();
-                    if (TokenStream.peekIs(Lex::TokenKind::OpenParen) ||
-                        TokenStream.peekIs(Lex::TokenKind::LeftSquareBracket) ||
-                        TokenStream.peekIs(Lex::TokenKind::Dot) ||
-                        TokenStream.peekIs(Lex::TokenKind::DotIdentifier))
-                    {
-                        Root = new AST::OptionalUnwrapExpr(Token.Loc, Root);
-                        continue;
-                    }
+                    Root = new AST::OptionalUnwrapExpr(Token.Loc, Root);
 
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = Token.Loc,
-                        .Message = "Expected '(' or '[' or '.' after '?'"
-                    });
-
-                    return std::unexpected(ParseError::FailedCouldNotProceed);
+                    continue;
                 }
             }
 
@@ -618,7 +649,8 @@ done:
     }
 
     [[nodiscard]] static auto
-    ParseParenExpr(ParseContext &Context, const Lex::Token ParenToken) noexcept
+    ParseExprWithOpenParen(ParseContext &Context,
+                           const Lex::Token ParenToken) noexcept
         -> std::expected<AST::Expr *, ParseError>
     {
         auto &Diag = Context.Diag;
@@ -866,7 +898,9 @@ done:
                         Expr = ParseStringLiteral(Context, Token);
                         break;
                     case Lex::TokenKind::OpenParen: {
-                        const auto Result = ParseParenExpr(Context, Token);
+                        const auto Result =
+                            ParseExprWithOpenParen(Context, Token);
+
                         if (!Result.has_value()) {
                             return std::unexpected(Result.error());
                         }
@@ -972,22 +1006,36 @@ done:
 
             Expr = ParseResult.value();
             if (Root != nullptr) {
+                auto Found = false;
                 if (const auto PtrType =
                         llvm::dyn_cast<AST::PointerTypeExpr>(CurrentOper))
                 {
                     PtrType->setOperand(*Expr);
+                    Found = true;
                 }
 
                 if (const auto OptType =
                         llvm::dyn_cast<AST::OptionalTypeExpr>(CurrentOper))
                 {
                     OptType->setOperand(*Expr);
+                    Found = true;
                 }
 
                 if (const auto UnaryExpr =
                         llvm::dyn_cast<AST::UnaryOperation>(CurrentOper))
                 {
                     UnaryExpr->setOperand(*Expr);
+                    Found = true;
+                }
+
+                if (!Found) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = Expr->getLoc(),
+                        .Message = "Expected an expression"
+                    });
+
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
                 }
             } else {
                 Root = Expr;
