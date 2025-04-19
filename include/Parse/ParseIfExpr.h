@@ -14,12 +14,11 @@
 
 namespace Parse {
     [[nodiscard]] auto
-    ParseIfExpr(
-        ParseContext &Context,
-        const Lex::Token IfToken,
-        auto &&Parser,
-        std::optional<Lex::TokenKind> SeparatorOpt) noexcept
-            -> std::expected<AST::IfExpr *, ParseError>;
+    ParseIfExpr(ParseContext &Context,
+                const Lex::Token IfToken,
+                auto &&Parser,
+                std::optional<Lex::TokenKind> SeparatorOpt) noexcept
+        -> std::expected<AST::IfExpr *, ParseError>;
 
     [[nodiscard]] auto
     ParseIfElseExprCompoundStmt(
@@ -141,8 +140,7 @@ namespace Parse {
         if (const auto CurlyTokenOpt =
                 TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace))
         {
-            auto LastSeparatorLoc =
-                std::optional<SourceLocation>(std::nullopt);
+            auto LastSeparatorLoc = std::optional<SourceLocation>(std::nullopt);
 
             const auto CurlyToken = CurlyTokenOpt.value();
             const auto Result =

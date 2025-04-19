@@ -141,8 +141,8 @@ union(enum) UE {
 }
 
 class C {
-    private let mut a: A;
-    public func init(): result<*mut C, Error> {
+    private a: mut A;
+    public func init(): result(*mut C, Error) {
         return malloc(sizeof(C));
     }
 

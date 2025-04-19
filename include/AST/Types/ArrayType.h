@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "AST/Expr.h"
-#include "Sema/Types/PointerQualifiers.h"
+#include "AST/Qualifiers.h"
 
 namespace AST {
     struct ArrayTypeExpr : public Expr {
@@ -21,24 +21,43 @@ namespace AST {
         SourceLocation BracketLoc;
         Expr *Base;
 
-        Sema::PointerBaseTypeQualifiers Qualifiers;
+        AST::Qualifiers Qualifiers;
     public:
         constexpr explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
                       const std::span<Stmt *> DetailList,
                       Expr *const Base,
-                      const Sema::PointerBaseTypeQualifiers Qualifiers) noexcept
+                      const AST::Qualifiers &Qualifiers) noexcept
         : Expr(NodeKind::ArrayType),
           DetailList(DetailList.begin(), DetailList.end()),
           BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
 
         constexpr explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
+                      const std::span<Stmt *> DetailList,
+                      Expr *const Base,
+                      AST::Qualifiers &&Qualifiers) noexcept
+        : Expr(NodeKind::ArrayType),
+          DetailList(DetailList.begin(), DetailList.end()),
+          BracketLoc(BracketLoc), Base(Base),
+          Qualifiers(std::move(Qualifiers)) {}
+
+        constexpr explicit
+        ArrayTypeExpr(const SourceLocation BracketLoc,
                       std::vector<Stmt *> &&DetailList,
                       Expr *const Base,
-                      const Sema::PointerBaseTypeQualifiers Qualifiers) noexcept
+                      const AST::Qualifiers &Qualifiers) noexcept
         : Expr(NodeKind::ArrayType), DetailList(std::move(DetailList)),
           BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
+
+        constexpr explicit
+        ArrayTypeExpr(const SourceLocation BracketLoc,
+                      std::vector<Stmt *> &&DetailList,
+                      Expr *const Base,
+                      AST::Qualifiers &&Qualifiers) noexcept
+        : Expr(NodeKind::ArrayType), DetailList(std::move(DetailList)),
+          BracketLoc(BracketLoc), Base(Base),
+          Qualifiers(std::move(Qualifiers)) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {

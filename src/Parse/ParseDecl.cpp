@@ -13,7 +13,6 @@
 #include "AST/Decls/VarDecl.h"
 
 #include "AST/Types/FunctionType.h"
-#include "AST/NumberLiteral.h"
 
 #include "AST/CaptureAllByRefExpr.h"
 #include "AST/CaptureAllByValueExpr.h"
@@ -86,7 +85,7 @@ namespace Parse {
             return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        return ParseExpression(Context);
+        return ParseLhs(Context, /*InPlaceOfStmt=*/false);
     }
 
     [[nodiscard]]
@@ -770,7 +769,6 @@ namespace Parse {
     auto
     ParseInterfaceDecl(ParseContext &Context,
                        const Lex::Token InterfaceKeywordToken,
-                       const bool IsLValue,
                        std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::InterfaceDecl *, ParseError>
     {
@@ -836,7 +834,6 @@ namespace Parse {
     auto
     ParseShapeDecl(ParseContext &Context,
                    const Lex::Token ShapeKeywordToken,
-                   const bool IsLValue,
                    std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::ShapeDecl *, ParseError>
     {
@@ -901,7 +898,6 @@ namespace Parse {
     auto
     ParseStructDecl(ParseContext &Context,
                     const Lex::Token StructKeywordToken,
-                    const bool IsLValue,
                     std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::StructDecl *, ParseError>
     {
@@ -970,7 +966,6 @@ namespace Parse {
     auto
     ParseUnionDecl(ParseContext &Context,
                    const Lex::Token UnionKeywordToken,
-                   const bool IsLValue,
                    std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::UnionDecl *, ParseError>
     {

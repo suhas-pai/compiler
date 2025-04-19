@@ -266,11 +266,10 @@ namespace Parse {
 
                 auto Base = BaseOpt.value();
                 auto &DetailList = DetailListOpt.value();
-                auto Quals = Sema::PointerBaseTypeQualifiers();
 
                 return new AST::ArrayTypeExpr(BracketToken.Loc,
                                               std::move(DetailList), Base,
-                                              Quals);
+                                              AST::Qualifiers());
             }
         }
 
@@ -523,8 +522,7 @@ done:
         switch (Keyword) {
             case Lex::Keyword::Struct: {
                 const auto Result =
-                    ParseStructDecl(Context, KeywordTok, InPlaceOfStmt,
-                                    NameOpt);
+                    ParseStructDecl(Context, KeywordTok,  NameOpt);
 
                 if (!Result.has_value()) {
                     return std::unexpected(Result.error());
@@ -537,7 +535,7 @@ done:
                 break;
             case Lex::Keyword::Shape: {
                 const auto Result =
-                    ParseShapeDecl(Context, KeywordTok, InPlaceOfStmt, NameOpt);
+                    ParseShapeDecl(Context, KeywordTok, NameOpt);
 
                 if (!Result.has_value()) {
                     return std::unexpected(Result.error());
@@ -548,7 +546,7 @@ done:
             }
             case Lex::Keyword::Union: {
                 const auto Result =
-                    ParseUnionDecl(Context, KeywordTok, InPlaceOfStmt, NameOpt);
+                    ParseUnionDecl(Context, KeywordTok, NameOpt);
 
                 if (!Result.has_value()) {
                     return std::unexpected(Result.error());
@@ -559,8 +557,7 @@ done:
             }
             case Lex::Keyword::Interface: {
                 const auto Result =
-                    ParseInterfaceDecl(Context, KeywordTok, InPlaceOfStmt,
-                                       NameOpt);
+                    ParseInterfaceDecl(Context, KeywordTok, NameOpt);
 
                 if (!Result.has_value()) {
                     return std::unexpected(Result.error());
@@ -997,14 +994,19 @@ done:
                 Expr = Result.value();
             }
 
-            const auto ParseResult =
-                ParseCallAndFieldExprs(Context, Expr, Qualifiers);
+            if (!llvm::isa<AST::OptionalTypeExpr>(Expr) &&
+                !llvm::isa<AST::PointerTypeExpr>(Expr))
+            {
+                const auto ParseResult =
+                    ParseCallAndFieldExprs(Context, Expr, Qualifiers);
 
-            if (!ParseResult.has_value()) {
-                return std::unexpected(ParseResult.error());
+                if (!ParseResult.has_value()) {
+                    return std::unexpected(ParseResult.error());
+                }
+
+                Expr = ParseResult.value();
             }
 
-            Expr = ParseResult.value();
             if (Root != nullptr) {
                 auto Found = false;
                 if (const auto PtrType =

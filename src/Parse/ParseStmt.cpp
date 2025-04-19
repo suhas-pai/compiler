@@ -149,8 +149,7 @@ namespace Parse {
                             std::optional<Lex::Token>(std::nullopt);
 
                         const auto Result =
-                            ParseStructDecl(Context, Token, /*IsLValue=*/true,
-                                            NameTokOpt);
+                            ParseStructDecl(Context, Token, NameTokOpt);
 
                         if (!Result.has_value()) {
                             return std::unexpected(Result.error());
@@ -180,8 +179,7 @@ namespace Parse {
                             std::optional<Lex::Token>(std::nullopt);
 
                         const auto Result =
-                            ParseUnionDecl(Context, Token, /*IsLValue=*/true,
-                                           NameTokOpt);
+                            ParseUnionDecl(Context, Token, NameTokOpt);
 
                         if (!Result.has_value()) {
                             return std::unexpected(Result.error());
@@ -213,8 +211,7 @@ namespace Parse {
                             std::optional<Lex::Token>(std::nullopt);
 
                         const auto Result =
-                            ParseShapeDecl(Context, Token, /*IsLValue=*/true,
-                                           NameTokOpt);
+                            ParseShapeDecl(Context, Token, NameTokOpt);
 
                         if (!Result.has_value()) {
                             return std::unexpected(Result.error());
@@ -244,8 +241,7 @@ namespace Parse {
                             std::optional<Lex::Token>(std::nullopt);
 
                         const auto Result =
-                            ParseInterfaceDecl(Context, Token, /*IsLValue=*/true,
-                                               NameTokOpt);
+                            ParseInterfaceDecl(Context, Token, NameTokOpt);
 
                         if (!Result.has_value()) {
                             return std::unexpected(Result.error());

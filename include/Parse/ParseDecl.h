@@ -37,28 +37,24 @@ namespace Parse {
     [[nodiscard]] auto
     ParseInterfaceDecl(ParseContext &Context,
                        Lex::Token InterfaceKeywordToken,
-                       bool IsLValue,
                        std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::InterfaceDecl *, ParseError>;
 
     [[nodiscard]] auto
     ParseShapeDecl(ParseContext &Context,
                    Lex::Token StructKeywordToken,
-                   bool IsLValue,
                    std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::ShapeDecl *, ParseError>;
 
     [[nodiscard]] auto
     ParseStructDecl(ParseContext &Context,
                     Lex::Token StructKeywordToken,
-                    bool IsLValue,
                     std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::StructDecl *, ParseError>;
 
     [[nodiscard]] auto
     ParseUnionDecl(ParseContext &Context,
                    Lex::Token UnionKeywordToken,
-                   bool IsLValue,
                    std::optional<Lex::Token> &NameTokenOptOut) noexcept
         -> std::expected<AST::UnionDecl *, ParseError>;
 

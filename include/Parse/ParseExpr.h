@@ -17,8 +17,7 @@ namespace Parse {
     [[nodiscard]] auto
     ParseBinaryOperationWithRhsPrec(ParseContext &Context,
                                     AST::Expr *Lhs,
-                                    uint32_t MinPrec,
-                                    bool InPlaceOfStmt) noexcept
+                                    uint32_t MinPrec) noexcept
         -> std::expected<AST::Expr *, ParseError>;
 
     [[nodiscard]] auto ParseExpression(ParseContext &Context) noexcept
