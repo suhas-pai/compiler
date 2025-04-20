@@ -13,6 +13,11 @@
 namespace AST {
     struct CallExpr : public Expr {
     public:
+        struct Argument {
+            std::optional<std::string_view> Name;
+            Expr *Expr;
+        };
+
         constexpr static auto ObjKind = NodeKind::CallExpr;
     protected:
         Expr *CalleeExpr;
@@ -20,23 +25,25 @@ namespace AST {
         SourceLocation ParenLoc;
         Qualifiers Quals;
 
-        std::vector<Expr *> Args;
+        std::vector<Argument> ArgList;
     public:
         explicit
-        CallExpr(Expr *const Callee,
-                 const SourceLocation ParenLoc,
-                 const Qualifiers &Quals,
-                 const std::span<Expr *> Args) noexcept
+        CallExpr(
+            Expr *const Callee,
+            const SourceLocation ParenLoc,
+            const Qualifiers &Quals,
+            const std::span<Argument> ArgList) noexcept
         : Expr(ObjKind), CalleeExpr(Callee), ParenLoc(ParenLoc), Quals(Quals),
-          Args(Args.begin(), Args.end()) {}
+          ArgList(ArgList.begin(), ArgList.end()) {}
 
         explicit
-        CallExpr(Expr *const Callee,
-                 const SourceLocation ParenLoc,
-                 const Qualifiers &Quals,
-                 std::vector<Expr *> &&Args) noexcept
+        CallExpr(
+            Expr *const Callee,
+            const SourceLocation ParenLoc,
+            const Qualifiers &Quals,
+            std::vector<Argument> &&ArgList) noexcept
         : Expr(ObjKind), CalleeExpr(Callee), ParenLoc(ParenLoc), Quals(Quals),
-          Args(std::move(Args)) {}
+          ArgList(std::move(ArgList)) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -62,11 +69,11 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getArgs() const noexcept {
-            return std::span(this->Args);
+            return std::span(this->ArgList);
         }
 
         [[nodiscard]] constexpr auto &getArgsRef() noexcept {
-            return this->Args;
+            return this->ArgList;
         }
 
         constexpr auto setCallee(Expr *const Callee) noexcept -> decltype(*this)

@@ -284,6 +284,49 @@ namespace Parse {
         return ParseError::None;
     }
 
+    [[nodiscard]]
+    static auto ParseSingleFunctionParam(ParseContext &Context) noexcept
+        -> std::expected<AST::ParamVarDecl *, ParseError>
+    {
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        const auto ParamNameTokenOpt = TokenStream.consume();
+        if (!ParamNameTokenOpt.has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Message = "Expected a name for function parameter"
+            });
+
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
+        const auto ParamNameToken = ParamNameTokenOpt.value();
+        if (!VerifyDeclName(Context, ParamNameToken, "parameter")) {
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
+        const auto TypeExprOpt =
+            ParseTypeAnnotationIfFound(Context, Lex::TokenKind::Comma);
+
+        if (!TypeExprOpt.has_value()) {
+            return std::unexpected(TypeExprOpt.error());
+        }
+
+        const auto InitExprOpt = ParseInitExpressionIfFound(Context);
+        if (!InitExprOpt.has_value()) {
+            return std::unexpected(InitExprOpt.error());
+        }
+
+        const auto TypeExpr = TypeExprOpt.value();
+        const auto InitExpr = InitExprOpt.value();
+        const auto ParamName = TokenStream.tokenContent(ParamNameToken);
+
+        return new AST::ParamVarDecl(ParamName, ParamNameToken.Loc, TypeExpr,
+                                     InitExpr);
+    }
+
     [[nodiscard]] static auto
     ParseFunctionParamList(ParseContext &Context,
                            const Lex::Token ParenToken) noexcept
@@ -304,14 +347,8 @@ namespace Parse {
         }
 
         do {
-            const auto NameTokenOpt = TokenStream.consume();
-            if (!NameTokenOpt.has_value()) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
-                    .Message = "Expected a name for function parameter"
-                });
-
+            const auto ParamOpt = ParseSingleFunctionParam(Context);
+            if (!ParamOpt.has_value()) {
                 switch (ProceedToNextParam()) {
                     case ProceedResult::Failed:
                         return std::unexpected(
@@ -321,44 +358,9 @@ namespace Parse {
                     case ProceedResult::EndToken:
                         goto done;
                 }
-
-                continue;
             }
 
-            const auto NameToken = NameTokenOpt.value();
-            if (!VerifyDeclName(Context, NameToken, "parameter")) {
-                switch (ProceedToNextParam()) {
-                    case ProceedResult::Failed:
-                        return std::unexpected(
-                            ParseError::FailedCouldNotProceed);
-                    case ProceedResult::Comma:
-                        continue;
-                    case ProceedResult::EndToken:
-                        goto done;
-                }
-
-                continue;
-            }
-
-            const auto Name = TokenStream.tokenContent(NameToken);
-            const auto TypeExprOpt =
-                ParseTypeAnnotationIfFound(Context, Lex::TokenKind::Comma);
-
-            if (!TypeExprOpt.has_value()) {
-                return std::unexpected(TypeExprOpt.error());
-            }
-
-            const auto InitExprOpt = ParseInitExpressionIfFound(Context);
-            if (!InitExprOpt.has_value()) {
-                return std::unexpected(InitExprOpt.error());
-            }
-
-            const auto TypeExpr = TypeExprOpt.value();
-            const auto InitExpr = InitExprOpt.value();
-
-            List.emplace_back(
-                new AST::ParamVarDecl(Name, NameToken.Loc, TypeExpr, InitExpr));
-
+            List.emplace_back(ParamOpt.value());
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
                 break;
             }

@@ -363,14 +363,25 @@ namespace Parse {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        auto ArgList = std::vector<AST::Expr *>();
+        auto ArgList = std::vector<AST::CallExpr::Argument>();
         if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
             goto done;
         }
 
         do {
+            auto ArgNameOpt = std::optional<std::string_view>(std::nullopt);
+            if (const auto IdentTokenOpt =
+                    TokenStream.consumeIfIs(Lex::TokenKind::Identifier))
+            {
+                if (TokenStream.consumeIfIs(Lex::TokenKind::Colon)) {
+                    ArgNameOpt = TokenStream.tokenContent(IdentTokenOpt.value());
+                } else {
+                    TokenStream.goBack();
+                }
+            }
+
             if (const auto ExprOpt = ParseExpression(Context)) {
-                ArgList.emplace_back(ExprOpt.value());
+                ArgList.emplace_back(ArgNameOpt, ExprOpt.value());
                 if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
                     continue;
                 }

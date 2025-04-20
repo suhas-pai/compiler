@@ -377,7 +377,19 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("Args\n");
 
             for (const auto Arg : CallExpr->getArgs()) {
-                PrintAST(Handler, Arg, Depth + 2);
+                PrintDepth(Depth + 2);
+                std::print("Arg\n");
+
+                PrintDepth(Depth + 3);
+                std::print("Label\n");
+
+                PrintDepth(Depth + 4);
+                std::print("\"{}\"\n", Arg.Name.value_or("<null>"));
+
+                PrintDepth(Depth + 3);
+                std::print("Expr\n");
+
+                PrintAST(Handler, Arg.Expr, Depth + 4);
             }
 
             return;
