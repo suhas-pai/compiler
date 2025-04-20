@@ -21,40 +21,40 @@ namespace AST {
         SourceLocation BracketLoc;
         Expr *Base;
 
-        AST::Qualifiers Qualifiers;
+        Qualifiers Qualifiers;
     public:
-        constexpr explicit
+        explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
                       const std::span<Stmt *> DetailList,
                       Expr *const Base,
-                      const AST::Qualifiers &Qualifiers) noexcept
+                      const struct Qualifiers &Qualifiers) noexcept
         : Expr(NodeKind::ArrayType),
           DetailList(DetailList.begin(), DetailList.end()),
           BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
 
-        constexpr explicit
+        explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
                       const std::span<Stmt *> DetailList,
                       Expr *const Base,
-                      AST::Qualifiers &&Qualifiers) noexcept
+                      struct Qualifiers &&Qualifiers) noexcept
         : Expr(NodeKind::ArrayType),
           DetailList(DetailList.begin(), DetailList.end()),
           BracketLoc(BracketLoc), Base(Base),
           Qualifiers(std::move(Qualifiers)) {}
 
-        constexpr explicit
+        explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
                       std::vector<Stmt *> &&DetailList,
                       Expr *const Base,
-                      const AST::Qualifiers &Qualifiers) noexcept
+                      const struct Qualifiers &Qualifiers) noexcept
         : Expr(NodeKind::ArrayType), DetailList(std::move(DetailList)),
           BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
 
-        constexpr explicit
+        explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
                       std::vector<Stmt *> &&DetailList,
                       Expr *const Base,
-                      AST::Qualifiers &&Qualifiers) noexcept
+                      struct Qualifiers &&Qualifiers) noexcept
         : Expr(NodeKind::ArrayType), DetailList(std::move(DetailList)),
           BracketLoc(BracketLoc), Base(Base),
           Qualifiers(std::move(Qualifiers)) {}
@@ -90,11 +90,11 @@ namespace AST {
             return this->Base;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
+        [[nodiscard]] inline auto &getQualifiers() const noexcept {
             return this->Qualifiers;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+        [[nodiscard]] inline auto &getQualifiersRef() noexcept {
             return this->Qualifiers;
         }
 

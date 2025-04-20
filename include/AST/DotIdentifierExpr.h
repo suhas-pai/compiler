@@ -18,19 +18,19 @@ namespace AST {
     private:
         SourceLocation DotLoc;
 
-        AST::Qualifiers Qualifiers;
+        Qualifiers Qualifiers;
         std::string Identifier;
     public:
         explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
-                          AST::Qualifiers &&Qualifiers,
+                          struct Qualifiers &&Qualifiers,
                           const std::string_view Identifier) noexcept
         : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(std::move(Qualifiers)),
           Identifier(Identifier) {}
 
         explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
-                          AST::Qualifiers &&Qualifiers,
+                          struct Qualifiers &&Qualifiers,
                           std::string &&Identifier) noexcept
         : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(std::move(Qualifiers)),
           Identifier(std::move(Identifier)) {}
