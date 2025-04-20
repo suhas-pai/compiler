@@ -14,8 +14,6 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_C_USING_LINKER_lld": "-fuse-ld=lld",
         "CMAKE_CXX_USING_LINKER_lld": "-fuse-ld=lld",
         "CMAKE_LINKER_TYPE": "lld"
@@ -28,8 +26,6 @@
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_C_USING_LINKER_lld": "-fuse-ld=lld",
         "CMAKE_CXX_USING_LINKER_lld": "-fuse-ld=lld",
         "CMAKE_LINKER_TYPE": "lld"
