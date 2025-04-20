@@ -16,6 +16,11 @@ namespace AST {
         struct Argument {
             std::optional<std::string_view> Name;
             Expr *Expr;
+
+            constexpr
+            Argument(const std::optional<std::string_view> Name,
+                     struct Expr *const Expr) noexcept
+            : Name(Name), Expr(Expr) {}
         };
 
         constexpr static auto ObjKind = NodeKind::CallExpr;
@@ -28,20 +33,18 @@ namespace AST {
         std::vector<Argument> ArgList;
     public:
         explicit
-        CallExpr(
-            Expr *const Callee,
-            const SourceLocation ParenLoc,
-            const Qualifiers &Quals,
-            const std::span<Argument> ArgList) noexcept
+        CallExpr(Expr *const Callee,
+                 const SourceLocation ParenLoc,
+                 const Qualifiers &Quals,
+                 const std::span<Argument> ArgList) noexcept
         : Expr(ObjKind), CalleeExpr(Callee), ParenLoc(ParenLoc), Quals(Quals),
           ArgList(ArgList.begin(), ArgList.end()) {}
 
         explicit
-        CallExpr(
-            Expr *const Callee,
-            const SourceLocation ParenLoc,
-            const Qualifiers &Quals,
-            std::vector<Argument> &&ArgList) noexcept
+        CallExpr(Expr *const Callee,
+                 const SourceLocation ParenLoc,
+                 const Qualifiers &Quals,
+                 std::vector<Argument> &&ArgList) noexcept
         : Expr(ObjKind), CalleeExpr(Callee), ParenLoc(ParenLoc), Quals(Quals),
           ArgList(std::move(ArgList)) {}
 
