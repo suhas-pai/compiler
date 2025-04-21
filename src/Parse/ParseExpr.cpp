@@ -374,7 +374,8 @@ namespace Parse {
                     TokenStream.consumeIfIs(Lex::TokenKind::Identifier))
             {
                 if (TokenStream.consumeIfIs(Lex::TokenKind::Colon)) {
-                    ArgNameOpt = TokenStream.tokenContent(IdentTokenOpt.value());
+                    ArgNameOpt =
+                        TokenStream.tokenContent(IdentTokenOpt.value());
                 } else {
                     TokenStream.goBack();
                 }

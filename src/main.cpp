@@ -384,7 +384,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
                 std::print("Label\n");
 
                 PrintDepth(Depth + 4);
-                std::print("\"{}\"\n", Arg.Name.value_or("<null>"));
+                std::print("\"{}\"\n", Arg.Label.value_or("<null>"));
 
                 PrintDepth(Depth + 3);
                 std::print("Expr\n");

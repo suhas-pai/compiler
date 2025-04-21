@@ -14,13 +14,13 @@ namespace AST {
     struct CallExpr : public Expr {
     public:
         struct Argument {
-            std::optional<std::string_view> Name;
+            std::optional<std::string_view> Label;
             Expr *Expr;
 
             constexpr
-            Argument(const std::optional<std::string_view> Name,
+            Argument(const std::optional<std::string_view> Label,
                      struct Expr *const Expr) noexcept
-            : Name(Name), Expr(Expr) {}
+            : Label(Label), Expr(Expr) {}
         };
 
         constexpr static auto ObjKind = NodeKind::CallExpr;
