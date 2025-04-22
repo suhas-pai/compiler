@@ -63,7 +63,7 @@ namespace Parse {
 
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getEofLocation(),
+                    .Location = TokenStream.getCurrentOrPreviousLocation(),
                     .Message = "Expected ']'",
                 });
             } else {
@@ -685,7 +685,7 @@ done:
         } else {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getEofLocation(),
+                .Location = TokenStream.getCurrentOrPreviousLocation(),
                 .Message = "Expected an expression inside parenthesis, or an "
                            "'->' for an function type or '=>' for an arrow "
                            "function"
@@ -867,7 +867,7 @@ done:
 
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getEofLocation(),
+                    .Location = TokenStream.getCurrentOrPreviousLocation(),
                     .Message = "Expected an expression, but reached end of file"
                 });
 

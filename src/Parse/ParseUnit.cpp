@@ -56,7 +56,7 @@ namespace Parse {
                 if (!ExpectSemicolon(Context)) {
                     Diag.consume({
                         .Level = DiagnosticLevel::Error,
-                        .Location = TokenStream.getEofLocation(),
+                        .Location = TokenStream.getCurrentOrPreviousLocation(),
                         .Message = "Expected a semicolon after declaration"
                     });
                 }

@@ -716,13 +716,13 @@ HandlePrompt(const std::string_view &Prompt,
 
     if (ArgOptions.PrintTokens) {
         auto TokenList = TokenBuffer->getTokenList();
-        fputs("Tokens:\n", stdout);
+        std::print("Tokens:\n");
 
         for (const auto Token : TokenList) {
             std::print("\t{}\n", Lex::TokenKindGetName(Token.Kind));
         }
 
-        fputc('\n', stdout);
+        std::print("\n");
     }
 
     if (Diag.hasMessages()) {
@@ -750,7 +750,7 @@ HandlePrompt(const std::string_view &Prompt,
         const auto Expr = Unit.getTopLevelStmtList().back();
 
         PrintAST(Expr, ArgOptions.PrintDepth);
-        fputc('\n', stdout);
+        std::print("\n");
     }
 
     if (Diag.hasErrors()) {
@@ -792,7 +792,7 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
         auto Diag = SourceFileDiagnosticConsumer(Path);
         const auto SrcBufferOpt = ADT::SourceBuffer::FromFile(Path);
 
-        if (SrcBufferOpt.has_value()) {
+        if (!SrcBufferOpt.has_value()) {
             const auto Error = SrcBufferOpt.error();
             switch (Error.Kind) {
                 case ADT::SourceBuffer::Error::Kind::FailedToOpenFile:
@@ -821,13 +821,13 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
 
         if (ArgOptions.PrintTokens) {
             auto TokenList = TokenBuffer->getTokenList();
-            fputs("Tokens:\n", stdout);
+            std::print("Tokens:\n");
 
             for (const auto Token : TokenList) {
                 std::print("\t{}\n", Lex::TokenKindGetName(Token.Kind));
             }
 
-            fputc('\n', stdout);
+            std::print("\n");
         }
 
         const auto Options = Parse::ParseOptions();
@@ -850,44 +850,35 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
 }
 
 int main(const int Argc, const char *const Argv[]) {
-    auto Options = ArgumentOptions();
     auto FilePaths = std::vector<std::string_view>();
+
+    auto Options = ArgumentOptions();
     auto Lexer = ArgvLexer(Argc, Argv);
 
-    while (const auto ArgOpt = Lexer.peek()) {
+    while (const auto ArgOpt = Lexer.consume()) {
         const auto Arg = std::string_view(ArgOpt);
         if (!Arg.starts_with("-")) {
             FilePaths.push_back(Arg);
-            Lexer.consume();
-
             break;
         }
 
-        if (Arg == "-h" || Arg == "--help" ||
-            Arg == "-u" || Arg == "--usage")
-        {
+        if (Arg == "-h" || Arg == "--help" || Arg == "-u" || Arg == "--usage") {
             PrintUsage(Argv[0]);
             return 0;
         }
 
         if (Arg == "--print-tokens") {
             Options.PrintTokens = true;
-            Lexer.consume();
-
             continue;
         }
 
         if (Arg == "--print-ast") {
             Options.PrintAST = true;
-            Lexer.consume();
-
             continue;
         }
 
         if (Arg == "--print-ir") {
             Options.PrintIR = true;
-            Lexer.consume();
-
             continue;
         }
 

@@ -2,10 +2,11 @@
  * Interface/Repl.cpp
  */
 
+#include <format>
+#include <print>
+
 #include <readline/history.h>
 #include <readline/readline.h>
-
-#include <format>
 
 #include "Basic/ANSI.h"
 #include "Misc/Repl.h"
@@ -53,7 +54,7 @@ namespace Interface {
         while (true) {
             const auto InputCStr = readline(FullPrompt.c_str());
             if (InputCStr == nullptr) {
-                fputc('\n', stdout);
+                std::print("\n");
                 continue;
             }
 
