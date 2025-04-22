@@ -60,21 +60,21 @@ namespace Lex {
                         case ' ':
                         case '\t':
                         case '\r':
-                            goto next;
+                            break;
                         case '\'':
                             State = State::CharLiteral;
 
                             Result.Kind = TokenKind::CharLiteral;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case '"':
                             State = State::StringLiteral;
 
                             Result.Kind = TokenKind::StringLiteral;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case 'a'...'z':
                         case 'A'...'Z':
                         case '_':
@@ -82,51 +82,52 @@ namespace Lex {
                             Result.Kind = TokenKind::Identifier;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case '0'...'9':
                             State = State::IntegerLiteral;
 
                             Result.Kind = TokenKind::IntegerLiteral;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case '+':
                             State = State::Plus;
 
                             Result.Kind = TokenKind::Plus;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case '-':
                             State = State::Minus;
 
                             Result.Kind = TokenKind::Minus;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case '*':
                             State = State::Star;
 
                             Result.Kind = TokenKind::Star;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case '%':
                             State = State::Percent;
 
                             Result.Kind = TokenKind::Percent;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case '/':
                             State = State::Slash;
 
                             Result.Kind = TokenKind::Slash;
                             Result.Loc.Column = this->Loc.Column;
 
-                            goto next;
+                            break;
                         case '^':
                             State = State::Caret;
+                            this->Loc.Column++;
 
                             Result.Kind = TokenKind::Caret;
                             Result.Loc.Column = this->Loc.Column;
@@ -183,39 +184,47 @@ namespace Lex {
                             Result.Kind = TokenKind::OpenParen;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case ')':
                             Result.Kind = TokenKind::CloseParen;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case '{':
                             Result.Kind = TokenKind::OpenCurlyBrace;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case '}':
                             Result.Kind = TokenKind::CloseCurlyBrace;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case '[':
                             Result.Kind = TokenKind::LeftSquareBracket;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case ']':
                             Result.Kind = TokenKind::RightSquareBracket;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case ',':
                             Result.Kind = TokenKind::Comma;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case '.':
                             State = State::Dot;
+
                             Result.Kind = TokenKind::Dot;
                             Result.Loc.Column = this->Loc.Column;
 
@@ -224,16 +233,19 @@ namespace Lex {
                             Result.Kind = TokenKind::Colon;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case ';':
                             Result.Kind = TokenKind::Semicolon;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         case '?':
                             Result.Kind = TokenKind::QuestionMark;
                             Result.Loc.Column = this->Loc.Column;
 
+                            this->Loc.Column += 1;
                             goto done;
                         default:
                             this->Diag.consume({
@@ -497,7 +509,7 @@ namespace Lex {
                             State = State::ShiftLeft;
                             Result.Kind = TokenKind::ShiftLeft;
 
-                            goto next;
+                            break;
                         case '=':
                             Result.Kind = TokenKind::LessThanOrEqual;
                             goto done;
@@ -515,7 +527,7 @@ namespace Lex {
                             State = State::ShiftRight;
                             Result.Kind = TokenKind::ShiftRight;
 
-                            goto next;
+                            break;
                         case '=':
                             Result.Kind = TokenKind::GreaterThanOrEqual;
                             goto done;
@@ -591,7 +603,7 @@ namespace Lex {
                             Result.Kind = TokenKind::DotIdentifier;
                             State = State::DotIdentifier;
 
-                            goto next;
+                            break;
                         case '*':
                             Result.Kind = TokenKind::DotStar;
                             goto done;
@@ -599,7 +611,7 @@ namespace Lex {
                             Result.Kind = TokenKind::DotDot;
                             State = State::DotDot;
 
-                            goto next;
+                            break;
                         default:
                             this->Loc.Index--;
                             this->Loc.Column--;
@@ -632,7 +644,6 @@ namespace Lex {
                     break;
             }
 
-        next:
             if (Char == '\n') {
                 this->Loc.Row++;
                 this->CurrentLineInfo = {
@@ -650,7 +661,7 @@ namespace Lex {
         State = State::Start;
 
         Result.End.Row = this->Loc.Row;
-        Result.End.Column = this->Loc.Column + 1;
+        Result.End.Column = this->Loc.Column;
         Result.End.Index = this->Loc.Index;
 
         return std::pair(Result, this->CurrentLineInfo);

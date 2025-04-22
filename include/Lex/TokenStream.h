@@ -37,12 +37,18 @@ namespace Lex {
             return Lex::KeywordTokenGetKeyword(this->tokenContent(Token));
         }
 
-        [[nodiscard]] constexpr auto getCurrOrPrevLoc() const noexcept {
+        [[nodiscard]] constexpr auto getEofLocation() const noexcept {
             if (!this->reachedEof()) {
-                return this->TokenBuffer.getTokenList()[this->position()].Loc;
+                const auto Loc =
+                    this->TokenBuffer.getTokenList()[this->position()].End;
+
+                return Loc.adding(1);
             }
 
-            return this->TokenBuffer.getTokenList()[this->position() - 1].Loc;
+            const auto Loc =
+                this->TokenBuffer.getTokenList()[this->position() - 1].End;
+
+            return Loc.adding(1);
         }
 
         constexpr auto goBack(const uint32_t Count = 1) noexcept -> bool {

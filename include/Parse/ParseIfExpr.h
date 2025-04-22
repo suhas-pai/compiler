@@ -63,7 +63,7 @@ namespace Parse {
             if (SeparatorOpt.has_value()) {
                 const auto Separator = SeparatorOpt.value();
                 if (TokenStream.consumeIfIs(Separator)) {
-                    SeparatorLoc = TokenStream.getCurrOrPrevLoc();
+                    SeparatorLoc = TokenStream.getEofLocation();
                 }
             }
 
@@ -105,8 +105,8 @@ namespace Parse {
 
             const auto Current = CurrentOpt.value();
             Diag.consume({
-                .Level = DiagnosticLevel::Warning,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getEofLocation(),
                 .Message =
                     std::format("Expected ',' or '{}', found '{}' instead",
                                 "}",
@@ -202,7 +202,7 @@ namespace Parse {
             if (!TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Location = TokenStream.getEofLocation(),
                     .Message = "Expected ')' after 'if' condition"
                 });
 

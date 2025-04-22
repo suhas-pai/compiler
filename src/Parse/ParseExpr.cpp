@@ -63,7 +63,7 @@ namespace Parse {
 
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Location = TokenStream.getEofLocation(),
                     .Message = "Expected ']'",
                 });
             } else {
@@ -685,8 +685,10 @@ done:
         } else {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
-                .Message = "Expected an expression inside parenthesis"
+                .Location = TokenStream.getEofLocation(),
+                .Message = "Expected an expression inside parenthesis, or an "
+                           "'->' for an function type or '=>' for an arrow "
+                           "function"
             });
 
             return std::unexpected(ParseError::FailedCouldNotProceed);
@@ -862,6 +864,12 @@ done:
                 if (Root != nullptr) {
                     return Root;
                 }
+
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = TokenStream.getEofLocation(),
+                    .Message = "Expected an expression, but reached end of file"
+                });
 
                 return std::unexpected(ParseError::FailedCouldNotProceed);
             }

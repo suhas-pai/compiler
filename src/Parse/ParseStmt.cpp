@@ -81,7 +81,7 @@ namespace Parse {
         if (!TokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Unexpected end of file"
             });
 

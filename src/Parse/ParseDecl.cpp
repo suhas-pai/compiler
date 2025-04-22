@@ -114,7 +114,7 @@ namespace Parse {
 
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message =
                     std::format("Keyword \"{}\" cannot be used as a field name",
                                 TokenString)
@@ -127,7 +127,7 @@ namespace Parse {
         if (!NameTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for field declaration"
             });
 
@@ -160,8 +160,6 @@ namespace Parse {
                 .Location = NameToken.Loc,
                 .Message = "All fields must have a type annotation"
             });
-
-            return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
         const auto InitExprOpt = ParseInitExpressionIfFound(Context);
@@ -177,7 +175,8 @@ namespace Parse {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
                     .Location = NameToken.Loc,
-                    .Message = "Optional fields are not allowed"
+                    .Message = "Optional fields are not allowed in class, "
+                               "struct, or union declarations"
                 });
             }
 
@@ -272,9 +271,47 @@ namespace Parse {
                 continue;
             }
 
+            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Warning,
+                        .Location = TokenStream.getEofLocation(),
+                        .Message = "Extra ',' after field declaration"
+                    });
+
+                    break;
+                }
+
+                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Warning,
+                        .Location = TokenStream.getEofLocation(),
+                        .Message = "Multiple ',' found after field declaration"
+                    });
+
+                    // Skip to the next field or closing curly brace.
+                    const auto ProceedResult =
+                        ProceedToAndConsumeCommaOrEnd(
+                            Context,
+                            Lex::TokenKind::CloseCurlyBrace);
+
+                    if (ProceedResult == ProceedResult::Failed) {
+                        return ParseError::FailedCouldNotProceed;
+                    }
+
+                    if (ProceedResult == ProceedResult::EndToken) {
+                        break;
+                    }
+
+                    continue;
+                }
+
+                continue;
+            }
+
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a ',' after field declaration"
             });
 
@@ -295,7 +332,7 @@ namespace Parse {
         if (!ParamNameTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for function parameter"
             });
 
@@ -368,7 +405,7 @@ namespace Parse {
             if (!TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Location = TokenStream.getEofLocation(),
                     .Message = "Expected ',' or ')' after function parameter"
                 });
 
@@ -431,7 +468,7 @@ namespace Parse {
         if (!NameOrParenTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name or at least parameter list for "
                            "function declaration"
             });
@@ -453,7 +490,7 @@ namespace Parse {
             if (!TokenStream.peekIs(Lex::TokenKind::OpenParen)) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Location = TokenStream.getEofLocation(),
                     .Message = "Expected '{' after function declaration"
                 });
             }
@@ -483,7 +520,7 @@ namespace Parse {
             if (!CurlyTokenOpt.has_value()) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Location = TokenStream.getEofLocation(),
                     .Message = "Expected '{' after function declaration"
                 });
 
@@ -544,7 +581,7 @@ namespace Parse {
         if (!TokenStream.consumeIfIs(Lex::TokenKind::FatArrow)) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected '=>' after inline function declaration"
             });
 
@@ -663,7 +700,7 @@ namespace Parse {
 
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected ']'",
             });
 
@@ -796,7 +833,7 @@ namespace Parse {
         if (!NameTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for interface declaration"
             });
 
@@ -861,7 +898,7 @@ namespace Parse {
         if (!NameTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for struct declaration"
             });
 
@@ -928,7 +965,7 @@ namespace Parse {
         if (!NameTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for struct declaration"
             });
 
@@ -996,7 +1033,7 @@ namespace Parse {
         if (!NameTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for struct declaration"
             });
 
@@ -1055,7 +1092,7 @@ namespace Parse {
         ParseQualifiers(Context, Qualifiers);
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket)) {
-            auto ItemLoc = TokenStream.getCurrOrPrevLoc();
+            auto ItemLoc = TokenStream.getEofLocation();
             auto ArrayBindingItemListOpt = ParseArrayBindingItemList(Context);
 
             if (!ArrayBindingItemListOpt.has_value()) {
@@ -1079,7 +1116,7 @@ namespace Parse {
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
-            auto ItemLoc = TokenStream.getCurrOrPrevLoc();
+            auto ItemLoc = TokenStream.getEofLocation();
             auto ObjectBindingListOpt = ParseObjectBindingFieldList(Context);
 
             if (!ObjectBindingListOpt.has_value()) {
@@ -1106,7 +1143,7 @@ namespace Parse {
         if (!NameTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name expression for array-like "
                            "destructuring"
             });
@@ -1177,7 +1214,7 @@ namespace Parse {
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket)) {
-            auto ItemLoc = TokenStream.getCurrOrPrevLoc();
+            auto ItemLoc = TokenStream.getEofLocation();
             auto ItemListOpt = ParseArrayBindingItemList(Context);
 
             if (!ItemListOpt.has_value()) {
@@ -1191,7 +1228,7 @@ namespace Parse {
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
-            auto ItemLoc = TokenStream.getCurrOrPrevLoc();
+            auto ItemLoc = TokenStream.getEofLocation();
             auto ItemListOpt = ParseObjectBindingFieldList(Context);
 
             if (!ItemListOpt.has_value()) {
@@ -1206,13 +1243,13 @@ namespace Parse {
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::DotDotDot)) {
-            const auto ItemLoc = TokenStream.getCurrOrPrevLoc();
+            const auto ItemLoc = TokenStream.getEofLocation();
             const auto NameTokenOpt = TokenStream.consume();
 
             if (!NameTokenOpt.has_value()) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Location = TokenStream.getEofLocation(),
                     .Message = "Expected a name expression for spread operator"
                 });
 
@@ -1223,7 +1260,7 @@ namespace Parse {
             if (NameToken.Kind == Lex::TokenKind::RightSquareBracket) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrOrPrevLoc(),
+                    .Location = TokenStream.getEofLocation(),
                     .Message = "Spread operator missing a name"
                 });
 
@@ -1243,7 +1280,7 @@ namespace Parse {
             return Result;
         }
 
-        const auto IndexLoc = TokenStream.getCurrOrPrevLoc();
+        const auto IndexLoc = TokenStream.getEofLocation();
         const auto IndexExprOpt = ParseExpression(Context);
 
         if (IndexExprOpt.has_value()) {
@@ -1288,7 +1325,7 @@ namespace Parse {
 
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected ',' or ']' after array-like "
                             "destructuring item"
             });
@@ -1301,7 +1338,7 @@ namespace Parse {
                 case ProceedResult::Failed:
                     Diag.consume({
                         .Level = DiagnosticLevel::Error,
-                        .Location = TokenStream.getCurrOrPrevLoc(),
+                        .Location = TokenStream.getEofLocation(),
                         .Message = "Reached end of file while parsing "
                                    "array-like destructuring, expected ']'"
                     });
@@ -1357,7 +1394,7 @@ namespace Parse {
         if (!KeyTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for object-like destructuring"
             });
 
@@ -1462,7 +1499,7 @@ namespace Parse {
         if (!NameTokenOpt.has_value()) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for object-like destructuring"
             });
 
@@ -1500,7 +1537,7 @@ namespace Parse {
         if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Can't have an empty object-like destructure-list "
                            "after '{'"
             });
@@ -1531,7 +1568,7 @@ namespace Parse {
                 case ProceedResult::Failed:
                     Diag.consume({
                         .Level = DiagnosticLevel::Error,
-                        .Location = TokenStream.getCurrOrPrevLoc(),
+                        .Location = TokenStream.getEofLocation(),
                         .Message = "Expected ',' or '}' after object-like "
                                    "destructuring item"
                     });
@@ -1609,12 +1646,12 @@ namespace Parse {
         } else {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Expected a name for variable declaration"
             });
 
             // FIXME:
-            DeclLoc = TokenStream.getCurrOrPrevLoc();
+            DeclLoc = TokenStream.getEofLocation();
         }
 
         const auto TypeExprOpt =
@@ -1648,7 +1685,7 @@ namespace Parse {
         if (InitExpr == nullptr) {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrOrPrevLoc(),
+                .Location = TokenStream.getEofLocation(),
                 .Message = "Variable declarations must have an initial value"
             });
         }

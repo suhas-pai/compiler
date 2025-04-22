@@ -62,31 +62,25 @@ static void PrintDepth(const uint8_t Depth) noexcept {
     }
 }
 
-static void
-PrintAST(Backend::LLVM::Handler &Handler,
-         AST::Stmt *const Stmt,
-         const uint8_t Depth) noexcept;
+static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept;
 
 static void
-PrintArrayBindingItemIndex(Backend::LLVM::Handler &Handler,
-                           const AST::ArrayBindingIndex &Item,
+PrintArrayBindingItemIndex(const AST::ArrayBindingIndex &Item,
                            const uint8_t Depth) noexcept
 {
     PrintDepth(Depth);
     std::print("ArrayBindingIndex\n");
 
-    PrintAST(Handler, Item.IndexExpr, Depth + 1);
+    PrintAST(Item.IndexExpr, Depth + 1);
 }
 
 static void
 PrintObjectBindingFieldList(
-    Backend::LLVM::Handler &Handler,
     const std::span<AST::ObjectBindingField *const> FieldList,
     const uint8_t Depth) noexcept;
 
 static void
 PrintArrayBindingItemList(
-    Backend::LLVM::Handler &Handler,
     const std::span<AST::ArrayBindingItem *const> ItemList,
     const uint8_t Depth) noexcept
 {
@@ -101,8 +95,7 @@ PrintArrayBindingItemList(
                            IdentifierItem->Name);
 
                 if (Item->Index.has_value()) {
-                    PrintArrayBindingItemIndex(Handler, Item->Index.value(),
-                                               Depth + 1);
+                    PrintArrayBindingItemIndex(Item->Index.value(), Depth + 1);
                 }
 
                 continue;
@@ -112,12 +105,10 @@ PrintArrayBindingItemList(
                     llvm::cast<AST::ArrayBindingItemArray>(Item);
 
                 std::print("ArrayBindingItemArray\n");
-                PrintArrayBindingItemList(Handler, ArrayItem->ItemList,
-                                          Depth + 1);
+                PrintArrayBindingItemList(ArrayItem->ItemList, Depth + 1);
 
                 if (const auto Index = Item->Index) {
-                    PrintArrayBindingItemIndex(Handler, Index.value(),
-                                               Depth + 1);
+                    PrintArrayBindingItemIndex(Index.value(), Depth + 1);
                 }
 
                 continue;
@@ -127,12 +118,10 @@ PrintArrayBindingItemList(
                     llvm::cast<AST::ArrayBindingItemObject>(Item);
 
                 std::print("ArrayBindingItemObject\n");
-                PrintObjectBindingFieldList(Handler, ObjectItem->FieldList,
-                                            Depth + 1);
+                PrintObjectBindingFieldList(ObjectItem->FieldList, Depth + 1);
 
                 if (const auto Index = Item->Index) {
-                    PrintArrayBindingItemIndex(Handler, Index.value(),
-                                               Depth + 1);
+                    PrintArrayBindingItemIndex(Index.value(), Depth + 1);
                 }
 
                 continue;
@@ -145,8 +134,7 @@ PrintArrayBindingItemList(
                            SpreadItem->Name);
 
                 if (const auto Index = Item->Index) {
-                    PrintArrayBindingItemIndex(Handler, Index.value(),
-                                               Depth + 1);
+                    PrintArrayBindingItemIndex(Index.value(), Depth + 1);
                 }
 
                 continue;
@@ -159,7 +147,6 @@ PrintArrayBindingItemList(
 
 static void
 PrintObjectBindingFieldList(
-    Backend::LLVM::Handler &Handler,
     const std::span<AST::ObjectBindingField *const> FieldList,
     const uint8_t Depth) noexcept
 {
@@ -182,7 +169,7 @@ PrintObjectBindingFieldList(
                 std::print("ObjectBindingItemArray<\"{}\">\n",
                            ObjectBindingArray->Key);
 
-                PrintArrayBindingItemList(Handler, ObjectBindingArray->ItemList,
+                PrintArrayBindingItemList(ObjectBindingArray->ItemList,
                                           Depth + 1);
 
                 continue;
@@ -194,8 +181,7 @@ PrintObjectBindingFieldList(
                 std::print("ObjectBindingItemObject<\"{}\">\n",
                            ObjectBindingObject->Key);
 
-                PrintObjectBindingFieldList(Handler,
-                                            ObjectBindingObject->FieldList,
+                PrintObjectBindingFieldList(ObjectBindingObject->FieldList,
                                             Depth + 1);
 
                 continue;
@@ -215,11 +201,7 @@ PrintObjectBindingFieldList(
     }
 }
 
-static void
-PrintAST(Backend::LLVM::Handler &Handler,
-         AST::Stmt *const Stmt,
-         const uint8_t Depth) noexcept
-{
+static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
     if (Stmt == nullptr) {
         return;
     }
@@ -233,8 +215,8 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             std::print("BinaryOperation<\"{}\">\n", Lexeme.value());
 
-            PrintAST(Handler, &BinaryExpr->getLhs(), Depth + 1);
-            PrintAST(Handler, &BinaryExpr->getRhs(), Depth + 1);
+            PrintAST(&BinaryExpr->getLhs(), Depth + 1);
+            PrintAST(&BinaryExpr->getRhs(), Depth + 1);
 
             return;
         }
@@ -244,7 +226,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
                 Parse::UnaryOperatorToLexemeMap[UnaryExpr->getOperator()];
 
             std::print("UnaryOperation<{}>\n", Lexeme.value());
-            PrintAST(Handler, &UnaryExpr->getOperand(), Depth + 1);
+            PrintAST(&UnaryExpr->getOperand(), Depth + 1);
 
             return;
         }
@@ -286,19 +268,19 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("TypeExpr\n");
 
-            PrintAST(Handler, VarDecl->getTypeExpr(), Depth + 2);
+            PrintAST(VarDecl->getTypeExpr(), Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("InitExpr\n");
 
-            PrintAST(Handler, VarDecl->getInitExpr(), Depth + 2);
+            PrintAST(VarDecl->getInitExpr(), Depth + 2);
             return;
         }
         case AST::NodeKind::OptionalUnwrapExpr: {
             const auto OptionalExpr = llvm::cast<AST::OptionalUnwrapExpr>(Stmt);
 
             std::print("OptionalUnwrapExpr\n");
-            PrintAST(Handler, OptionalExpr->getBase(), Depth + 1);
+            PrintAST(OptionalExpr->getBase(), Depth + 1);
 
             return;
         }
@@ -306,7 +288,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto ParenExpr = llvm::cast<AST::ParenExpr>(Stmt);
 
             std::print("ParenExpr\n");
-            PrintAST(Handler, ParenExpr->getChildExpr(), Depth + 1);
+            PrintAST(ParenExpr->getChildExpr(), Depth + 1);
 
             return;
         }
@@ -317,12 +299,12 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
 
             std::print("TypeExpr\n");
-            PrintAST(Handler, ParamDecl->getTypeExpr(), Depth + 2);
+            PrintAST(ParamDecl->getTypeExpr(), Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("DefaultExpr\n");
 
-            PrintAST(Handler, ParamDecl->getDefaultExpr(), Depth + 2);
+            PrintAST(ParamDecl->getDefaultExpr(), Depth + 2);
             return;
         }
         case AST::NodeKind::FunctionDecl: {
@@ -334,7 +316,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             const auto &ParamList = FuncDecl->getParamList();
             for (const auto Param : ParamList) {
-                PrintAST(Handler, Param, Depth + 2);
+                PrintAST(Param, Depth + 2);
             }
 
             const auto RetType = FuncDecl->getReturnTypeExpr();
@@ -342,12 +324,12 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("ReturnTypeExpr\n");
 
-            PrintAST(Handler, RetType, Depth + 2);
+            PrintAST(RetType, Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("Body\n");
 
-            PrintAST(Handler, FuncDecl->getBody(), Depth + 2);
+            PrintAST(FuncDecl->getBody(), Depth + 2);
             return;
         }
         case AST::NodeKind::DeclRefExpr: {
@@ -371,7 +353,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("Callee\n");
 
-            PrintAST(Handler, CallExpr->getCalleeExpr(), Depth + 2);
+            PrintAST(CallExpr->getCalleeExpr(), Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("Args\n");
@@ -389,7 +371,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
                 PrintDepth(Depth + 3);
                 std::print("Expr\n");
 
-                PrintAST(Handler, Arg.Expr, Depth + 4);
+                PrintAST(Arg.Expr, Depth + 4);
             }
 
             return;
@@ -401,24 +383,24 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("Cond\n");
 
-            PrintAST(Handler, IfExpr->getCond(), Depth + 2);
+            PrintAST(IfExpr->getCond(), Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("Then\n");
 
-            PrintAST(Handler, IfExpr->getThen(), Depth + 2);
+            PrintAST(IfExpr->getThen(), Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("Else\n");
 
-            PrintAST(Handler, IfExpr->getElse(), Depth + 2);
+            PrintAST(IfExpr->getElse(), Depth + 2);
             return;
         }
         case AST::NodeKind::ReturnStmt: {
             const auto ReturnStmt = llvm::cast<AST::ReturnStmt>(Stmt);
 
             std::print("ReturnStmt\n");
-            PrintAST(Handler, ReturnStmt->getValue(), Depth + 1);
+            PrintAST(ReturnStmt->getValue(), Depth + 1);
 
             return;
         }
@@ -427,7 +409,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("CompoundStmt\n");
 
             for (const auto Stmt : CompoundStmt->getStmtList()) {
-                PrintAST(Handler, Stmt, Depth + 1);
+                PrintAST(Stmt, Depth + 1);
             }
 
             return;
@@ -437,7 +419,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("InterfaceDecl\n");
 
             for (const auto Field : InterfaceDecl->getFieldList()) {
-                PrintAST(Handler, Field, Depth + 1);
+                PrintAST(Field, Depth + 1);
             }
 
             return;
@@ -447,7 +429,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("StructDecl\n");
 
             for (const auto Field : StructDecl->getFieldList()) {
-                PrintAST(Handler, Field, Depth + 1);
+                PrintAST(Field, Depth + 1);
             }
 
             return;
@@ -457,7 +439,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("ShapeDecl\n");
 
             for (const auto Field : ShapeDecl->getFieldList()) {
-                PrintAST(Handler, Field, Depth + 1);
+                PrintAST(Field, Depth + 1);
             }
 
             return;
@@ -467,7 +449,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("UnionDecl\n");
 
             for (const auto Field : UnionDecl->getFieldList()) {
-                PrintAST(Handler, Field, Depth + 1);
+                PrintAST(Field, Depth + 1);
             }
 
             return;
@@ -484,12 +466,12 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
 
             std::print("TypeExpr\n");
-            PrintAST(Handler, FieldDecl->getTypeExpr(), Depth + 2);
+            PrintAST(FieldDecl->getTypeExpr(), Depth + 2);
 
             PrintDepth(Depth + 1);
 
             std::print("InitExpr\n");
-            PrintAST(Handler, FieldDecl->getInitExpr(), Depth + 2);
+            PrintAST(FieldDecl->getInitExpr(), Depth + 2);
 
             return;
         }
@@ -499,7 +481,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
                        FieldExpr->isArrow() ? "->" : ".",
                        FieldExpr->getMemberName());
 
-            PrintAST(Handler, FieldExpr->getBase(), Depth + 1);
+            PrintAST(FieldExpr->getBase(), Depth + 1);
             return;
         }
         case AST::NodeKind::ArraySubscriptExpr: {
@@ -507,13 +489,13 @@ PrintAST(Backend::LLVM::Handler &Handler,
                 llvm::cast<AST::ArraySubscriptExpr>(Stmt);
 
             std::print("ArraySubscriptExpr\n");
-            PrintAST(Handler, ArraySubscriptExpr->getBase(), Depth + 1);
+            PrintAST(ArraySubscriptExpr->getBase(), Depth + 1);
 
             PrintDepth(Depth + 1);
             std::print("DetailList\n");
 
             for (const auto Stmt : ArraySubscriptExpr->getDetailList()) {
-                PrintAST(Handler, Stmt, Depth + 2);
+                PrintAST(Stmt, Depth + 2);
             }
 
             return;
@@ -522,14 +504,14 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto LvalueNamedDecl = llvm::cast<AST::LvalueNamedDecl>(Stmt);
             std::print("LvalueNamedDecl<\"{}\">\n", LvalueNamedDecl->getName());
 
-            PrintAST(Handler, LvalueNamedDecl->getRvalueExpr(), Depth + 1);
+            PrintAST(LvalueNamedDecl->getRvalueExpr(), Depth + 1);
             return;
         }
         case AST::NodeKind::EnumMemberDecl: {
             const auto EnumMemberDecl = llvm::cast<AST::EnumMemberDecl>(Stmt);
             std::print("EnumMemberDecl<\"{}\">\n", EnumMemberDecl->getName());
 
-            PrintAST(Handler, EnumMemberDecl->getInitExpr(), Depth + 1);
+            PrintAST(EnumMemberDecl->getInitExpr(), Depth + 1);
             return;
         }
         case AST::NodeKind::EnumDecl: {
@@ -537,7 +519,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("EnumDecl\n");
 
             for (const auto EnumMember : EnumDecl->getMemberList()) {
-                PrintAST(Handler, EnumMember, Depth + 1);
+                PrintAST(EnumMember, Depth + 1);
             }
 
             return;
@@ -547,7 +529,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("ArrayDecl\n");
 
             for (const auto Element : ArrayDecl->getElementList()) {
-                PrintAST(Handler, Element, Depth + 1);
+                PrintAST(Element, Depth + 1);
             }
 
             return;
@@ -560,20 +542,20 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("CaptureList\n");
 
             for (const auto Capture : ClosureDeck->getCaptureList()) {
-                PrintAST(Handler, Capture, Depth + 2);
+                PrintAST(Capture, Depth + 2);
             }
 
             PrintDepth(Depth + 1);
             std::print("Arguments\n");
 
             for (const auto Param : ClosureDeck->getParamList()) {
-                PrintAST(Handler, Param, Depth + 2);
+                PrintAST(Param, Depth + 2);
             }
 
             PrintDepth(Depth + 1);
             std::print("Body\n");
 
-            PrintAST(Handler, ClosureDeck->getBody(), Depth + 2);
+            PrintAST(ClosureDeck->getBody(), Depth + 2);
             return;
         }
         case AST::NodeKind::CommaSepStmtList: {
@@ -582,7 +564,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
 
             std::print("CommaSepStmtList\n");
             for (const auto Stmt : CommaSepStmtList->getStmtList()) {
-                PrintAST(Handler, Stmt, Depth + 1);
+                PrintAST(Stmt, Depth + 1);
             }
 
             return;
@@ -591,10 +573,10 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto ForStmt = llvm::cast<AST::ForStmt>(Stmt);
             std::print("ForStmt\n");
 
-            PrintAST(Handler, ForStmt->getInit(), Depth + 1);
-            PrintAST(Handler, ForStmt->getCond(), Depth + 1);
-            PrintAST(Handler, ForStmt->getStep(), Depth + 1);
-            PrintAST(Handler, ForStmt->getBody(), Depth + 1);
+            PrintAST(ForStmt->getInit(), Depth + 1);
+            PrintAST(ForStmt->getCond(), Depth + 1);
+            PrintAST(ForStmt->getStep(), Depth + 1);
+            PrintAST(ForStmt->getBody(), Depth + 1);
 
             return;
         }
@@ -603,14 +585,13 @@ PrintAST(Backend::LLVM::Handler &Handler,
                 llvm::cast<AST::ArrayBindingVarDecl>(Stmt);
 
             std::print("ArrayBindingVarDecl\n");
-            PrintArrayBindingItemList(Handler,
-                                      ArrayBindingVarDecl->getItemList(),
+            PrintArrayBindingItemList(ArrayBindingVarDecl->getItemList(),
                                       Depth + 1);
 
             PrintDepth(Depth + 1);
             std::print("InitExpr\n");
 
-            PrintAST(Handler, ArrayBindingVarDecl->getInitExpr(), Depth + 2);
+            PrintAST(ArrayBindingVarDecl->getInitExpr(), Depth + 2);
             return;
         }
         case AST::NodeKind::ObjectBindingVarDecl: {
@@ -618,11 +599,10 @@ PrintAST(Backend::LLVM::Handler &Handler,
                 llvm::cast<AST::ObjectBindingVarDecl>(Stmt);
 
             std::print("ObjectBindingVarDecl\n");
-            PrintObjectBindingFieldList(Handler,
-                                        ObjectBindingVarDecl->getFieldList(),
+            PrintObjectBindingFieldList(ObjectBindingVarDecl->getFieldList(),
                                         Depth + 1);
 
-            PrintAST(Handler, ObjectBindingVarDecl->getInitExpr(), Depth + 1);
+            PrintAST(ObjectBindingVarDecl->getInitExpr(), Depth + 1);
             return;
         }
         case AST::NodeKind::CastExpr: {
@@ -632,19 +612,19 @@ PrintAST(Backend::LLVM::Handler &Handler,
             PrintDepth(Depth + 1);
             std::print("Operand\n");
 
-            PrintAST(Handler, CastExpr->getOperand(), Depth + 2);
+            PrintAST(CastExpr->getOperand(), Depth + 2);
 
             PrintDepth(Depth + 1);
             std::print("Type\n");
 
-            PrintAST(Handler, CastExpr->getTypeExpr(), Depth + 2);
+            PrintAST(CastExpr->getTypeExpr(), Depth + 2);
             return;
         }
         case AST::NodeKind::DerefExpr: {
             const auto DerefExpr = llvm::cast<AST::DerefExpr>(Stmt);
 
             std::print("DerefExpr\n");
-            PrintAST(Handler, DerefExpr->getOperand(), Depth + 1);
+            PrintAST(DerefExpr->getOperand(), Depth + 1);
 
             return;
         }
@@ -658,13 +638,13 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto ArrayTypeExpr = llvm::cast<AST::ArrayTypeExpr>(Stmt);
 
             std::print("ArrayTypeExpr\n");
-            PrintAST(Handler, ArrayTypeExpr->getBase(), Depth + 1);
+            PrintAST(ArrayTypeExpr->getBase(), Depth + 1);
 
             PrintDepth(Depth + 1);
             std::print("DetailList\n");
 
             for (const auto Detail : ArrayTypeExpr->getDetailList()) {
-                PrintAST(Handler, Detail, Depth + 2);
+                PrintAST(Detail, Depth + 2);
             }
 
             return;
@@ -677,20 +657,20 @@ PrintAST(Backend::LLVM::Handler &Handler,
             std::print("ParamList\n");
 
             for (const auto Param : FuncTypeExpr->getParamList()) {
-                PrintAST(Handler, Param, Depth + 2);
+                PrintAST(Param, Depth + 2);
             }
 
             PrintDepth(Depth + 1);
             std::print("ReturnType\n");
 
-            PrintAST(Handler, FuncTypeExpr->getReturnType(), Depth + 2);
+            PrintAST(FuncTypeExpr->getReturnType(), Depth + 2);
             return;
         }
         case AST::NodeKind::OptionalType: {
             const auto OptionalExpr = llvm::cast<AST::OptionalTypeExpr>(Stmt);
 
             std::print("OptionalTypeExpr\n");
-            PrintAST(Handler, OptionalExpr->getOperand(), Depth + 1);
+            PrintAST(OptionalExpr->getOperand(), Depth + 1);
 
             return;
         }
@@ -698,7 +678,7 @@ PrintAST(Backend::LLVM::Handler &Handler,
             const auto PointerExpr = llvm::cast<AST::PointerTypeExpr>(Stmt);
 
             std::print("PointerTypeExpr\n");
-            PrintAST(Handler, PointerExpr->getOperand(), Depth + 1);
+            PrintAST(PointerExpr->getOperand(), Depth + 1);
 
             return;
         }
@@ -745,8 +725,11 @@ HandlePrompt(const std::string_view &Prompt,
         fputc('\n', stdout);
     }
 
-    if (Diag.hasErrors()) {
-        return;
+    if (Diag.hasMessages()) {
+        Diag.print();
+        if (Diag.hasErrors()) {
+            return;
+        }
     }
 
     const auto Options = Parse::ParseOptions({
@@ -755,8 +738,19 @@ HandlePrompt(const std::string_view &Prompt,
     });
 
     auto Unit = Parse::ParseUnit::Create(*TokenBuffer, Diag, Options);
+    if (Diag.hasMessages()) {
+        Diag.print();
+    }
+
     if (Unit.getTopLevelStmtList().empty()) {
         return;
+    }
+
+    if (ArgOptions.PrintAST) {
+        const auto Expr = Unit.getTopLevelStmtList().back();
+
+        PrintAST(Expr, ArgOptions.PrintDepth);
+        fputc('\n', stdout);
     }
 
     if (Diag.hasErrors()) {
@@ -766,14 +760,6 @@ HandlePrompt(const std::string_view &Prompt,
     auto BackendHandlerExp = Backend::LLVM::JITHandler::create(Diag, Unit);
     if (!BackendHandlerExp.has_value()) {
         return;
-    }
-
-    const auto BackendHandler = BackendHandlerExp->get();
-    const auto Expr = Unit.getTopLevelStmtList().back();
-
-    if (ArgOptions.PrintAST) {
-        PrintAST(*BackendHandler, Expr, /*Depth=*/ArgOptions.PrintDepth);
-        fputc('\n', stdout);
     }
 
 #if 0
@@ -851,7 +837,7 @@ HandleFileOptions(const ArgumentOptions ArgOptions,
 
         if (ArgOptions.PrintAST) {
             for (const auto &[Name, Decl] : Unit.getTopLevelDeclList()) {
-                PrintAST(BackendHandler, Decl, /*Depth=*/ArgOptions.PrintDepth);
+                PrintAST(Decl, /*Depth=*/ArgOptions.PrintDepth);
             }
         }
 

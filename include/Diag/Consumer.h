@@ -8,6 +8,7 @@
 #include <print>
 #include <vector>
 
+#include "Basic/ANSI.h"
 #include "Diag/Message.h"
 
 struct DiagnosticConsumer {
@@ -51,7 +52,14 @@ public:
     constexpr auto print() const noexcept -> decltype(*this) {
         // FIXME: Add support for printing the location of the message
         for (const auto &DiagMessage : this->MessageList) {
-            std::print("{}:{}\n", this->FilePath, DiagMessage.Message);
+            std::print("{}:{}:{} {}: {}\n",
+                       this->FilePath,
+                       DiagMessage.Location.Row,
+                       DiagMessage.Location.Column,
+                       DiagMessage.Level == DiagnosticLevel::Error ?
+                        ANSI_BHRED "error" ANSI_CRESET :
+                        ANSI_BHYEL "warning" ANSI_CRESET,
+                       DiagMessage.Message);
         }
 
         return *this;

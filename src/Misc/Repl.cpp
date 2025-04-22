@@ -47,7 +47,9 @@ namespace Interface {
         rl_set_keymap(rl_make_bare_keymap());
         using_history();
 
-        const auto FullPrompt = std::format(BHBLU "{}> " CRESET, Prompt);
+        const auto FullPrompt =
+            std::format(ANSI_BHBLU "{}> " ANSI_CRESET, Prompt);
+
         while (true) {
             const auto InputCStr = readline(FullPrompt.c_str());
             if (InputCStr == nullptr) {
