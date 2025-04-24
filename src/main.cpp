@@ -347,7 +347,6 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
         }
         case AST::NodeKind::CallExpr: {
             const auto CallExpr = llvm::cast<AST::CallExpr>(Stmt);
-
             std::print("CallExpr\n");
 
             PrintDepth(Depth + 1);
@@ -358,7 +357,7 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
             PrintDepth(Depth + 1);
             std::print("Args\n");
 
-            for (const auto Arg : CallExpr->getArgs()) {
+            for (const auto Arg : CallExpr->getArgumentList()) {
                 PrintDepth(Depth + 2);
                 std::print("Arg\n");
 
@@ -535,27 +534,27 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
             return;
         }
         case AST::NodeKind::ClosureDecl: {
-            const auto ClosureDeck = llvm::cast<AST::ClosureDecl>(Stmt);
+            const auto ClosureDecl = llvm::cast<AST::ClosureDecl>(Stmt);
             std::print("ClosureDecl\n");
 
             PrintDepth(Depth + 1);
             std::print("CaptureList\n");
 
-            for (const auto Capture : ClosureDeck->getCaptureList()) {
+            for (const auto Capture : ClosureDecl->getCaptureList()) {
                 PrintAST(Capture, Depth + 2);
             }
 
             PrintDepth(Depth + 1);
-            std::print("Arguments\n");
+            std::print("Parameters\n");
 
-            for (const auto Param : ClosureDeck->getParamList()) {
+            for (const auto Param : ClosureDecl->getParamList()) {
                 PrintAST(Param, Depth + 2);
             }
 
             PrintDepth(Depth + 1);
             std::print("Body\n");
 
-            PrintAST(ClosureDeck->getBody(), Depth + 2);
+            PrintAST(ClosureDecl->getBody(), Depth + 2);
             return;
         }
         case AST::NodeKind::CommaSepStmtList: {
@@ -573,11 +572,25 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
             const auto ForStmt = llvm::cast<AST::ForStmt>(Stmt);
             std::print("ForStmt\n");
 
-            PrintAST(ForStmt->getInit(), Depth + 1);
-            PrintAST(ForStmt->getCond(), Depth + 1);
-            PrintAST(ForStmt->getStep(), Depth + 1);
-            PrintAST(ForStmt->getBody(), Depth + 1);
+            PrintDepth(Depth + 1);
+            std::print("Init\n");
 
+            PrintAST(ForStmt->getInit(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+            std::print("Cond\n");
+
+            PrintAST(ForStmt->getCond(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+            std::print("Step\n");
+
+            PrintAST(ForStmt->getStep(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+            std::print("Body\n");
+
+            PrintAST(ForStmt->getBody(), Depth + 2);
             return;
         }
         case AST::NodeKind::ArrayBindingVarDecl: {

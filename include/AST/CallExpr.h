@@ -71,11 +71,11 @@ namespace AST {
             return this->getParenLoc();
         }
 
-        [[nodiscard]] constexpr auto getArgs() const noexcept {
+        [[nodiscard]] constexpr auto getArgumentList() const noexcept {
             return std::span(this->ArgList);
         }
 
-        [[nodiscard]] constexpr auto &getArgsRef() noexcept {
+        [[nodiscard]] constexpr auto &getArgumentListRef() noexcept {
             return this->ArgList;
         }
 

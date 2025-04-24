@@ -50,7 +50,6 @@ public:
     }
 
     constexpr auto print() const noexcept -> decltype(*this) {
-        // FIXME: Add support for printing the location of the message
         for (const auto &DiagMessage : this->MessageList) {
             std::print("{}:{}:{} {}: {}\n",
                        this->FilePath,

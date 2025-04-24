@@ -68,9 +68,7 @@ namespace AST {
             return *this;
         }
 
-        constexpr auto setName(std::string &&Name) noexcept
-            -> decltype(*this)
-        {
+        constexpr auto setName(std::string &&Name) noexcept -> decltype(*this) {
             this->Name = std::move(Name);
             return *this;
         }

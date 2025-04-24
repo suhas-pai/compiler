@@ -162,11 +162,10 @@ namespace AST {
         Expr *InitExpr;
     public:
         explicit
-        ObjectBindingVarDecl(
-            const SourceLocation Loc,
-            const struct Qualifiers &Qualifiers,
-            const std::span<ObjectBindingField *> FieldList,
-            Expr *const InitExpr) noexcept
+        ObjectBindingVarDecl(const SourceLocation Loc,
+                             const struct Qualifiers &Qualifiers,
+                             const std::span<ObjectBindingField *> FieldList,
+                             Expr *const InitExpr) noexcept
         : Stmt(NodeKind::ObjectBindingVarDecl), Qualifiers(Qualifiers),
           FieldList(FieldList.begin(), FieldList.end()), InitExpr(InitExpr) {}
 

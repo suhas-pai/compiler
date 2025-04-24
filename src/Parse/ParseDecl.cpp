@@ -147,9 +147,6 @@ namespace Parse {
                                        Lex::TokenKind::CloseCurlyBrace);
 
         if (!TypeExprOpt.has_value()) {
-            // FIXME: We should skip to the next field, not the end of
-            // the struct.
-
             return std::unexpected(TypeExprOpt.error());
         }
 
