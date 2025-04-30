@@ -238,9 +238,9 @@ namespace Parse {
                     TokenStream.consume();
 
                     const auto PeekToken2Opt = TokenStream.peek();
-                    if (!PeekToken2Opt.has_value()) {
-                        TokenStream.goBack();
+                    TokenStream.goBack();
 
+                    if (!PeekToken2Opt.has_value()) {
                         auto &DetailList = DetailListOpt.value();
                         return new AST::ArrayDecl(BracketToken.Loc,
                                                   std::move(DetailList));
@@ -250,8 +250,6 @@ namespace Parse {
                     if (TokenStream.tokenIsBinOp(PeekToken2) ||
                         PeekToken2.Kind == Lex::TokenKind::DotIdentifier)
                     {
-                        TokenStream.goBack();
-
                         auto &DetailList = DetailListOpt.value();
                         return new AST::ArrayDecl(BracketToken.Loc,
                                                   std::move(DetailList));

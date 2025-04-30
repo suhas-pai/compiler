@@ -94,8 +94,8 @@ PrintArrayBindingItemList(
                 std::print("ArrayBindingItemIdentifier<\"{}\">\n",
                            IdentifierItem->Name);
 
-                if (Item->Index.has_value()) {
-                    PrintArrayBindingItemIndex(Item->Index.value(), Depth + 1);
+                if (const auto Index = Item->Index) {
+                    PrintArrayBindingItemIndex(Index.value(), Depth + 1);
                 }
 
                 continue;
@@ -357,20 +357,14 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
             PrintDepth(Depth + 1);
             std::print("Args\n");
 
+            auto Index = uint32_t();
             for (const auto Arg : CallExpr->getArgumentList()) {
                 PrintDepth(Depth + 2);
-                std::print("Arg\n");
+                std::print("Arg #{} (Label: \"{}\")\n",
+                           Index, Arg.Label.value_or("<null>"));
 
-                PrintDepth(Depth + 3);
-                std::print("Label\n");
-
-                PrintDepth(Depth + 4);
-                std::print("\"{}\"\n", Arg.Label.value_or("<null>"));
-
-                PrintDepth(Depth + 3);
-                std::print("Expr\n");
-
-                PrintAST(Arg.Expr, Depth + 4);
+                PrintAST(Arg.Expr, Depth + 3);
+                ++Index;
             }
 
             return;
@@ -747,7 +741,7 @@ HandlePrompt(const std::string_view &Prompt,
 
     const auto Options = Parse::ParseOptions({
         .DontRequireSemicolons = true,
-        .IgnoreUnusedExpressions = true
+        .IgnoreUnusedExpressions = true,
     });
 
     auto Unit = Parse::ParseUnit::Create(*TokenBuffer, Diag, Options);
@@ -770,12 +764,13 @@ HandlePrompt(const std::string_view &Prompt,
         return;
     }
 
-    auto BackendHandlerExp = Backend::LLVM::JITHandler::create(Diag, Unit);
+    auto BackendHandlerExp = Backend::LLVM::JITHandler::Create(Diag, Unit);
     if (!BackendHandlerExp.has_value()) {
         return;
     }
 
 #if 0
+    auto BackendHandler = BackendHandlerExp.value();
     BackendHandler->evaluateAndPrint(*Expr,
                                      ArgOptions.PrintIR,
                                      BHGRN "Evaluation> " CRESET,

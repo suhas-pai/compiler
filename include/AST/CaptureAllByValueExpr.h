@@ -21,6 +21,11 @@ namespace AST {
                               const struct Qualifiers &Qualifiers) noexcept
         : Expr(ObjKind), Loc(Loc), Qualifiers(Qualifiers) {}
 
+        explicit
+        CaptureAllByValueExpr(const SourceLocation Loc,
+                              struct Qualifiers &&Qualifiers) noexcept
+        : Expr(ObjKind), Loc(Loc), Qualifiers(std::move(Qualifiers)) {}
+
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == ObjKind;

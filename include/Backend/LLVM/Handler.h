@@ -124,12 +124,15 @@ namespace Backend::LLVM {
         [[nodiscard]] constexpr auto &getCGAM() const noexcept {
             return *this->CGAM;
         }
+
         [[nodiscard]] constexpr auto &getMAM() const noexcept {
             return *this->MAM;
         }
+
         [[nodiscard]] constexpr auto &getPIC() const noexcept {
             return *this->PIC;
         }
+
         [[nodiscard]] constexpr auto &getSI() const noexcept {
             return *this->SI;
         }

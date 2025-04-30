@@ -9,7 +9,6 @@
 #include "AST/CompoundStmt.h"
 #include "AST/IfExpr.h"
 
-#include "Parse/ParseError.h"
 #include "Parse/ParseExpr.h"
 
 namespace Parse {
@@ -181,7 +180,7 @@ namespace Parse {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        if (Context.Options.RequireParensOnIfExpr) {
+        if (Context.Options.RequireParensOnControlFlowExpr) {
             if (!TokenStream.consumeIfIs(Lex::TokenKind::OpenParen)) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
@@ -198,7 +197,7 @@ namespace Parse {
             return std::unexpected(ConditionOpt.error());
         }
 
-        if (Context.Options.RequireParensOnIfExpr) {
+        if (Context.Options.RequireParensOnControlFlowExpr) {
             if (!TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,

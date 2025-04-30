@@ -120,6 +120,25 @@ namespace AST {
         : ObjectBindingField(ObjectBindingFieldKind::Object, Key, KeyLoc),
           Qualifiers(Qualifiers), FieldList(std::move(FieldList)) {}
 
+        explicit
+        ObjectBindingFieldObject(
+            const std::string_view Key,
+            const SourceLocation KeyLoc,
+            struct Qualifiers &&Qualifiers,
+            const std::span<ObjectBindingField *> FieldList) noexcept
+        : ObjectBindingField(ObjectBindingFieldKind::Object, Key, KeyLoc),
+          Qualifiers(std::move(Qualifiers)),
+          FieldList(FieldList.begin(), FieldList.end()) {}
+
+        explicit
+        ObjectBindingFieldObject(
+            const std::string_view Key,
+            const SourceLocation KeyLoc,
+            struct Qualifiers &&Qualifiers,
+            std::vector<ObjectBindingField *> &&FieldList) noexcept
+        : ObjectBindingField(ObjectBindingFieldKind::Object, Key, KeyLoc),
+          Qualifiers(std::move(Qualifiers)), FieldList(std::move(FieldList)) {}
+
         [[nodiscard]] constexpr
         static auto IsOfKind(const ObjectBindingField &Field) noexcept {
             return Field.getKind() == ObjectBindingFieldKind::Object;

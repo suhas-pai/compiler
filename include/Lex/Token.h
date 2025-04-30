@@ -46,8 +46,8 @@ namespace Lex {
 
         [[nodiscard]]
         constexpr auto getString(const std::string_view Text) const noexcept {
-            return Text.substr(this->Loc.Index,
-                               this->End.Index - this->Loc.Index);
+            const auto Length = this->End.Index - this->Loc.Index;
+            return Text.substr(this->Loc.Index, Length);
         }
     };
 
@@ -59,85 +59,10 @@ namespace Lex {
     }
 
     [[nodiscard]] constexpr
-    auto KeywordTokenGetKeyword(const std::string_view TokenString) noexcept {
-        const auto KeywordNone = Keyword::Let;
-        switch (KeywordNone) {
-        #define CHECK_KW(KW)                                                   \
-            case Keyword::KW:                                                  \
-                if (TokenString == KeywordToLexemeMap[Keyword::KW]) {          \
-                    return Keyword::KW;                                        \
-                }
-
-            CHECK_KW(Let)
-            [[fallthrough]];
-
-            CHECK_KW(Mut)
-            [[fallthrough]];
-
-            CHECK_KW(Function);
-            [[fallthrough]];
-
-            CHECK_KW(If);
-            [[fallthrough]];
-
-            CHECK_KW(Else);
-            [[fallthrough]];
-
-            CHECK_KW(Return);
-            [[fallthrough]];
-
-            CHECK_KW(Volatile);
-            [[fallthrough]];
-
-            CHECK_KW(Struct)
-            [[fallthrough]];
-
-            CHECK_KW(Class)
-            [[fallthrough]];
-
-            CHECK_KW(Shape)
-            [[fallthrough]];
-
-            CHECK_KW(Interface)
-            [[fallthrough]];
-
-            CHECK_KW(Impl)
-            [[fallthrough]];
-
-            CHECK_KW(While)
-            [[fallthrough]];
-
-            CHECK_KW(Enum)
-            [[fallthrough]];
-
-            CHECK_KW(And)
-            [[fallthrough]];
-
-            CHECK_KW(Or)
-            [[fallthrough]];
-
-            CHECK_KW(For)
-            [[fallthrough]];
-
-            CHECK_KW(Inline)
-            [[fallthrough]];
-
-            CHECK_KW(Comptime)
-            [[fallthrough]];
-
-            CHECK_KW(Default)
-            [[fallthrough]];
-
-            CHECK_KW(In)
-            [[fallthrough]];
-
-            CHECK_KW(As)
-            [[fallthrough]];
-
-            CHECK_KW(Discardable)
-            break;
-
-        #undef CHECK_KW
+    auto KeywordLexemeGetKeyword(const std::string_view Lexeme) noexcept {
+        const auto Keyword = KeywordToLexemeMap.keyFor(Lexeme);
+        if (Keyword.has_value()) {
+            return Keyword.value();
         }
 
         __builtin_unreachable();

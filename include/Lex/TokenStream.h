@@ -23,7 +23,7 @@ namespace Lex {
         }
 
         [[nodiscard]] constexpr auto reachedEof() const noexcept {
-            return this->Index == TokenBuffer.getTokenList().size();
+            return this->Index == this->TokenBuffer.getTokenList().size();
         }
 
         [[nodiscard]]
@@ -34,7 +34,7 @@ namespace Lex {
         [[nodiscard]]
         constexpr auto tokenKeyword(const Lex::Token Token) const noexcept {
             assert(Token.Kind == Lex::TokenKind::Keyword);
-            return Lex::KeywordTokenGetKeyword(this->tokenContent(Token));
+            return Lex::KeywordLexemeGetKeyword(this->tokenContent(Token));
         }
 
         [[nodiscard]]

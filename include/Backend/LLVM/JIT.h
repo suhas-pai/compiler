@@ -57,8 +57,8 @@ namespace Backend::LLVM {
 
         void allocCoreFields(const llvm::StringRef &Name) noexcept override;
     public:
-        static auto
-        create(DiagnosticConsumer &Diag,
+        [[nodiscard]] static auto
+        Create(DiagnosticConsumer &Diag,
                const Parse::ParseUnit &Unit) noexcept
             -> std::expected<std::unique_ptr<JITHandler>, llvm::Error>;
 

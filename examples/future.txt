@@ -5,11 +5,11 @@ func b(c: *mut volatile u32) {
 }
 
 func ttest<let T: u32 or u64, let U>(a: std.vector<U>(T)): u32 {
-
+    return 0u32;
 }
 
 func gttest<let T>(a: T, b: () -> T)
-func gttest2(a: T, b: () -> typeof(a))
+func gttest2(a, b: () -> typeof(a))
 
 extern let ptr: pointer;
 func b_func(): type {
@@ -42,6 +42,10 @@ shape Sh {
     c?: s8 or s32
 };
 
+func funcConstraint(a: Function): bit {
+    return a == () -> u32;
+}
+
 interface I {
     doThing: () -> void = () => {
         std.print(`Hi {"hi"}`);
@@ -49,7 +53,9 @@ interface I {
 
     doThing2: (a: u32) -> void = () => {
         std.print(`Hi {a:x}`);
-    }
+    },
+
+    doThing3: funcConstraint
 }
 
 func tupleExample(a: u32): tuple(uint32_t, meta.string) {
@@ -197,18 +203,7 @@ let Ec: constraint = E as constraint;
 let strict_type: constraint = Struct or Enum or Union or Wrapper or Pointer;
 
 func D() {
-    return (
-        <html.div>
-            <html.p a=5 bind:b={{ a:  { b: 4 }, c.d: 5 }}>
-                { if (1 + 1 == 2) "Hello, World" else "Hello, Not" }
-                <meta.if_node cond={true} else={"Hello, Not"}>
-                    Hello,
-                </meta.if_node>
-            </html.p>
-        </html.div>
-    );
-
-    return %{
+    return @{
         html.div {
             a: 5,
             b: {{ a: { b: 4 }, c.d: 5 }}
@@ -223,7 +218,7 @@ func D() {
         }
     }
 
-    return %{
+    return @{
         VStack {
             padding: tw.rem(4),
             color: .blue,

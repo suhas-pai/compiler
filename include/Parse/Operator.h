@@ -3,7 +3,6 @@
  */
 
 #pragma once
-#include <string_view>
 
 #include "ADT/SmallArrayMap.h"
 #include "Lex/Token.h"
@@ -325,7 +324,7 @@ namespace Parse {
         -> std::optional<BinaryOperator>
     {
         if (Token.Kind == Lex::TokenKind::Keyword) {
-            switch (Lex::KeywordTokenGetKeyword(Text)) {
+            switch (Lex::KeywordLexemeGetKeyword(Text)) {
                 case Lex::Keyword::And:
                     return BinaryOperator::LogicalAnd;
                 case Lex::Keyword::Or:

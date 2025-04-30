@@ -30,8 +30,7 @@ namespace Parse {
     }
 
     void
-    ParseQualifiers(ParseContext &Context,
-                    AST::Qualifiers &Qualifiers) noexcept
+    ParseQualifiers(ParseContext &Context, AST::Qualifiers &Qualifiers) noexcept
     {
         auto &TokenStream = Context.TokenStream;
         auto TokenOpt = TokenStream.peek();

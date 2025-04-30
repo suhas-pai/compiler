@@ -120,7 +120,7 @@ namespace Backend::LLVM {
     }
 
     auto
-    JITHandler::create(DiagnosticConsumer &Diag,
+    JITHandler::Create(DiagnosticConsumer &Diag,
                        const Parse::ParseUnit &Unit) noexcept
         -> std::expected<std::unique_ptr<JITHandler>, llvm::Error>
     {

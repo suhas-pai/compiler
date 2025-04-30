@@ -66,7 +66,7 @@ namespace Parse {
                 return OperatorInfo(Precedence::Conditional,
                                     OperatorAssoc::Left);
             case Lex::TokenKind::Keyword:
-                switch (Lex::KeywordTokenGetKeyword(Text)) {
+                switch (Lex::KeywordLexemeGetKeyword(Text)) {
                     case Lex::Keyword::If:
                     case Lex::Keyword::Else:
                         return OperatorInfo(Precedence::Conditional,

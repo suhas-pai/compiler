@@ -188,8 +188,8 @@ namespace Parse {
     [[nodiscard]] static auto
     ParseFieldList(ParseContext &Context,
                    const SourceLocation DeclLoc,
-                   std::vector<AST::Stmt *> &FieldList,
-                   const bool AllowOptionalFields) noexcept -> ParseError
+                   const bool AllowOptionalFields,
+                   std::vector<AST::Stmt *> &FieldList) noexcept -> ParseError
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -815,7 +815,7 @@ namespace Parse {
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             if (const auto Error =
                     ParseFieldList(Context, InterfaceKeywordToken.Loc,
-                                   FieldList, /*AllowOptionalFields=*/true);
+                                   /*AllowOptionalFields=*/true, FieldList);
                 Error != ParseError::None)
             {
                 return std::unexpected(Error);
@@ -856,8 +856,8 @@ namespace Parse {
         TokenStream.consume();
 
         if (const auto Error =
-                ParseFieldList(Context, NameToken.Loc, FieldList,
-                               /*AllowOptionalFields=*/true);
+                ParseFieldList(Context, NameToken.Loc,
+                               /*AllowOptionalFields=*/true, FieldList);
             Error != ParseError::None)
         {
             return std::unexpected(Error);
@@ -879,8 +879,8 @@ namespace Parse {
         auto FieldList = std::vector<AST::Stmt *>();
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             if (const auto Error =
-                    ParseFieldList(Context, ShapeKeywordToken.Loc, FieldList,
-                                   /*AllowOptionalFields=*/true);
+                    ParseFieldList(Context, ShapeKeywordToken.Loc,
+                                   /*AllowOptionalFields=*/true, FieldList);
                 Error != ParseError::None)
             {
                 return std::unexpected(Error);
@@ -921,8 +921,8 @@ namespace Parse {
         TokenStream.consume();
 
         if (const auto Error =
-                ParseFieldList(Context, NameToken.Loc, FieldList,
-                               /*AllowOptionalFields=*/true);
+                ParseFieldList(Context, NameToken.Loc,
+                               /*AllowOptionalFields=*/true, FieldList);
             Error != ParseError::None)
         {
             return std::unexpected(Error);
@@ -946,8 +946,8 @@ namespace Parse {
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             const auto StructKeywordToken = StructKeywordTokenOpt.value();
             if (const auto Error =
-                    ParseFieldList(Context, StructKeywordToken.Loc, FieldList,
-                                   /*AllowOptionalFields=*/false);
+                    ParseFieldList(Context, StructKeywordToken.Loc,
+                                   /*AllowOptionalFields=*/false, FieldList);
                 Error != ParseError::None)
             {
                 return std::unexpected(Error);
@@ -988,8 +988,8 @@ namespace Parse {
         TokenStream.consume();
 
         if (const auto Error =
-                ParseFieldList(Context, NameToken.Loc, FieldList,
-                               /*AllowOptionalFields=*/false);
+                ParseFieldList(Context, NameToken.Loc,
+                               /*AllowOptionalFields=*/false, FieldList);
             Error != ParseError::None)
         {
             return std::unexpected(Error);
@@ -1014,8 +1014,8 @@ namespace Parse {
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             const auto UnionKeywordToken = UnionKeywordTokenOpt.value();
             if (const auto Error =
-                    ParseFieldList(Context, UnionKeywordToken.Loc, FieldList,
-                                   /*AllowOptionalFields=*/false);
+                    ParseFieldList(Context, UnionKeywordToken.Loc,
+                                   /*AllowOptionalFields=*/false, FieldList);
                 Error != ParseError::None)
             {
                 return std::unexpected(Error);
@@ -1056,8 +1056,8 @@ namespace Parse {
         TokenStream.consume();
 
         if (const auto Error =
-                ParseFieldList(Context, NameToken.Loc, FieldList,
-                               /*AllowOptionalFields=*/false);
+                ParseFieldList(Context, NameToken.Loc,
+                               /*AllowOptionalFields=*/false, FieldList);
             Error != ParseError::None)
         {
             return std::unexpected(Error);
@@ -1666,7 +1666,7 @@ namespace Parse {
         const auto TypeExpr = TypeExprOpt.value();
         const auto NameLoc =
             NameTokenOpt
-                .transform([&](const auto &Token) noexcept {
+                .transform([](const auto Token) noexcept {
                     return Token.Loc;
                 })
                 .value_or(DeclLoc);

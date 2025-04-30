@@ -49,7 +49,7 @@ namespace Lex {
             std::make_pair(Keyword::Struct, "struct"),
             std::make_pair(Keyword::Class, "class"),
             std::make_pair(Keyword::Shape, "shape"),
-            std::make_pair(Keyword::Union, "shape"),
+            std::make_pair(Keyword::Union, "union"),
             std::make_pair(Keyword::Interface, "interface"),
             std::make_pair(Keyword::Impl, "impl"),
             std::make_pair(Keyword::Enum, "enum"),

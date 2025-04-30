@@ -183,6 +183,22 @@ namespace AST {
         : Stmt(NodeKind::ArrayBindingVarDecl), Qualifiers(Qualifiers),
           ItemList(std::move(ItemList)), InitExpr(InitExpr) {}
 
+        explicit
+        ArrayBindingVarDecl(const SourceLocation Loc,
+                            struct Qualifiers &&Qualifiers,
+                            const std::span<ArrayBindingItem *> &ItemList,
+                            Expr *const InitExpr) noexcept
+        : Stmt(NodeKind::ArrayBindingVarDecl), Qualifiers(Qualifiers),
+          ItemList(ItemList.begin(), ItemList.end()), InitExpr(InitExpr) {}
+
+        explicit
+        ArrayBindingVarDecl(const SourceLocation Loc,
+                            struct Qualifiers &&Qualifiers,
+                            std::vector<ArrayBindingItem *> &&ItemList,
+                            Expr *const InitExpr) noexcept
+        : Stmt(NodeKind::ArrayBindingVarDecl), Qualifiers(Qualifiers),
+          ItemList(std::move(ItemList)), InitExpr(InitExpr) {}
+
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
             return Stmt.getKind() == NodeKind::ArrayBindingVarDecl;
