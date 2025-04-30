@@ -1072,8 +1072,7 @@ namespace Parse {
 
     [[nodiscard]] static auto
     ParseObjectBindingFieldList(ParseContext &Context) noexcept
-        -> std::expected<std::vector<AST::ObjectBindingField *>,
-                         ParseError>;
+        -> std::expected<std::vector<AST::ObjectBindingField *>, ParseError>;
 
     [[nodiscard]] static auto
     ParseRightSideOfArrayBindingItemColon(
@@ -1303,7 +1302,6 @@ namespace Parse {
         return std::unexpected(ParseError::FailedCouldNotProceed);
     }
 
-    [[nodiscard]]
     static auto ParseArrayBindingItemList(ParseContext &Context) noexcept
         -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>
     {
@@ -1528,7 +1526,6 @@ namespace Parse {
                                                      AtKeyLocQualifiers);
     }
 
-    [[nodiscard]]
     static auto ParseObjectBindingFieldList(ParseContext &Context) noexcept
         -> std::expected<std::vector<AST::ObjectBindingField *>, ParseError>
     {
