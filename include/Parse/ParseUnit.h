@@ -19,7 +19,7 @@ namespace Parse {
 
         explicit ParseUnit() noexcept = default;
     public:
-        static auto
+        [[nodiscard]] static auto
         Create(const Lex::TokenBuffer &TokenBuffer,
                DiagnosticConsumer &Diag,
                ParseOptions Options) noexcept -> ParseUnit;
