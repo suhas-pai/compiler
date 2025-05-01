@@ -644,7 +644,7 @@ done:
         if (!InPlaceOfStmt && NameOpt.has_value()) {
             const auto Name = NameOpt.value();
             Diag.consume({
-                .Level = DiagnosticLevel::Error,
+                .Level = DiagnosticLevel::Warning,
                 .Location = Name.Loc,
                 .Message =
                     std::format("Name \"{}\" will be unused",
