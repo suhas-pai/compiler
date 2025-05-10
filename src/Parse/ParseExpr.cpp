@@ -177,7 +177,7 @@ namespace Parse {
             } FieldAccess;
 
             struct {
-                ParseError Error;
+                enum ParseError Error;
             } ParseError;
         };
 
@@ -187,10 +187,15 @@ namespace Parse {
         : Kind(Kind) {}
 
     public:
-        constexpr explicit
-        ParseArrayTypeExprError(const enum ParseError ParseError) noexcept
-        : Kind(ParseArrayTypeExprErrorKind::ParseError),
-          ParseError(ParseError) {}
+        [[nodiscard]]
+        static auto FromParseError(const enum ParseError ParseError) noexcept {
+            auto Result =
+                ParseArrayTypeExprError(
+                    ParseArrayTypeExprErrorKind::ParseError);
+
+            Result.ParseError.Error = ParseError;
+            return Result;
+        }
 
         [[nodiscard]] static auto
         FromArrayDeclOptUnwrap(const SourceLocation QuestionMarkLoc) noexcept {
@@ -254,7 +259,8 @@ namespace Parse {
             });
 
             return std::unexpected(
-                ParseArrayTypeExprError(ParseError::FailedCouldNotProceed));
+                ParseArrayTypeExprError::FromParseError(
+                    ParseError::FailedCouldNotProceed));
         }
 
         const auto PeekToken = PeekTokenOpt.value();
@@ -269,7 +275,8 @@ namespace Parse {
             });
 
             return std::unexpected(
-                ParseArrayTypeExprError(ParseError::FailedCouldNotProceed));
+                ParseArrayTypeExprError::FromParseError(
+                    ParseError::FailedCouldNotProceed));
         }
 
         if (PeekToken.Kind == Lex::TokenKind::DotIdentifier) {
@@ -282,7 +289,8 @@ namespace Parse {
             });
 
             return std::unexpected(
-                ParseArrayTypeExprError(ParseError::FailedCouldNotProceed));
+                ParseArrayTypeExprError::FromParseError(
+                    ParseError::FailedCouldNotProceed));
         }
 
         // If we have a question-mark, we need to check if the programmer
@@ -325,7 +333,8 @@ namespace Parse {
         // We have an array-type
         const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
         if (!BaseOpt.has_value()) {
-            return std::unexpected(ParseArrayTypeExprError(BaseOpt.error()));
+            return std::unexpected(
+                ParseArrayTypeExprError::FromParseError(BaseOpt.error()));
         }
 
         auto Base = BaseOpt.value();
