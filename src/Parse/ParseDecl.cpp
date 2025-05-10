@@ -1140,8 +1140,7 @@ namespace Parse {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
                 .Location = TokenStream.getCurrentOrPreviousLocation(),
-                .Message = "Expected a name expression for array-like "
-                           "destructuring"
+                .Message = "Expected a name for array-like destructuring"
             });
 
             return std::unexpected(ParseError::FailedCouldNotProceed);
@@ -1246,7 +1245,7 @@ namespace Parse {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
                     .Location = TokenStream.getCurrentOrPreviousLocation(),
-                    .Message = "Expected a name expression for spread operator"
+                    .Message = "Expected a name for spread operator"
                 });
 
                 return std::unexpected(ParseError::FailedCouldNotProceed);
