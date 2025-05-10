@@ -41,7 +41,17 @@ namespace Parse {
                 return std::unexpected(StmtOpt.error());
             }
 
-            ExpectSemicolon(Context);
+            if (!ExpectSemicolon(Context)) {
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = CurlyToken.Loc,
+                    .Message = "Expected semicolon to end statement"
+                });
+
+                TokenStream.proceedToAndConsume(
+                    Lex::TokenKind::CloseCurlyBrace);
+            }
+
             StmtList.emplace_back(StmtOpt.value());
         }
 
@@ -134,7 +144,6 @@ namespace Parse {
                     case Lex::Keyword::If:
                         return ParseIfStmt(Context, Token);
                     case Lex::Keyword::Else:
-                        // return this->parseExpressionAndEnd();
                         __builtin_unreachable();
                     case Lex::Keyword::Return: {
                         const auto ResultOpt = ParseReturnStmt(Context, Token);
