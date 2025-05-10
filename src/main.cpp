@@ -645,15 +645,21 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
             const auto ArrayTypeExpr = llvm::cast<AST::ArrayTypeExpr>(Stmt);
 
             std::print("ArrayTypeExpr\n");
-            PrintAST(ArrayTypeExpr->getBase(), Depth + 1);
 
             PrintDepth(Depth + 1);
-            std::print("DetailList\n");
+            std::print("Base\n");
 
-            for (const auto Detail : ArrayTypeExpr->getDetailList()) {
-                PrintAST(Detail, Depth + 2);
-            }
+            PrintAST(ArrayTypeExpr->getBase(), Depth + 2);
 
+            PrintDepth(Depth + 1);
+            std::print("Size\n");
+
+            PrintAST(ArrayTypeExpr->getSizeExpr(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+            std::print("Constraint\n");
+
+            PrintAST(ArrayTypeExpr->getConstraintExpr(), Depth + 2);
             return;
         }
         case AST::NodeKind::FunctionType: {

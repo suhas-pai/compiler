@@ -3,11 +3,9 @@
  * © suhas pai
  */
 
-#include <cassert>
-#include <format>
-
 #include "AST/Decls/ArrayDecl.h"
 
+#include "AST/Types/ArrayPointerType.h"
 #include "AST/Types/ArrayType.h"
 #include "AST/Types/OptionalType.h"
 #include "AST/Types/PointerType.h"
@@ -37,14 +35,15 @@
 
 namespace Parse {
     [[nodiscard]] static auto
-    ParseArrayDetailList(ParseContext &Context,
-                         const Lex::Token BracketToken) noexcept
-        -> std::expected<std::vector<AST::Stmt *>, ParseError>
+    ParseArrayDetailListExceptCloseBracket(
+        ParseContext &Context,
+        const Lex::Token BracketToken) noexcept
+            -> std::expected<std::vector<AST::Stmt *>, ParseError>
     {
         auto &TokenStream = Context.TokenStream;
         auto DetailList = std::vector<AST::Stmt *>();
 
-        if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
+        if (TokenStream.peekIs(Lex::TokenKind::RightSquareBracket)) {
             return DetailList;
         }
 
@@ -56,16 +55,13 @@ namespace Parse {
                     continue;
                 }
 
-                if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket))
-                {
+                if (TokenStream.peekIs(Lex::TokenKind::RightSquareBracket)) {
                     break;
                 }
 
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrentOrPreviousLocation(),
-                    .Message = "Expected ']'",
-                });
+                if (TokenStream.peekIs(Lex::TokenKind::Semicolon)) {
+                    break;
+                }
             } else {
                 return std::unexpected(ExprOpt.error());
             }
@@ -163,12 +159,331 @@ namespace Parse {
         return Result;
     }
 
+    enum class ParseArrayTypeExprErrorKind {
+        FoundArrayDeclOptUnwrap,
+        FoundFieldAccess,
+        ParseError
+    };
+
+    struct ParseArrayTypeExprError {
+        ParseArrayTypeExprErrorKind Kind;
+
+        union {
+            struct {
+                SourceLocation QuestionMarkLoc;
+            } ArrayDeclOptUnwrap;
+            struct {
+                SourceLocation FieldLoc;
+            } FieldAccess;
+
+            struct {
+                ParseError Error;
+            } ParseError;
+        };
+
+    protected:
+        constexpr explicit
+        ParseArrayTypeExprError(const ParseArrayTypeExprErrorKind Kind) noexcept
+        : Kind(Kind) {}
+
+    public:
+        constexpr explicit
+        ParseArrayTypeExprError(const enum ParseError ParseError) noexcept
+        : Kind(ParseArrayTypeExprErrorKind::ParseError),
+          ParseError(ParseError) {}
+
+        [[nodiscard]] static auto
+        FromArrayDeclOptUnwrap(const SourceLocation QuestionMarkLoc) noexcept {
+            auto Result =
+                ParseArrayTypeExprError(
+                    ParseArrayTypeExprErrorKind::FoundArrayDeclOptUnwrap);
+
+            Result.ArrayDeclOptUnwrap.QuestionMarkLoc = QuestionMarkLoc;
+            return Result;
+        }
+
+        [[nodiscard]]
+        static auto FromFieldAccess(const SourceLocation FieldLoc) noexcept {
+            auto Result =
+                ParseArrayTypeExprError(
+                    ParseArrayTypeExprErrorKind::FoundArrayDeclOptUnwrap);
+
+            Result.FieldAccess.FieldLoc = FieldLoc;
+            return Result;
+        }
+    };
+
+    [[nodiscard]] static auto
+    ParseArrayTypeExpr(ParseContext &Context,
+                       const Lex::Token BracketToken,
+                       AST::Expr *const SizeExpr,
+                       AST::Expr *const ConstraintExpr) noexcept
+        -> std::expected<AST::ArrayTypeExpr *, ParseArrayTypeExprError>
+    {
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        if (ConstraintExpr != nullptr) {
+            if (!llvm::isa<AST::DeclRefExpr>(ConstraintExpr) &&
+                !llvm::isa<AST::FunctionDecl>(ConstraintExpr))
+            {
+                if (llvm::isa<AST::ClosureDecl>(ConstraintExpr)) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = ConstraintExpr->getLoc(),
+                        .Message =
+                            "Avoid using a closure as a constraint. Types are "
+                            "already implicity 'captured' inside functions"
+                    });
+                } else {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = ConstraintExpr->getLoc(),
+                        .Message = "Only functions can serve as constraints"
+                    });
+                }
+            }
+        }
+
+        const auto PeekTokenOpt = TokenStream.peek();
+        if (!PeekTokenOpt.has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrentOrPreviousLocation(),
+                .Message = "Expected base-type for array-type"
+            });
+
+            return std::unexpected(
+                ParseArrayTypeExprError(ParseError::FailedCouldNotProceed));
+        }
+
+        const auto PeekToken = PeekTokenOpt.value();
+        if (TokenStream.tokenIsBinOp(PeekToken)) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrentOrPreviousLocation(),
+                .Message =
+                    std::format("Expected base-type for array-type, "
+                                "found '{}' instead",
+                                TokenStream.tokenContent(PeekToken))
+            });
+
+            return std::unexpected(
+                ParseArrayTypeExprError(ParseError::FailedCouldNotProceed));
+        }
+
+        if (PeekToken.Kind == Lex::TokenKind::DotIdentifier) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = TokenStream.getCurrentOrPreviousLocation(),
+                .Message =
+                    "Expected base-type for array-type, found field access"
+                    "instead"
+            });
+
+            return std::unexpected(
+                ParseArrayTypeExprError(ParseError::FailedCouldNotProceed));
+        }
+
+        // If we have a question-mark, we need to check if the programmer
+        // intended to use an optional-type or if they (mistakenly) used a
+        // question-mark to unwrap a non-optional array.
+        //
+        // If they intended to use an optional-type, we need to parse the
+        // expression after the question-mark as the operand of the
+        // optional-type.
+        //
+        // If they (mistakenly) used a question-mark to unwrap a non-optional
+        // array, we need to parse the expression after question-mark as a
+        // simple array.
+
+        if (PeekToken.Kind == Lex::TokenKind::QuestionMark) {
+            TokenStream.consume();
+
+            const auto PeekToken2Opt = TokenStream.peek();
+            TokenStream.goBack();
+
+            if (!PeekToken2Opt.has_value()) {
+                const auto Error =
+                    ParseArrayTypeExprError::FromArrayDeclOptUnwrap(
+                        PeekToken.Loc);
+
+                return std::unexpected(Error);
+            }
+
+            const auto PeekToken2 = PeekToken2Opt.value();
+            if (TokenStream.tokenIsBinOp(PeekToken2) ||
+                PeekToken2.Kind == Lex::TokenKind::DotIdentifier)
+            {
+                const auto Error =
+                    ParseArrayTypeExprError::FromFieldAccess(PeekToken2.Loc);
+
+                return std::unexpected(Error);
+            }
+        }
+
+        // We have an array-type
+        const auto BaseOpt = ParseLhs(Context, /*InPlaceOfStmt=*/false);
+        if (!BaseOpt.has_value()) {
+            return std::unexpected(ParseArrayTypeExprError(BaseOpt.error()));
+        }
+
+        auto Base = BaseOpt.value();
+        return new AST::ArrayTypeExpr(BracketToken.Loc, SizeExpr,
+                                      ConstraintExpr, Base, AST::Qualifiers());
+    }
+
+    [[nodiscard]] static auto
+    ParseArrayTypeFromConstraintExpr(ParseContext &Context,
+                                     const Lex::Token BracketToken,
+                                     AST::Expr *const SizeExpr) noexcept
+        -> std::expected<AST::Expr *, ParseError>
+    {
+        auto &TokenStream = Context.TokenStream;
+        auto &Diag = Context.Diag;
+
+        auto Result = std::expected<AST::Expr *, ParseArrayTypeExprError>();
+        if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
+            Result =
+                ParseArrayTypeExpr(Context, BracketToken, SizeExpr,
+                                   /*ConstraintExpr=*/nullptr);
+        } else {
+            const auto ConstraintOpt = ParseExpression(Context);
+            if (!ConstraintOpt.has_value()) {
+                return std::unexpected(ConstraintOpt.error());
+            }
+
+            if (const auto CommaTokenOpt =
+                    TokenStream.consumeIfIs(Lex::TokenKind::Comma))
+            {
+                const auto CommaToken = CommaTokenOpt.value();
+                if (TokenStream.peekIs(Lex::TokenKind::RightSquareBracket)) {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = CommaToken.Loc,
+                        .Message = "Extra ',' found"
+                    });
+                } else {
+                    Diag.consume({
+                        .Level = DiagnosticLevel::Error,
+                        .Location = CommaToken.Loc,
+                        .Message = "Multiple constraints cannot be used. "
+                                   "Combine into a single contraint"
+                    });
+
+                    const auto ProceedResult =
+                        TokenStream.findNextAndConsume(
+                            Lex::TokenKind::RightSquareBracket);
+
+                    if (!ProceedResult.has_value()) {
+                        return std::unexpected(
+                            ParseError::FailedCouldNotProceed);
+                    }
+                }
+            } else if (!TokenStream.consumeIfIs(
+                            Lex::TokenKind::RightSquareBracket))
+            {
+                const auto Current = TokenStream.current().value();
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = TokenStream.getCurrentOrPreviousLocation(),
+                    .Message =
+                        std::format("Unexpected '{}' found",
+                                    TokenStream.tokenContent(Current))
+                });
+
+                const auto ProceedResult =
+                    TokenStream.findNextAndConsume(
+                        Lex::TokenKind::RightSquareBracket);
+
+                if (!ProceedResult.has_value()) {
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
+                }
+            }
+
+            Result =
+                ParseArrayTypeExpr(Context, BracketToken, SizeExpr,
+                                   ConstraintOpt.value());
+        }
+
+        if (Result.has_value()) {
+            return Result.value();
+        }
+
+        auto &ErrorInfo = Result.error();
+        switch (ErrorInfo.Kind) {
+            case ParseArrayTypeExprErrorKind::FoundArrayDeclOptUnwrap: {
+                const auto QuestionMarkLoc =
+                    ErrorInfo.ArrayDeclOptUnwrap.QuestionMarkLoc;
+
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = QuestionMarkLoc,
+                    .Message =
+                        "Expected a base-type, found optional-unwrap instead.\n"
+                        "Did you mean to have an array with an optional-type "
+                        "base-type"
+                });
+
+                break;
+            }
+            case ParseArrayTypeExprErrorKind::FoundFieldAccess: {
+                const auto FieldLoc = ErrorInfo.FieldAccess.FieldLoc;
+                Diag.consume({
+                    .Level = DiagnosticLevel::Error,
+                    .Location = FieldLoc,
+                    .Message = "Expected a base-type for an array-decl"
+                });
+
+                // FIXME: Proceed to end of field-access-expression
+                return std::unexpected(ParseError::FailedCouldNotProceed);
+            }
+            case ParseArrayTypeExprErrorKind::ParseError:
+                return std::unexpected(ErrorInfo.ParseError.Error);
+        }
+
+        return Result.value();
+    }
+
+    static void
+    EmitArrayTypeMultipleSizeExprError(DiagnosticConsumer &Diag,
+                                       const SourceLocation Loc) noexcept
+    {
+        Diag.consume({
+            .Level = DiagnosticLevel::Error,
+            .Location = Loc,
+            .Message =
+                "Extra elements in array-type declaration, expected only a "
+                "size expression. To add constraint, use ';' as a separator"
+        });
+    }
+
     [[nodiscard]] static auto
     ParseExprWithSquareBracket(ParseContext &Context,
                                const Lex::Token BracketToken) noexcept
         -> std::expected<AST::Expr *, ParseError>
     {
         auto &TokenStream = Context.TokenStream;
+
+        // Peek ahead to see we have a an array-pointer type, otherwise bail and
+        // continue on.
+
+        if (const auto StarTokenOpt =
+                TokenStream.consumeIfIs(Lex::TokenKind::Star))
+        {
+            auto Position = TokenStream.position();
+            auto Qualifiers = AST::Qualifiers();
+
+            ParseQualifiers(Context, Qualifiers);
+            if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
+                const auto StarToken = StarTokenOpt.value();
+                return new AST::ArrayPointerTypeExpr(StarToken.Loc, Qualifiers);
+            }
+
+            // Go back to before the star, pointing to '['
+            TokenStream.goToPosition(Position - 1);
+        }
+
         const auto IsClosureCaptureList =
             TokenStream.inWindow([](Lex::TokenStream &TokenStream) noexcept {
                 const auto TokenOpt =
@@ -202,19 +517,45 @@ namespace Parse {
             return ParseClosureDecl(Context, BracketToken);
         }
 
-        auto DetailListOpt = ParseArrayDetailList(Context, BracketToken);
+        auto &Diag = Context.Diag;
+        if (TokenStream.consumeIfIs(Lex::TokenKind::Semicolon)) {
+            return ParseArrayTypeFromConstraintExpr(Context, BracketToken,
+                                                    /*SizeExpr=*/nullptr);
+        }
+
+        auto DetailListOpt =
+            ParseArrayDetailListExceptCloseBracket(Context, BracketToken);
+
         if (!DetailListOpt.has_value()) {
             return std::unexpected(DetailListOpt.error());
+        }
+
+        // If we're stopped at a semicolon, we assume we have an array-type.
+        if (const auto SemicolonTokenOpt =
+                TokenStream.consumeIfIs(Lex::TokenKind::Semicolon))
+        {
+            const auto &DetailList = DetailListOpt.value();
+            if (DetailList.size() != 1) {
+                const auto SemicolonToken = SemicolonTokenOpt.value();
+                EmitArrayTypeMultipleSizeExprError(Diag, SemicolonToken.Loc);
+            }
+
+            const auto SizeExpr = llvm::cast<AST::Expr>(DetailList.front());
+            return ParseArrayTypeFromConstraintExpr(Context, BracketToken,
+                                                    SizeExpr);
         }
 
         // We have two possibilities for the kinds of expressions we have:
         //  (a) We have an array
         //  (b) We have an array-type
-
+        //
         // (a) is the case where we have an array-type.
         //
         // Here, we expect an expression that is not a binary operation or
         // expression or a member-access expression (a dot-identifier token).
+
+        // Consume the closing square-bracket.
+        TokenStream.consume();
 
         if (const auto PeekTokenOpt = TokenStream.peek()) {
             const auto PeekToken = PeekTokenOpt.value();
@@ -265,8 +606,18 @@ namespace Parse {
                 auto Base = BaseOpt.value();
                 auto &DetailList = DetailListOpt.value();
 
-                return new AST::ArrayTypeExpr(BracketToken.Loc,
-                                              std::move(DetailList), Base,
+                if (DetailList.size() > 1) {
+                    EmitArrayTypeMultipleSizeExprError(
+                        Diag, TokenStream.getCurrentOrPreviousLocation());
+                }
+
+                auto SizeExpr = static_cast<AST::Expr *>(nullptr);
+                if (!DetailList.empty()) {
+                    SizeExpr = llvm::cast<AST::Expr>(DetailList.front());
+                }
+
+                return new AST::ArrayTypeExpr(BracketToken.Loc, SizeExpr,
+                                              /*ConstraintExpr=*/nullptr, Base,
                                               AST::Qualifiers());
             }
         }
@@ -281,9 +632,36 @@ namespace Parse {
                             const Lex::Token BracketToken) noexcept
         -> std::expected<AST::ArraySubscriptExpr *, ParseError>
     {
-        auto DetailListOpt = ParseArrayDetailList(Context, BracketToken);
+        auto DetailListOpt =
+            ParseArrayDetailListExceptCloseBracket(Context, BracketToken);
+
         if (!DetailListOpt.has_value()) {
             return std::unexpected(DetailListOpt.error());
+        }
+
+        auto &Diag = Context.Diag;
+        auto &TokenStream = Context.TokenStream;
+
+        if (!TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
+            const auto Current = TokenStream.current().value();
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = Current.Loc,
+                .Message =
+                    std::format("Unexpected '{}'. Expected ']'",
+                                TokenStream.tokenContent(Current))
+            });
+
+            const auto ProceedResult =
+                TokenStream.findNextAndConsume(
+                    Lex::TokenKind::RightSquareBracket);
+
+            if (!ProceedResult.has_value()) {
+                if (ProceedResult.error() != Lex::TokenStream::FindError::None)
+                {
+                    return std::unexpected(ParseError::FailedCouldNotProceed);
+                }
+            }
         }
 
         auto &DetailList = DetailListOpt.value();
@@ -294,7 +672,7 @@ namespace Parse {
     [[nodiscard]] static auto
     ParseFieldExpr(ParseContext &Context,
                    AST::Expr *const Lhs,
-                   const Lex::Token DotToken)
+                   const Lex::Token DotToken) noexcept
         -> std::expected<AST::Expr *, ParseError>
     {
         if (DotToken.Kind == Lex::TokenKind::DotStar) {
@@ -449,7 +827,7 @@ done:
 
             if (!llvm::isa<AST::OptionalTypeExpr>(Root) &&
                 !llvm::isa<AST::PointerTypeExpr>(Root) &&
-                !llvm::isa<AST::ArrayTypeExpr>(Root))
+                !llvm::isa<AST::ArrayPointerTypeExpr>(Root))
             {
                 if (const auto TokenOpt =
                         TokenStream.consumeIfIs(Lex::TokenKind::QuestionMark))

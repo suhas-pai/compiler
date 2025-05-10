@@ -5,9 +5,6 @@
 
 #pragma once
 
-#include <span>
-#include <vector>
-
 #include "AST/Expr.h"
 #include "AST/Qualifiers.h"
 
@@ -16,47 +13,32 @@ namespace AST {
     public:
         constexpr static auto NodeKind = NodeKind::ArrayType;
     protected:
-        std::vector<Stmt *> DetailList;
-
         SourceLocation BracketLoc;
-        Expr *Base;
 
+        Expr *SizeExpr;
+        Expr *ConstraintExpr;
+
+        Expr *Base;
         Qualifiers Qualifiers;
     public:
         explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
-                      const std::span<Stmt *> DetailList,
+                      Expr *const Size,
+                      Expr *const Constraint,
                       Expr *const Base,
                       const struct Qualifiers &Qualifiers) noexcept
-        : Expr(NodeKind::ArrayType),
-          DetailList(DetailList.begin(), DetailList.end()),
-          BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
+        : Expr(NodeKind::ArrayType), BracketLoc(BracketLoc),
+          SizeExpr(Size), ConstraintExpr(Constraint), Base(Base),
+          Qualifiers(Qualifiers) {}
 
         explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
-                      const std::span<Stmt *> DetailList,
+                      Expr *const Size,
+                      Expr *const Constraint,
                       Expr *const Base,
                       struct Qualifiers &&Qualifiers) noexcept
-        : Expr(NodeKind::ArrayType),
-          DetailList(DetailList.begin(), DetailList.end()),
-          BracketLoc(BracketLoc), Base(Base),
-          Qualifiers(std::move(Qualifiers)) {}
-
-        explicit
-        ArrayTypeExpr(const SourceLocation BracketLoc,
-                      std::vector<Stmt *> &&DetailList,
-                      Expr *const Base,
-                      const struct Qualifiers &Qualifiers) noexcept
-        : Expr(NodeKind::ArrayType), DetailList(std::move(DetailList)),
-          BracketLoc(BracketLoc), Base(Base), Qualifiers(Qualifiers) {}
-
-        explicit
-        ArrayTypeExpr(const SourceLocation BracketLoc,
-                      std::vector<Stmt *> &&DetailList,
-                      Expr *const Base,
-                      struct Qualifiers &&Qualifiers) noexcept
-        : Expr(NodeKind::ArrayType), DetailList(std::move(DetailList)),
-          BracketLoc(BracketLoc), Base(Base),
+        : Expr(NodeKind::ArrayType), BracketLoc(BracketLoc),
+          SizeExpr(Size), ConstraintExpr(Constraint), Base(Base),
           Qualifiers(std::move(Qualifiers)) {}
 
         [[nodiscard]]
@@ -69,12 +51,16 @@ namespace AST {
             return IsOfKind(*Node);
         }
 
-        [[nodiscard]] constexpr auto getDetailList() const noexcept {
-            return std::span(this->DetailList);
+        [[nodiscard]] constexpr auto getSizeExpr() const noexcept {
+            return this->SizeExpr;
         }
 
-        [[nodiscard]] constexpr auto &getDetailListRef() noexcept {
-            return this->DetailList;
+        [[nodiscard]] constexpr auto getConstraintExpr() const noexcept {
+            return this->ConstraintExpr;
+        }
+
+        [[nodiscard]] constexpr auto getBase() const noexcept {
+            return this->Base;
         }
 
         [[nodiscard]] constexpr auto getBracketLoc() const noexcept {
@@ -84,10 +70,6 @@ namespace AST {
         [[nodiscard]]
         constexpr SourceLocation getLoc() const noexcept override {
             return this->getBracketLoc();
-        }
-
-        [[nodiscard]] constexpr auto getBase() const noexcept {
-            return this->Base;
         }
 
         [[nodiscard]] inline auto &getQualifiers() const noexcept {
@@ -100,6 +82,20 @@ namespace AST {
 
         constexpr auto setBase(Expr *const Base) noexcept -> decltype(*this) {
             this->Base = Base;
+            return *this;
+        }
+
+        constexpr auto setSizeExpr(Expr *const SizeExpr) noexcept
+            -> decltype(*this)
+        {
+            this->SizeExpr = SizeExpr;
+            return *this;
+        }
+
+        constexpr auto setConstraintExpr(Expr *const ConstraintExpr) noexcept
+            -> decltype(*this)
+        {
+            this->ConstraintExpr = ConstraintExpr;
             return *this;
         }
 
