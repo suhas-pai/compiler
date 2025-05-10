@@ -23,10 +23,12 @@ namespace Sema {
     auto Scope::getDeclByName(const std::string_view Name) const noexcept
         -> AST::LvalueNamedDecl *
     {
-        if (!this->DeclMap.contains(Name)) {
-            return nullptr;
+        if (const auto Found = this->DeclMap.find(Name);
+            Found != this->DeclMap.end())
+        {
+            return Found->second;
         }
 
-        return this->DeclMap.at(Name);
+        return nullptr;
     }
 }
