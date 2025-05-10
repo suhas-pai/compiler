@@ -23,6 +23,20 @@ namespace AST {
     public:
         explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
+                          const struct Qualifiers &Qualifiers,
+                          const std::string_view Identifier) noexcept
+        : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(Qualifiers),
+          Identifier(Identifier) {}
+
+        explicit
+        DotIdentifierExpr(const SourceLocation DotLoc,
+                          const struct Qualifiers &Qualifiers,
+                          std::string &&Identifier) noexcept
+        : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(Qualifiers),
+          Identifier(std::move(Identifier)) {}
+
+        explicit
+        DotIdentifierExpr(const SourceLocation DotLoc,
                           struct Qualifiers &&Qualifiers,
                           const std::string_view Identifier) noexcept
         : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(std::move(Qualifiers)),
