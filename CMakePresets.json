@@ -14,6 +14,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_FLAGS": "-Wno-nested-anon-types",
         "CMAKE_C_USING_LINKER_lld": "-fuse-ld=lld",
         "CMAKE_CXX_USING_LINKER_lld": "-fuse-ld=lld",
         "CMAKE_LINKER_TYPE": "lld"
@@ -26,6 +27,7 @@
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-Wno-nested-anon-types",
         "CMAKE_C_USING_LINKER_lld": "-fuse-ld=lld",
         "CMAKE_CXX_USING_LINKER_lld": "-fuse-ld=lld",
         "CMAKE_LINKER_TYPE": "lld"
