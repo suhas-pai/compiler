@@ -14,6 +14,7 @@ _deps
 
 .cache
 .vscode
+.idea
 build
 build_debug
 build_release
