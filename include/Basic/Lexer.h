@@ -43,11 +43,11 @@ public:
     }
 
     [[nodiscard]] constexpr auto prev() const noexcept -> char {
-        if (this->index() >= this->text().size()) {
+        if (this->index() == 0) {
             return '\0';
         }
 
-        return this->text().at(this->index());
+        return this->text().at(this->index() - 1);
     }
 
     constexpr auto consume(const uint32_t Skip = 0) noexcept -> char {
