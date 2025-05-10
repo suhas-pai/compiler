@@ -14,16 +14,15 @@
 
 namespace Parse {
     [[nodiscard]] auto
-    ParseCompoundStmt(ParseContext &Context,
-                      Lex::Token CurlyToken) noexcept
+    ParseCompoundStmt(ParseContext &Context, Lex::Token CurlyToken) noexcept
         -> std::expected<AST::CompoundStmt *, ParseError>;
 
     [[nodiscard]]
     auto ParseIfStmt(ParseContext &Context, Lex::Token IfToken) noexcept
         -> std::expected<AST::IfExpr *, ParseError>;
 
-    [[nodiscard]] auto
-    ParseReturnStmt(ParseContext &Context, Lex::Token ReturnToken) noexcept
+    [[nodiscard]]
+    auto ParseReturnStmt(ParseContext &Context, Lex::Token ReturnToken) noexcept
         -> std::expected<AST::ReturnStmt *, ParseError>;
 
     [[nodiscard]] auto ParseStmt(ParseContext &Context) noexcept

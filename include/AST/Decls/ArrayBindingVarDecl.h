@@ -165,6 +165,7 @@ namespace AST {
     protected:
         Qualifiers Qualifiers;
         std::vector<ArrayBindingItem *> ItemList;
+
         Expr *InitExpr;
     public:
         explicit

@@ -4,9 +4,8 @@
  */
 
 #pragma once
-#include <span>
 
-#include "Lex/Token.h"
+#include <span>
 #include "Lex/TokenBuffer.h"
 
 namespace Lex {
@@ -39,11 +38,12 @@ namespace Lex {
 
         [[nodiscard]]
         constexpr auto getCurrentOrPreviousLocation() const noexcept {
+            const auto TokenList = this->TokenBuffer.getTokenList();
             if (!this->reachedEof()) {
-                return this->TokenBuffer.getTokenList()[this->position()].Loc;
+                return TokenList[this->position()].Loc;
             }
 
-            return this->TokenBuffer.getTokenList()[this->position() - 1].Loc;
+            return TokenList[this->position() - 1].Loc;
         }
 
         constexpr auto goBack(const uint32_t Count = 1) noexcept -> bool {
