@@ -57,7 +57,9 @@ namespace AST {
             return this->Loc;
         }
 
-        constexpr auto setBase(Expr *const Base) noexcept {
+        constexpr auto setBase(Expr *const Base) noexcept
+            -> decltype(*this)
+        {
             this->Base = Base;
             return *this;
         }
