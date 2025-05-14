@@ -11,20 +11,24 @@
 namespace AST {
     struct ArrayPointerTypeExpr : public Expr {
     public:
-        constexpr static auto ObjKind = NodeKind::PointerType;
+        constexpr static auto ObjKind = NodeKind::ArrayPointerType;
     protected:
         SourceLocation Loc;
         Qualifiers Quals;
+
+        Expr *Base;
     public:
         explicit
         ArrayPointerTypeExpr(const SourceLocation Loc,
-                             const Qualifiers &Quals) noexcept
-        : Expr(ObjKind), Loc(Loc), Quals(Quals){}
+                             const Qualifiers &Quals,
+                             Expr *const Base) noexcept
+        : Expr(ObjKind), Loc(Loc), Quals(Quals), Base(Base) {}
 
         explicit
         ArrayPointerTypeExpr(const SourceLocation Loc,
-                             Qualifiers &&Quals) noexcept
-        : Expr(ObjKind), Loc(Loc), Quals(std::move(Quals)){}
+                             Qualifiers &&Quals,
+                             Expr *const Base) noexcept
+        : Expr(ObjKind), Loc(Loc), Quals(std::move(Quals)), Base(Base) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -44,9 +48,18 @@ namespace AST {
             return this->Quals;
         }
 
+        [[nodiscard]] constexpr auto getBase() const noexcept {
+            return this->Base;
+        }
+
         [[nodiscard]]
         constexpr SourceLocation getLoc() const noexcept override {
             return this->Loc;
+        }
+
+        constexpr auto setBase(Expr *const Base) noexcept {
+            this->Base = Base;
+            return *this;
         }
     };
 }

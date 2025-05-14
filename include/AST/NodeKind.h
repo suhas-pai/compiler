@@ -56,6 +56,7 @@ namespace AST {
         FunctionType,
         OptionalType,
         PointerType,
+        ArrayPointerType,
         ShapeType,
         StructType,
         UnionType,

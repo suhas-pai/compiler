@@ -120,8 +120,8 @@ func inf(a...: typeof(b), b: u16 or u32 or u64): typeof(a[0]) {
 struct ErrorStruct {
     number: u32 = 0;
     string_value: *[10]u8;
-    array: [11]mut [10]u8 = [0..<11: [...0]];
-    array2: [*][10]u8;
+    array: [11][10]u8 = [0..<11: [...0]];
+    array2: [*mut][10]u8;
 };
 
 // associated values

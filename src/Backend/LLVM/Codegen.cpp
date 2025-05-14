@@ -696,6 +696,7 @@ namespace Backend::LLVM {
             case AST::NodeKind::FunctionType:
             case AST::NodeKind::OptionalType:
             case AST::NodeKind::PointerType:
+            case AST::NodeKind::ArrayPointerType:
             case AST::NodeKind::StructType:
             case AST::NodeKind::ShapeType:
             case AST::NodeKind::UnionType:

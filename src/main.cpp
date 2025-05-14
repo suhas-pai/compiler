@@ -20,6 +20,7 @@
 #include "AST/Decls/UnionDecl.h"
 #include "AST/Decls/VarDecl.h"
 
+#include "AST/Types/ArrayPointerType.h"
 #include "AST/Types/ArrayType.h"
 #include "AST/Types/FunctionType.h"
 #include "AST/Types/OptionalType.h"
@@ -692,6 +693,15 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
 
             std::print("PointerTypeExpr\n");
             PrintAST(PointerExpr->getOperand(), Depth + 1);
+
+            return;
+        }
+        case AST::NodeKind::ArrayPointerType: {
+            const auto PointerExpr =
+                llvm::cast<AST::ArrayPointerTypeExpr>(Stmt);
+
+            std::print("ArrayPointerTypeExpr\n");
+            PrintAST(PointerExpr->getBase(), Depth + 1);
 
             return;
         }
