@@ -8,7 +8,6 @@
 #include <span>
 #include <vector>
 
-#include "AST/Decls/ParamVarDecl.h"
 #include "AST/Expr.h"
 
 namespace AST {
@@ -17,12 +16,12 @@ namespace AST {
         constexpr static auto ObjKind = NodeKind::FunctionType;
     protected:
         SourceLocation Loc;
-        std::vector<ParamVarDecl *> ParamList;
+        std::vector<Stmt *> ParamList;
         Expr *ReturnType;
     public:
         constexpr explicit
         FunctionTypeExpr(const SourceLocation Loc,
-                         const std::span<ParamVarDecl *> ParamList,
+                         const std::span<Stmt *> ParamList,
                          Expr *const ReturnType) noexcept
         : Expr(ObjKind), Loc(Loc),
           ParamList(ParamList.begin(), ParamList.end()),
@@ -30,7 +29,7 @@ namespace AST {
 
         constexpr explicit
         FunctionTypeExpr(const SourceLocation Loc,
-                         std::vector<ParamVarDecl *> &&ParamList,
+                         std::vector<Stmt *> &&ParamList,
                          Expr *const ReturnType) noexcept
         : Expr(ObjKind), Loc(Loc), ParamList(std::move(ParamList)),
           ReturnType(ReturnType) {}

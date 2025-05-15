@@ -197,7 +197,7 @@ enum E {
     }
 };
 
-// constraint = (T: any) -> bit
+// constraint = (T: any) -> bit or (T: any, index: u64) -> bit
 
 let Ec: constraint = E as constraint;
 let strict_type: constraint = Struct or Enum or Union or Wrapper or Pointer;
@@ -312,13 +312,18 @@ wrapper(f64) {
     }
 }
 
+let listConstraint = (val, index) => val != 0 and index % 2 == 0;
+func infiniteList(a...: listConstraint, b: typeof(a[0])) {
+    return a[0] + b;
+}
+
 let closure: LambdaFn<(a: u64, b: bit) -> bit>(L) =
     (a: int, b: bit) => return true
 
 let D: constraint = (T: type): bit => return true
 let C: constraint = bit or u64;
 
-func cons_example(a: %D) {
+func cons_example(a: D) {
     let fl = 0x1234.0xf64
 }
 

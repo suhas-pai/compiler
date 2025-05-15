@@ -5,10 +5,12 @@
 #include <cassert>
 #include <cstdio>
 
+#include "AST/Decls/ArrayBindingParamVarDecl.h"
 #include "AST/Decls/ArrayDecl.h"
 #include "AST/Decls/ClosureDecl.h"
+#include "AST/Decls/InlineArrayParamVarDecl.h"
 #include "AST/Decls/InterfaceDecl.h"
-#include "AST/Decls/ObjectBindingVarDecl.h"
+#include "AST/Decls/ObjectBindingParamVarDecl.h"
 #include "AST/Decls/EnumDecl.h"
 #include "AST/Decls/EnumMemberDecl.h"
 #include "AST/Decls/FieldDecl.h"
@@ -602,6 +604,20 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
             PrintAST(ArrayBindingVarDecl->getInitExpr(), Depth + 2);
             return;
         }
+        case AST::NodeKind::ArrayBindingParamVarDecl: {
+            const auto ArrayBindingParamVarDecl =
+                llvm::cast<AST::ArrayBindingParamVarDecl>(Stmt);
+
+            std::print("ArrayBindingParamVarDecl\n");
+            PrintArrayBindingItemList(ArrayBindingParamVarDecl->getItemList(),
+                                      Depth + 1);
+
+            PrintDepth(Depth + 1);
+            std::print("InitExpr\n");
+
+            PrintAST(ArrayBindingParamVarDecl->getInitExpr(), Depth + 2);
+            return;
+        }
         case AST::NodeKind::ObjectBindingVarDecl: {
             auto ObjectBindingVarDecl =
                 llvm::cast<AST::ObjectBindingVarDecl>(Stmt);
@@ -611,6 +627,36 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
                                         Depth + 1);
 
             PrintAST(ObjectBindingVarDecl->getInitExpr(), Depth + 1);
+            return;
+        }
+        case AST::NodeKind::ObjectBindingParamVarDecl: {
+            auto ObjectBindingParamVarDecl =
+                llvm::cast<AST::ObjectBindingParamVarDecl>(Stmt);
+
+            std::print("ObjectBindingVarDecl\n");
+
+            const auto &FieldList =
+                ObjectBindingParamVarDecl->getFieldList();
+
+            PrintObjectBindingFieldList(FieldList, Depth + 1);
+            PrintAST(ObjectBindingParamVarDecl->getInitExpr(), Depth + 1);
+
+            return;
+        }
+        case AST::NodeKind::InlineArrayParamVarDecl: {
+            const auto InlineArrayParamVarDecl =
+                llvm::cast<AST::InlineArrayParamVarDecl>(Stmt);
+
+            std::print("InlineArrayParamVarDecl\n");
+            PrintDepth(Depth + 1);
+
+            std::print("TypeExpr\n");
+            PrintAST(InlineArrayParamVarDecl->getTypeExpr(), Depth + 2);
+
+            PrintDepth(Depth + 1);
+            std::print("DefaultExpr\n");
+
+            PrintAST(InlineArrayParamVarDecl->getDefaultExpr(), Depth + 2);
             return;
         }
         case AST::NodeKind::CastExpr: {

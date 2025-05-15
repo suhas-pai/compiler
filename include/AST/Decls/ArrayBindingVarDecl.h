@@ -162,47 +162,87 @@ namespace AST {
     };
 
     struct ArrayBindingVarDecl : public Stmt {
+    public:
+        constexpr static auto ObjKind = NodeKind::ArrayBindingVarDecl;
     protected:
+        SourceLocation Loc;
         Qualifiers Qualifiers;
-        std::vector<ArrayBindingItem *> ItemList;
 
+        std::vector<ArrayBindingItem *> ItemList;
         Expr *InitExpr;
+
+        explicit
+        ArrayBindingVarDecl(const NodeKind NodeKind,
+                            const SourceLocation Loc,
+                            const struct Qualifiers &Qualifiers,
+                            const std::span<ArrayBindingItem *> ItemList,
+                            Expr *const InitExpr) noexcept
+        : Stmt(NodeKind), Loc(Loc), Qualifiers(Qualifiers),
+          ItemList(ItemList.begin(), ItemList.end()), InitExpr(InitExpr) {}
+
+        explicit
+        ArrayBindingVarDecl(const NodeKind NodeKind,
+                            const SourceLocation Loc,
+                            const struct Qualifiers &Qualifiers,
+                            std::vector<ArrayBindingItem *> &&ItemList,
+                            Expr *const InitExpr) noexcept
+        : Stmt(NodeKind), Loc(Loc), Qualifiers(Qualifiers),
+          ItemList(std::move(ItemList)), InitExpr(InitExpr) {}
+
+        explicit
+        ArrayBindingVarDecl(const NodeKind NodeKind,
+                            const SourceLocation Loc,
+                            struct Qualifiers &&Qualifiers,
+                            const std::span<ArrayBindingItem *> &ItemList,
+                            Expr *const InitExpr) noexcept
+        : Stmt(NodeKind), Loc(Loc), Qualifiers(Qualifiers),
+          ItemList(ItemList.begin(), ItemList.end()), InitExpr(InitExpr) {}
+
+        explicit
+        ArrayBindingVarDecl(const NodeKind NodeKind,
+                            const SourceLocation Loc,
+                            struct Qualifiers &&Qualifiers,
+                            std::vector<ArrayBindingItem *> &&ItemList,
+                            Expr *const InitExpr) noexcept
+        : Stmt(NodeKind), Loc(Loc), Qualifiers(Qualifiers),
+          ItemList(std::move(ItemList)), InitExpr(InitExpr) {}
     public:
         explicit
         ArrayBindingVarDecl(const SourceLocation Loc,
                             const struct Qualifiers &Qualifiers,
                             const std::span<ArrayBindingItem *> ItemList,
                             Expr *const InitExpr) noexcept
-        : Stmt(NodeKind::ArrayBindingVarDecl), Qualifiers(Qualifiers),
-          ItemList(ItemList.begin(), ItemList.end()), InitExpr(InitExpr) {}
+        : ArrayBindingVarDecl(NodeKind::ArrayBindingVarDecl, Loc, Qualifiers,
+                              ItemList, InitExpr) {}
 
         explicit
         ArrayBindingVarDecl(const SourceLocation Loc,
                             const struct Qualifiers &Qualifiers,
                             std::vector<ArrayBindingItem *> &&ItemList,
                             Expr *const InitExpr) noexcept
-        : Stmt(NodeKind::ArrayBindingVarDecl), Qualifiers(Qualifiers),
-          ItemList(std::move(ItemList)), InitExpr(InitExpr) {}
+        : ArrayBindingVarDecl(NodeKind::ArrayBindingVarDecl, Loc, Qualifiers,
+                              ItemList, InitExpr) {}
 
         explicit
         ArrayBindingVarDecl(const SourceLocation Loc,
                             struct Qualifiers &&Qualifiers,
                             const std::span<ArrayBindingItem *> &ItemList,
                             Expr *const InitExpr) noexcept
-        : Stmt(NodeKind::ArrayBindingVarDecl), Qualifiers(Qualifiers),
-          ItemList(ItemList.begin(), ItemList.end()), InitExpr(InitExpr) {}
+        : ArrayBindingVarDecl(NodeKind::ArrayBindingVarDecl, Loc, Qualifiers,
+                              ItemList, InitExpr) {}
 
         explicit
         ArrayBindingVarDecl(const SourceLocation Loc,
                             struct Qualifiers &&Qualifiers,
                             std::vector<ArrayBindingItem *> &&ItemList,
                             Expr *const InitExpr) noexcept
-        : Stmt(NodeKind::ArrayBindingVarDecl), Qualifiers(Qualifiers),
-          ItemList(std::move(ItemList)), InitExpr(InitExpr) {}
+        : ArrayBindingVarDecl(NodeKind::ArrayBindingVarDecl, Loc, Qualifiers,
+                              ItemList, InitExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
-            return Stmt.getKind() == NodeKind::ArrayBindingVarDecl;
+            return Stmt.getKind() == ObjKind ||
+                   Stmt.getKind() == NodeKind::ArrayBindingParamVarDecl;
         }
 
         [[nodiscard]]

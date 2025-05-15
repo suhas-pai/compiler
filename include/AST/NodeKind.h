@@ -38,7 +38,12 @@ namespace AST {
         ParamVarDecl,
 
         ArrayBindingVarDecl,
+        ArrayBindingParamVarDecl,
+
         ObjectBindingVarDecl,
+        ObjectBindingParamVarDecl,
+
+        InlineArrayParamVarDecl,
 
         CallExpr,
         FieldExpr,

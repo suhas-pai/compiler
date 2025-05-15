@@ -8,15 +8,15 @@
 #include <span>
 #include <vector>
 
+#include "AST/Expr.h"
 #include "AST/Qualifiers.h"
-#include "ParamVarDecl.h"
 
 namespace AST {
     struct FunctionDecl : public Expr {
     public:
         constexpr static auto ObjKind = NodeKind::FunctionDecl;
     protected:
-        std::vector<ParamVarDecl *> ParamDeclList;
+        std::vector<Stmt *> ParamDeclList;
 
         SourceLocation Loc;
         Qualifiers Quals;
@@ -27,7 +27,7 @@ namespace AST {
         explicit
         FunctionDecl(const NodeKind ObjKind,
                      const SourceLocation Loc,
-                     std::vector<ParamVarDecl *> &&ParamList,
+                     std::vector<Stmt *> &&ParamList,
                      Expr *const ReturnTypeExpr,
                      Stmt *const Body) noexcept
         : Expr(ObjKind), ParamDeclList(std::move(ParamList)),
@@ -36,7 +36,7 @@ namespace AST {
         explicit
         FunctionDecl(const NodeKind ObjKind,
                      const SourceLocation Loc,
-                     const std::span<ParamVarDecl *> ParamDeclList,
+                     const std::span<Stmt *> ParamDeclList,
                      Expr *const ReturnTypeExpr,
                      Stmt *const Body) noexcept
         : Expr(ObjKind),
@@ -45,7 +45,7 @@ namespace AST {
     public:
         explicit
         FunctionDecl(const SourceLocation Loc,
-                     std::vector<ParamVarDecl *> &&ParamList,
+                     std::vector<Stmt *> &&ParamList,
                      Expr *const ReturnTypeExpr,
                      Stmt *const Body) noexcept
         : Expr(ObjKind), ParamDeclList(std::move(ParamList)),
@@ -53,7 +53,7 @@ namespace AST {
 
         explicit
         FunctionDecl(const SourceLocation Loc,
-                     const std::span<ParamVarDecl *> ParamDeclList,
+                     const std::span<Stmt *> ParamDeclList,
                      Expr *const ReturnTypeExpr,
                      Stmt *const Body) noexcept
         : Expr(ObjKind),

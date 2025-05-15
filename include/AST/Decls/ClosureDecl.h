@@ -16,7 +16,7 @@ namespace AST {
         explicit
         ClosureDecl(const SourceLocation Loc,
                     const std::span<Stmt *> CaptureList,
-                    const std::span<ParamVarDecl *> ParamList,
+                    const std::span<Stmt *> ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
         : FunctionDecl(ObjKind, Loc, ParamList, ReturnType, Body),
@@ -25,7 +25,7 @@ namespace AST {
         explicit
         ClosureDecl(const SourceLocation Loc,
                     std::vector<Stmt *> &&CaptureList,
-                    const std::span<ParamVarDecl *> ParamList,
+                    const std::span<Stmt *> ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
         : FunctionDecl(ObjKind, Loc, ParamList, ReturnType, Body),
@@ -34,7 +34,7 @@ namespace AST {
         explicit
         ClosureDecl(const SourceLocation Loc,
                     const std::span<Stmt *> CaptureList,
-                    std::vector<ParamVarDecl *> &&ParamList,
+                    std::vector<Stmt *> &&ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
         : FunctionDecl(ObjKind, Loc, std::move(ParamList), ReturnType, Body),
@@ -43,7 +43,7 @@ namespace AST {
         explicit
         ClosureDecl(const SourceLocation Loc,
                     std::vector<Stmt *> &&CaptureList,
-                    std::vector<ParamVarDecl *> &&ParamList,
+                    std::vector<Stmt *> &&ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
         : FunctionDecl(ObjKind, Loc, std::move(ParamList), ReturnType, Body),

@@ -251,10 +251,12 @@ namespace Backend::LLVM {
                                    Module);
 
         // Set names for all arguments.
+        #if 0
         auto Idx = unsigned();
         for (auto &Arg : FuncDeclCodegen->args()) {
-            Arg.setName(FuncDecl.getParamList()[Idx++]->getName());
+            // Arg.setName(FuncDecl.getParamList()[Idx++]->getName());
         }
+        #endif
 
         // Avoid adding the function to the symbol table if it is external.
         const auto Body = FuncDecl.getBody();
@@ -687,7 +689,10 @@ namespace Backend::LLVM {
             case AST::NodeKind::ArrayDecl:
             case AST::NodeKind::ClosureDecl:
             case AST::NodeKind::ArrayBindingVarDecl:
+            case AST::NodeKind::ArrayBindingParamVarDecl:
             case AST::NodeKind::ObjectBindingVarDecl:
+            case AST::NodeKind::ObjectBindingParamVarDecl:
+            case AST::NodeKind::InlineArrayParamVarDecl:
             case AST::NodeKind::ForStmt:
             case AST::NodeKind::CommaSepStmtList:
             case AST::NodeKind::ArrayType:

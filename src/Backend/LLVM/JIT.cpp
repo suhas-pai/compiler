@@ -344,7 +344,7 @@ namespace Backend::LLVM {
 
         auto FuncDecl =
             AST::FunctionDecl(/*Loc=*/SourceLocation::invalid(),
-                              std::vector<AST::ParamVarDecl *>(),
+                              std::vector<AST::Stmt *>(),
                               /*ReturnTypeExpr=*/nullptr,
                               ReturnStmt.get());
 

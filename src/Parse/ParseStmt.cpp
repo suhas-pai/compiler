@@ -3,6 +3,8 @@
  * © suhas pai
  */
 
+#include "AST/Decls/LvalueNamedDecl.h"
+
 #include "Parse/ParseDecl.h"
 #include "Parse/ParseExpr.h"
 #include "Parse/ParseIfExpr.h"

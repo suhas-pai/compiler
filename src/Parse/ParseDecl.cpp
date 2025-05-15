@@ -3,8 +3,9 @@
  * © suhas pai
  */
 
-#include "AST/Decls/ArrayBindingVarDecl.h"
-#include "AST/Decls/ObjectBindingVarDecl.h"
+#include "AST/Decls/ArrayBindingParamVarDecl.h"
+#include "AST/Decls/InlineArrayParamVarDecl.h"
+#include "AST/Decls/ObjectBindingParamVarDecl.h"
 
 #include "AST/Decls/FieldDecl.h"
 #include "AST/Decls/OptionalFieldDecl.h"
@@ -318,9 +319,17 @@ namespace Parse {
         return ParseError::None;
     }
 
+    [[nodiscard]] static auto
+    ParseArrayBindingItemList(ParseContext &Context) noexcept
+        -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>;
+
+    [[nodiscard]] static auto
+    ParseObjectBindingFieldList(ParseContext &Context) noexcept
+        -> std::expected<std::vector<AST::ObjectBindingField *>, ParseError>;
+
     [[nodiscard]]
     static auto ParseSingleFunctionParam(ParseContext &Context) noexcept
-        -> std::expected<AST::ParamVarDecl *, ParseError>
+        -> std::expected<AST::Stmt *, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -337,10 +346,38 @@ namespace Parse {
         }
 
         const auto ParamNameToken = ParamNameTokenOpt.value();
+        if (ParamNameToken.Kind == Lex::TokenKind::LeftSquareBracket) {
+            auto ItemListResult = ParseArrayBindingItemList(Context);
+            if (!ItemListResult.has_value()) {
+                return std::unexpected(ItemListResult.error());
+            }
+
+            auto &ItemList = ItemListResult.value();
+            return new AST::ArrayBindingParamVarDecl(ParamNameToken.Loc,
+                                                     AST::Qualifiers(),
+                                                     std::move(ItemList),
+                                                     /*InitExpr=*/nullptr);
+        }
+
+        if (ParamNameToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
+            auto FieldListResult = ParseObjectBindingFieldList(Context);
+            if (!FieldListResult.has_value()) {
+                return std::unexpected(FieldListResult.error());
+            }
+
+            auto &FieldList = FieldListResult.value();
+            return new AST::ObjectBindingParamVarDecl(ParamNameToken.Loc,
+                                                      AST::Qualifiers(),
+                                                      std::move(FieldList),
+                                                      /*InitExpr=*/nullptr);
+        }
+
         if (!VerifyDeclName(Context, ParamNameToken, "parameter")) {
             return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
+        const auto IsInlineArray =
+            TokenStream.consumeIfIs(Lex::TokenKind::DotDotDot).has_value();
         const auto TypeExprOpt =
             ParseTypeAnnotationIfFound(Context, Lex::TokenKind::Comma);
 
@@ -357,6 +394,11 @@ namespace Parse {
         const auto InitExpr = InitExprOpt.value();
         const auto ParamName = TokenStream.tokenContent(ParamNameToken);
 
+        if (IsInlineArray) {
+            return new AST::InlineArrayParamVarDecl(
+                ParamName, ParamNameToken.Loc, TypeExpr, InitExpr);
+        }
+
         return new AST::ParamVarDecl(ParamName, ParamNameToken.Loc, TypeExpr,
                                      InitExpr);
     }
@@ -364,7 +406,7 @@ namespace Parse {
     [[nodiscard]] static auto
     ParseFunctionParamList(ParseContext &Context,
                            const Lex::Token ParenToken) noexcept
-        -> std::expected<std::vector<AST::ParamVarDecl *>, ParseError>
+        -> std::expected<std::vector<AST::Stmt *>, ParseError>
     {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
@@ -375,7 +417,7 @@ namespace Parse {
                                               Lex::TokenKind::CloseParen);
         };
 
-        auto List = std::vector<AST::ParamVarDecl *>();
+        auto List = std::vector<AST::Stmt *>();
         if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
             return List;
         }
@@ -1065,14 +1107,6 @@ namespace Parse {
 
         return new AST::UnionDecl(UnionKeywordToken.Loc, std::move(FieldList));
     }
-
-    [[nodiscard]] static auto
-    ParseArrayBindingItemList(ParseContext &Context) noexcept
-        -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>;
-
-    [[nodiscard]] static auto
-    ParseObjectBindingFieldList(ParseContext &Context) noexcept
-        -> std::expected<std::vector<AST::ObjectBindingField *>, ParseError>;
 
     [[nodiscard]] static auto
     ParseRightSideOfArrayBindingItemColon(

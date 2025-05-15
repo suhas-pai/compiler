@@ -10,13 +10,21 @@ namespace AST {
     struct ParamVarDecl : public LvalueTypedDecl {
     public:
         constexpr static auto ObjKind = NodeKind::ParamVarDecl;
-
+    protected:
+        constexpr explicit
+        ParamVarDecl(const NodeKind NodeKind,
+                     const std::string_view Name,
+                     const SourceLocation NameLoc,
+                     Expr *const TypeExpr,
+                     Expr *const DefaultExpr) noexcept
+        : LvalueTypedDecl(NodeKind, Name, NameLoc, TypeExpr, DefaultExpr) {}
+    public:
         constexpr explicit
         ParamVarDecl(const std::string_view Name,
                      const SourceLocation NameLoc,
                      Expr *const TypeExpr,
                      Expr *const DefaultExpr) noexcept
-        : LvalueTypedDecl(ObjKind, Name, NameLoc, TypeExpr, DefaultExpr) {}
+        : ParamVarDecl(ObjKind, Name, NameLoc, TypeExpr, DefaultExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
