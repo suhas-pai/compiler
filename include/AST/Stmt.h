@@ -3,7 +3,7 @@
  */
 
 #pragma once
-#include "AST/NodeKind.h"
+#include "NodeKind.h"
 
 namespace AST {
     struct Stmt {

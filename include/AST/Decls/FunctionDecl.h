@@ -16,7 +16,7 @@ namespace AST {
     public:
         constexpr static auto ObjKind = NodeKind::FunctionDecl;
     protected:
-        std::vector<Stmt *> ParamDeclList;
+        std::vector<Stmt *> ParamList;
 
         SourceLocation Loc;
         Qualifiers Quals;
@@ -27,38 +27,75 @@ namespace AST {
         explicit
         FunctionDecl(const NodeKind ObjKind,
                      const SourceLocation Loc,
+                     const Qualifiers &Quals,
                      std::vector<Stmt *> &&ParamList,
                      Expr *const ReturnTypeExpr,
                      Stmt *const Body) noexcept
-        : Expr(ObjKind), ParamDeclList(std::move(ParamList)),
-          Loc(Loc), ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
+        : Expr(ObjKind), ParamList(std::move(ParamList)), Loc(Loc),
+          Quals(Quals), ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
 
         explicit
         FunctionDecl(const NodeKind ObjKind,
                      const SourceLocation Loc,
-                     const std::span<Stmt *> ParamDeclList,
-                     Expr *const ReturnTypeExpr,
-                     Stmt *const Body) noexcept
-        : Expr(ObjKind),
-          ParamDeclList(ParamDeclList.begin(), ParamDeclList.end()), Loc(Loc),
-          ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
-    public:
-        explicit
-        FunctionDecl(const SourceLocation Loc,
+                     Qualifiers &&Quals,
                      std::vector<Stmt *> &&ParamList,
                      Expr *const ReturnTypeExpr,
                      Stmt *const Body) noexcept
-        : Expr(ObjKind), ParamDeclList(std::move(ParamList)),
-          Loc(Loc), ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
+        : Expr(ObjKind), ParamList(std::move(ParamList)), Loc(Loc),
+          Quals(std::move(Quals)), ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
 
         explicit
-        FunctionDecl(const SourceLocation Loc,
+        FunctionDecl(const NodeKind ObjKind,
+                     const SourceLocation Loc,
+                     const Qualifiers &Quals,
+                     const std::span<Stmt *> ParamList,
+                     Expr *const ReturnTypeExpr,
+                     Stmt *const Body) noexcept
+        : Expr(ObjKind), ParamList(ParamList.begin(), ParamList.end()),
+          Loc(Loc), Quals(Quals), ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
+
+        explicit
+        FunctionDecl(const NodeKind ObjKind,
+                     const SourceLocation Loc,
+                     Qualifiers &&Quals,
                      const std::span<Stmt *> ParamDeclList,
                      Expr *const ReturnTypeExpr,
                      Stmt *const Body) noexcept
         : Expr(ObjKind),
-          ParamDeclList(ParamDeclList.begin(), ParamDeclList.end()), Loc(Loc),
-          ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
+          ParamList(ParamDeclList.begin(), ParamDeclList.end()), Loc(Loc),
+          Quals(std::move(Quals)), ReturnTypeExpr(ReturnTypeExpr), Body(Body) {}
+    public:
+        explicit
+        FunctionDecl(const SourceLocation Loc,
+                     Qualifiers &&Quals,
+                     std::vector<Stmt *> &&ParamList,
+                     Expr *const ReturnTypeExpr,
+                     Stmt *const Body) noexcept
+        : FunctionDecl(ObjKind, Loc, Quals, ParamList, ReturnTypeExpr, Body) {}
+
+        explicit
+        FunctionDecl(const SourceLocation Loc,
+                     Qualifiers &&Quals,
+                     const std::span<Stmt *> ParamList,
+                     Expr *const ReturnTypeExpr,
+                     Stmt *const Body) noexcept
+        : FunctionDecl(ObjKind, Loc, Quals, ParamList, ReturnTypeExpr, Body) {}
+
+        explicit
+        FunctionDecl(const SourceLocation Loc,
+                     const Qualifiers &Quals,
+                     std::vector<Stmt *> &&ParamList,
+                     Expr *const ReturnTypeExpr,
+                     Stmt *const Body) noexcept
+        : FunctionDecl(ObjKind, Loc, Quals, ParamList, ReturnTypeExpr, Body) {}
+
+        explicit
+        FunctionDecl(const SourceLocation Loc,
+                     const Qualifiers &Quals,
+                     const std::span<Stmt *> ParamList,
+                     Expr *const ReturnTypeExpr,
+                     Stmt *const Body) noexcept
+        : FunctionDecl(ObjKind, Loc, Quals, ParamList, ReturnTypeExpr, Body) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -75,11 +112,11 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto getParamList() const noexcept {
-            return std::span(this->ParamDeclList);
+            return std::span(this->ParamList);
         }
 
         [[nodiscard]] constexpr auto &getParamListRef() noexcept {
-            return this->ParamDeclList;
+            return this->ParamList;
         }
 
         [[nodiscard]] constexpr auto getBody() const noexcept {

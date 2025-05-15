@@ -4,12 +4,12 @@
  */
 
 #pragma once
+
 #include <string>
 
-#include "AST/Expr.h"
-#include "AST/Qualifiers.h"
+#include "Expr.h"
+#include "Qualifiers.h"
 
-#include "Source/SourceLocation.h"
 
 namespace AST {
     struct DotIdentifierExpr : public Expr {

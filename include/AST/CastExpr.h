@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include "AST/Expr.h"
+#include "Expr.h"
 
 namespace AST {
     struct CastExpr : public Expr {

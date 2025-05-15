@@ -19,8 +19,14 @@ namespace AST {
     };
 
     struct ObjectBindingField {
-    protected:
+    private:
         ObjectBindingFieldKind Kind;
+    protected:
+        constexpr explicit
+        ObjectBindingField(const ObjectBindingFieldKind Kind,
+                           const std::string_view Key,
+                           const SourceLocation KeyLoc) noexcept
+        : Kind(Kind), Key(Key), KeyLoc(KeyLoc) {}
     public:
         [[nodiscard]] constexpr auto getKind() const noexcept {
             return this->Kind;
@@ -28,15 +34,10 @@ namespace AST {
 
         std::string_view Key;
         SourceLocation KeyLoc;
-
-        constexpr explicit
-        ObjectBindingField(const ObjectBindingFieldKind Kind,
-                           const std::string_view Key,
-                           const SourceLocation KeyLoc) noexcept
-        : Kind(Kind), Key(Key), KeyLoc(KeyLoc) {}
     };
 
     struct ObjectBindingFieldIdentifier : public ObjectBindingField {
+        constexpr static auto ObjKind = ObjectBindingFieldKind::Identifier;
         Qualifiers Qualifiers;
 
         std::string_view Name;
@@ -49,12 +50,12 @@ namespace AST {
             const std::string_view Name,
             const SourceLocation NameLoc,
             const struct Qualifiers &Qualifiers) noexcept
-        : ObjectBindingField(ObjectBindingFieldKind::Identifier, Key, KeyLoc),
-          Qualifiers(Qualifiers), Name(Name), NameLoc(NameLoc) {}
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Qualifiers(Qualifiers),
+          Name(Name), NameLoc(NameLoc) {}
 
         [[nodiscard]] constexpr
         static auto IsOfKind(const ObjectBindingField &Field) noexcept {
-            return Field.getKind() == ObjectBindingFieldKind::Identifier;
+            return Field.getKind() == ObjKind;
         }
 
         [[nodiscard]] constexpr
@@ -65,6 +66,8 @@ namespace AST {
 
     struct ArrayBindingItem;
     struct ObjectBindingFieldArray : public ObjectBindingField {
+        constexpr static auto ObjKind = ObjectBindingFieldKind::Array;
+
         Qualifiers Qualifiers;
         std::vector<ArrayBindingItem *> ItemList;
 
@@ -74,8 +77,8 @@ namespace AST {
             const SourceLocation KeyLoc,
             const struct Qualifiers &Qualifiers,
             const std::span<ArrayBindingItem *> ItemList) noexcept
-        : ObjectBindingField(ObjectBindingFieldKind::Array, Key, KeyLoc),
-          Qualifiers(Qualifiers), ItemList(ItemList.begin(), ItemList.end()) {}
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Qualifiers(Qualifiers),
+          ItemList(ItemList.begin(), ItemList.end()) {}
 
         explicit
         ObjectBindingFieldArray(
@@ -83,12 +86,12 @@ namespace AST {
             const SourceLocation KeyLoc,
             const struct Qualifiers &Qualifiers,
             std::vector<ArrayBindingItem *> &&ItemList) noexcept
-        : ObjectBindingField(ObjectBindingFieldKind::Array, Key, KeyLoc),
-          Qualifiers(Qualifiers), ItemList(std::move(ItemList)) {}
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Qualifiers(Qualifiers),
+          ItemList(std::move(ItemList)) {}
 
         [[nodiscard]] constexpr
         static auto IsOfKind(const ObjectBindingField &Field) noexcept {
-            return Field.getKind() == ObjectBindingFieldKind::Array;
+            return Field.getKind() == ObjKind;
         }
 
         [[nodiscard]] constexpr
@@ -98,6 +101,8 @@ namespace AST {
     };
 
     struct ObjectBindingFieldObject : public ObjectBindingField {
+        constexpr static auto ObjKind = ObjectBindingFieldKind::Object;
+
         Qualifiers Qualifiers;
         std::vector<ObjectBindingField *> FieldList;
 
@@ -107,8 +112,7 @@ namespace AST {
             const SourceLocation KeyLoc,
             const struct Qualifiers &Qualifiers,
             const std::span<ObjectBindingField *> FieldList) noexcept
-        : ObjectBindingField(ObjectBindingFieldKind::Object, Key, KeyLoc),
-          Qualifiers(Qualifiers),
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Qualifiers(Qualifiers),
           FieldList(FieldList.begin(), FieldList.end()) {}
 
         explicit
@@ -117,8 +121,8 @@ namespace AST {
             const SourceLocation KeyLoc,
             const struct Qualifiers &Qualifiers,
             std::vector<ObjectBindingField *> &&FieldList) noexcept
-        : ObjectBindingField(ObjectBindingFieldKind::Object, Key, KeyLoc),
-          Qualifiers(Qualifiers), FieldList(std::move(FieldList)) {}
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Qualifiers(Qualifiers),
+          FieldList(std::move(FieldList)) {}
 
         explicit
         ObjectBindingFieldObject(
@@ -126,7 +130,7 @@ namespace AST {
             const SourceLocation KeyLoc,
             struct Qualifiers &&Qualifiers,
             const std::span<ObjectBindingField *> FieldList) noexcept
-        : ObjectBindingField(ObjectBindingFieldKind::Object, Key, KeyLoc),
+        : ObjectBindingField(ObjKind, Key, KeyLoc),
           Qualifiers(std::move(Qualifiers)),
           FieldList(FieldList.begin(), FieldList.end()) {}
 
@@ -136,12 +140,12 @@ namespace AST {
             const SourceLocation KeyLoc,
             struct Qualifiers &&Qualifiers,
             std::vector<ObjectBindingField *> &&FieldList) noexcept
-        : ObjectBindingField(ObjectBindingFieldKind::Object, Key, KeyLoc),
+        : ObjectBindingField(ObjKind, Key, KeyLoc),
           Qualifiers(std::move(Qualifiers)), FieldList(std::move(FieldList)) {}
 
         [[nodiscard]] constexpr
         static auto IsOfKind(const ObjectBindingField &Field) noexcept {
-            return Field.getKind() == ObjectBindingFieldKind::Object;
+            return Field.getKind() == ObjKind;
         }
 
         [[nodiscard]] constexpr
@@ -154,17 +158,19 @@ namespace AST {
         Qualifiers Qualifiers;
         SourceLocation SpreadLoc;
 
+        constexpr static auto ObjKind = ObjectBindingFieldKind::Spread;
+
         explicit
         ObjectBindingFieldSpread(const std::string_view Key,
                                  const SourceLocation KeyLoc,
                                  const SourceLocation SpreadLoc,
                                  const struct Qualifiers &Qualifiers) noexcept
-        : ObjectBindingField(ObjectBindingFieldKind::Spread, Key, KeyLoc),
-          Qualifiers(Qualifiers), SpreadLoc(SpreadLoc) {}
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Qualifiers(Qualifiers),
+          SpreadLoc(SpreadLoc) {}
 
         [[nodiscard]] constexpr
         static auto IsOfKind(const ObjectBindingField &Field) noexcept {
-            return Field.getKind() == ObjectBindingFieldKind::Spread;
+            return Field.getKind() == ObjKind;
         }
 
         [[nodiscard]] constexpr
@@ -224,32 +230,28 @@ namespace AST {
                              const struct Qualifiers &Qualifiers,
                              const std::span<ObjectBindingField *> FieldList,
                              Expr *const InitExpr) noexcept
-        : ObjectBindingVarDecl(NodeKind::ObjectBindingVarDecl, Loc, Qualifiers,
-                               FieldList, InitExpr) {}
+        : ObjectBindingVarDecl(ObjKind, Loc, Qualifiers, FieldList, InitExpr) {}
 
         explicit
         ObjectBindingVarDecl(const SourceLocation Loc,
                              const struct Qualifiers &Qualifiers,
                              std::vector<ObjectBindingField *> &&FieldList,
                              Expr *const InitExpr) noexcept
-        : ObjectBindingVarDecl(NodeKind::ObjectBindingVarDecl, Loc, Qualifiers,
-                               FieldList, InitExpr) {}
+        : ObjectBindingVarDecl(ObjKind, Loc, Qualifiers, FieldList, InitExpr) {}
 
         explicit
         ObjectBindingVarDecl(const SourceLocation Loc,
                              struct Qualifiers &&Qualifiers,
                              const std::span<ObjectBindingField *> FieldList,
                              Expr *const InitExpr) noexcept
-        : ObjectBindingVarDecl(NodeKind::ObjectBindingVarDecl, Loc, Qualifiers,
-                               FieldList, InitExpr) {}
+        : ObjectBindingVarDecl(ObjKind, Loc, Qualifiers, FieldList, InitExpr) {}
 
         explicit
         ObjectBindingVarDecl(const SourceLocation Loc,
                              struct Qualifiers &&Qualifiers,
                              std::vector<ObjectBindingField *> &&FieldList,
                              Expr *const InitExpr) noexcept
-        : ObjectBindingVarDecl(NodeKind::ObjectBindingVarDecl, Loc, Qualifiers,
-                               FieldList, InitExpr) {}
+        : ObjectBindingVarDecl(ObjKind, Loc, Qualifiers, FieldList, InitExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {

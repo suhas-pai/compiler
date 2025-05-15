@@ -15,38 +15,44 @@ namespace AST {
     public:
         explicit
         ClosureDecl(const SourceLocation Loc,
+                    Qualifiers &&Quals,
                     const std::span<Stmt *> CaptureList,
                     const std::span<Stmt *> ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
-        : FunctionDecl(ObjKind, Loc, ParamList, ReturnType, Body),
+        : FunctionDecl(ObjKind, Loc, Quals, ParamList, ReturnType, Body),
           CaptureList(CaptureList.begin(), CaptureList.end()) {}
 
         explicit
         ClosureDecl(const SourceLocation Loc,
+                    Qualifiers &&Quals,
                     std::vector<Stmt *> &&CaptureList,
                     const std::span<Stmt *> ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
-        : FunctionDecl(ObjKind, Loc, ParamList, ReturnType, Body),
+        : FunctionDecl(ObjKind, Loc, Quals, ParamList, ReturnType, Body),
           CaptureList(std::move(CaptureList)) {}
 
         explicit
         ClosureDecl(const SourceLocation Loc,
+                    Qualifiers &&Quals,
                     const std::span<Stmt *> CaptureList,
                     std::vector<Stmt *> &&ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
-        : FunctionDecl(ObjKind, Loc, std::move(ParamList), ReturnType, Body),
+        : FunctionDecl(ObjKind, Loc, Quals, std::move(ParamList), ReturnType,
+                       Body),
           CaptureList(CaptureList.begin(), CaptureList.end()) {}
 
         explicit
         ClosureDecl(const SourceLocation Loc,
+                    Qualifiers &&Quals,
                     std::vector<Stmt *> &&CaptureList,
                     std::vector<Stmt *> &&ParamList,
                     Expr *const ReturnType,
                     Stmt *const Body) noexcept
-        : FunctionDecl(ObjKind, Loc, std::move(ParamList), ReturnType, Body),
+        : FunctionDecl(ObjKind, Loc, Quals, std::move(ParamList), ReturnType,
+                       Body),
           CaptureList(std::move(CaptureList)) {}
 
         [[nodiscard]]

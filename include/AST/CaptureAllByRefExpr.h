@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "AST/Expr.h"
-#include "AST/Qualifiers.h"
+#include "Expr.h"
+#include "Qualifiers.h"
 
 namespace AST {
     struct CaptureAllByRefExpr : public Expr {

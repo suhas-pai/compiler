@@ -7,8 +7,8 @@
 #include <span>
 #include <vector>
 
-#include "AST/Qualifiers.h"
 #include "Expr.h"
+#include "Qualifiers.h"
 
 namespace AST {
     struct CallExpr : public Expr {

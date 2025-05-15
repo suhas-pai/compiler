@@ -32,9 +32,9 @@ namespace AST {
     };
 
     struct ArrayBindingItem {
-    protected:
+    private:
         ArrayBindingItemKind Kind;
-
+    protected:
         explicit
         ArrayBindingItem(const ArrayBindingItemKind Kind,
                          const struct Qualifiers &Qualifiers,
@@ -50,6 +50,8 @@ namespace AST {
     };
 
     struct ArrayBindingItemIdentifier : public ArrayBindingItem {
+        constexpr static auto ObjKind = ArrayBindingItemKind::Identifier;
+
         std::string_view Name;
         SourceLocation NameLoc;
 
@@ -58,12 +60,12 @@ namespace AST {
                                    const std::optional<ArrayBindingIndex> Index,
                                    const std::string_view Name,
                                    const SourceLocation NameLoc) noexcept
-        : ArrayBindingItem(ArrayBindingItemKind::Identifier, Qualifiers, Index),
-          Name(Name), NameLoc(NameLoc) {}
+        : ArrayBindingItem(ObjKind, Qualifiers, Index), Name(Name),
+          NameLoc(NameLoc) {}
 
         [[nodiscard]] constexpr
         static auto IsOfKind(const ArrayBindingItem &Item) noexcept {
-            return Item.getKind() == ArrayBindingItemKind::Identifier;
+            return Item.getKind() == ObjKind;
         }
 
         [[nodiscard]] constexpr
@@ -73,6 +75,8 @@ namespace AST {
     };
 
     struct ArrayBindingItemArray : public ArrayBindingItem {
+        constexpr static auto ObjKind = ArrayBindingItemKind::Array;
+
         std::vector<ArrayBindingItem *> ItemList;
         SourceLocation ItemLoc;
 
@@ -81,7 +85,7 @@ namespace AST {
                               const std::optional<ArrayBindingIndex> Index,
                               const std::span<ArrayBindingItem *> ItemList,
                               const SourceLocation ItemLoc) noexcept
-        : ArrayBindingItem(ArrayBindingItemKind::Array, Qualifiers, Index),
+        : ArrayBindingItem(ObjKind, Qualifiers, Index),
           ItemList(ItemList.begin(), ItemList.end()), ItemLoc(ItemLoc) {}
 
         explicit
@@ -89,12 +93,12 @@ namespace AST {
                               const std::optional<ArrayBindingIndex> Index,
                               std::vector<ArrayBindingItem *> &&ItemList,
                               const SourceLocation ItemLoc) noexcept
-        : ArrayBindingItem(ArrayBindingItemKind::Array, Qualifiers, Index),
+        : ArrayBindingItem(ObjKind, Qualifiers, Index),
           ItemList(std::move(ItemList)), ItemLoc(ItemLoc) {}
 
         [[nodiscard]] constexpr
         static auto IsOfKind(const ArrayBindingItem &Item) noexcept {
-            return Item.getKind() == ArrayBindingItemKind::Array;
+            return Item.getKind() == ObjKind;
         }
 
         [[nodiscard]] constexpr
@@ -105,6 +109,8 @@ namespace AST {
 
     struct ObjectBindingField;
     struct ArrayBindingItemObject : public ArrayBindingItem {
+        constexpr static auto ObjKind = ArrayBindingItemKind::Object;
+
         std::vector<ObjectBindingField *> FieldList;
         SourceLocation ItemLoc;
 
@@ -113,7 +119,7 @@ namespace AST {
                                const std::optional<ArrayBindingIndex> Index,
                                const std::span<ObjectBindingField *> FieldList,
                                const SourceLocation ItemLoc) noexcept
-        : ArrayBindingItem(ArrayBindingItemKind::Object, Qualifiers, Index),
+        : ArrayBindingItem(ObjKind, Qualifiers, Index),
           FieldList(FieldList.begin(), FieldList.end()), ItemLoc(ItemLoc) {}
 
         explicit
@@ -121,12 +127,12 @@ namespace AST {
                                const std::optional<ArrayBindingIndex> Index,
                                std::vector<ObjectBindingField *> &&FieldList,
                                const SourceLocation ItemLoc) noexcept
-        : ArrayBindingItem(ArrayBindingItemKind::Object, Qualifiers, Index),
+        : ArrayBindingItem(ObjKind, Qualifiers, Index),
           FieldList(std::move(FieldList)), ItemLoc(ItemLoc) {}
 
         [[nodiscard]] constexpr
         static auto IsOfKind(const ArrayBindingItem &Item) noexcept {
-            return Item.getKind() == ArrayBindingItemKind::Object;
+            return Item.getKind() == ObjKind;
         }
 
         [[nodiscard]] constexpr
@@ -136,6 +142,7 @@ namespace AST {
     };
 
     struct ArrayBindingItemSpread : public ArrayBindingItem {
+        constexpr static auto ObjKind = ArrayBindingItemKind::Spread;
         SourceLocation SpreadLoc;
 
         std::string_view Name;
@@ -147,12 +154,12 @@ namespace AST {
                                const std::string_view Name,
                                const SourceLocation NameLoc,
                                const SourceLocation SpreadLoc) noexcept
-        : ArrayBindingItem(ArrayBindingItemKind::Spread, Qualifiers, Index),
-          SpreadLoc(SpreadLoc), Name(Name), NameLoc(NameLoc) {}
+        : ArrayBindingItem(ObjKind, Qualifiers, Index), SpreadLoc(SpreadLoc),
+          Name(Name), NameLoc(NameLoc) {}
 
         [[nodiscard]] constexpr
         static auto IsOfKind(const ArrayBindingItem &Item) noexcept {
-            return Item.getKind() == ArrayBindingItemKind::Spread;
+            return Item.getKind() == ObjKind;
         }
 
         [[nodiscard]] constexpr
@@ -212,32 +219,28 @@ namespace AST {
                             const struct Qualifiers &Qualifiers,
                             const std::span<ArrayBindingItem *> ItemList,
                             Expr *const InitExpr) noexcept
-        : ArrayBindingVarDecl(NodeKind::ArrayBindingVarDecl, Loc, Qualifiers,
-                              ItemList, InitExpr) {}
+        : ArrayBindingVarDecl(ObjKind, Loc, Qualifiers, ItemList, InitExpr) {}
 
         explicit
         ArrayBindingVarDecl(const SourceLocation Loc,
                             const struct Qualifiers &Qualifiers,
                             std::vector<ArrayBindingItem *> &&ItemList,
                             Expr *const InitExpr) noexcept
-        : ArrayBindingVarDecl(NodeKind::ArrayBindingVarDecl, Loc, Qualifiers,
-                              ItemList, InitExpr) {}
+        : ArrayBindingVarDecl(ObjKind, Loc, Qualifiers, ItemList, InitExpr) {}
 
         explicit
         ArrayBindingVarDecl(const SourceLocation Loc,
                             struct Qualifiers &&Qualifiers,
                             const std::span<ArrayBindingItem *> &ItemList,
                             Expr *const InitExpr) noexcept
-        : ArrayBindingVarDecl(NodeKind::ArrayBindingVarDecl, Loc, Qualifiers,
-                              ItemList, InitExpr) {}
+        : ArrayBindingVarDecl(ObjKind, Loc, Qualifiers, ItemList, InitExpr) {}
 
         explicit
         ArrayBindingVarDecl(const SourceLocation Loc,
                             struct Qualifiers &&Qualifiers,
                             std::vector<ArrayBindingItem *> &&ItemList,
                             Expr *const InitExpr) noexcept
-        : ArrayBindingVarDecl(NodeKind::ArrayBindingVarDecl, Loc, Qualifiers,
-                              ItemList, InitExpr) {}
+        : ArrayBindingVarDecl(ObjKind, Loc, Qualifiers, ItemList, InitExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {

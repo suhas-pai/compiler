@@ -597,7 +597,8 @@ namespace Parse {
         }
 
         auto &ParamList = ParamListOpt.value();
-        return new AST::FunctionDecl(KeywordToken.Loc, std::move(ParamList),
+        return new AST::FunctionDecl(KeywordToken.Loc, AST::Qualifiers(),
+                                     std::move(ParamList),
                                      ReturnTypeOpt.value(), BodyOpt.value());
     }
 
@@ -800,7 +801,8 @@ namespace Parse {
         auto &ParamList = ParamListOpt.value();
 
         auto Body = BodyOpt.value();
-        return new AST::ClosureDecl(BracketToken.Loc, std::move(CaptureList),
+        return new AST::ClosureDecl(BracketToken.Loc, AST::Qualifiers(),
+                                    std::move(CaptureList),
                                     std::move(ParamList), ReturnTypeExpr, Body);
     }
 
@@ -840,8 +842,9 @@ namespace Parse {
         auto &ParamList = ParamListOpt.value();
         const auto Body = BodyOpt.value();
 
-        return new AST::FunctionDecl(ParenToken.Loc, std::move(ParamList),
-                                     ReturnTypeExpr, Body);
+        return new AST::FunctionDecl(ParenToken.Loc, AST::Qualifiers(),
+                                     std::move(ParamList), ReturnTypeExpr,
+                                     Body);
     }
 
     auto
