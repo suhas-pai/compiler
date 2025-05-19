@@ -3,8 +3,6 @@
  * © suhas pai
  */
 
-#include <ranges>
-
 #include "AST/BinaryOperation.h"
 #include "AST/Decls/FunctionDecl.h"
 #include "AST/Decls/ObjectBindingVarDecl.h"
@@ -231,15 +229,7 @@ namespace Parse {
                     .Location = Error.DeclNameList.front().Loc,
                     .Message =
                         std::format("Decl name '{}' is reused",
-                                    Error.DeclNameList |
-                                        std::views::transform(
-                                            [](const auto DeclName) noexcept {
-                                                return std::format(
-                                                    "'{}'",
-                                                    DeclName.Name);
-                                            }) |
-                                        std::views::join |
-                                        std::ranges::to<std::string>())
+                                    Error.DeclNameList.front().Name)
                 });
             }
         }
