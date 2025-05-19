@@ -19,27 +19,27 @@ namespace AST {
         Expr *ConstraintExpr;
 
         Expr *Base;
-        Qualifiers Qualifiers;
+        Qualifiers Quals;
     public:
         explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
                       Expr *const Size,
                       Expr *const Constraint,
                       Expr *const Base,
-                      const struct Qualifiers &Qualifiers) noexcept
+                      const Qualifiers &Quals) noexcept
         : Expr(NodeKind::ArrayType), BracketLoc(BracketLoc),
           SizeExpr(Size), ConstraintExpr(Constraint), Base(Base),
-          Qualifiers(Qualifiers) {}
+          Quals(Quals) {}
 
         explicit
         ArrayTypeExpr(const SourceLocation BracketLoc,
                       Expr *const Size,
                       Expr *const Constraint,
                       Expr *const Base,
-                      struct Qualifiers &&Qualifiers) noexcept
+                      Qualifiers &&Quals) noexcept
         : Expr(NodeKind::ArrayType), BracketLoc(BracketLoc),
           SizeExpr(Size), ConstraintExpr(Constraint), Base(Base),
-          Qualifiers(std::move(Qualifiers)) {}
+          Quals(std::move(Quals)) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -73,11 +73,11 @@ namespace AST {
         }
 
         [[nodiscard]] inline auto &getQualifiers() const noexcept {
-            return this->Qualifiers;
+            return this->Quals;
         }
 
         [[nodiscard]] inline auto &getQualifiersRef() noexcept {
-            return this->Qualifiers;
+            return this->Quals;
         }
 
         constexpr auto setBase(Expr *const Base) noexcept -> decltype(*this) {

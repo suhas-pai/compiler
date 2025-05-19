@@ -13,16 +13,16 @@ namespace AST {
     public:
         constexpr static auto ObjKind = NodeKind::VarDecl;
     protected:
-        Qualifiers Qualifiers;
+        Qualifiers Quals;
     public:
         explicit
         VarDecl(const std::string_view Name,
                 const SourceLocation NameLoc,
-                const struct Qualifiers &Qualifiers,
+                const Qualifiers &Quals,
                 Expr *const TypeExpr,
                 Expr *const InitExpr = nullptr) noexcept
         : LvalueTypedDecl(ObjKind, Name, NameLoc, TypeExpr, InitExpr),
-          Qualifiers(Qualifiers) {}
+          Quals(Quals) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -39,11 +39,11 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
-            return this->Qualifiers;
+            return this->Quals;
         }
 
         [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
-            return this->Qualifiers;
+            return this->Quals;
         }
 
         constexpr auto setInitExpr(Expr *const InitExpr) noexcept

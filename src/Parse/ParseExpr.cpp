@@ -277,7 +277,7 @@ namespace Parse {
                         .Location = ConstraintExpr->getLoc(),
                         .Message =
                             "Avoid using a closure as a constraint. Types are "
-                            "already implicity 'captured' inside functions"
+                            "already implicitly 'captured' inside functions"
                     });
                 } else {
                     Diag.consume({
@@ -327,12 +327,8 @@ namespace Parse {
         auto &Diag = Context.Diag;
         auto &TokenStream = Context.TokenStream;
 
-        auto Result = std::expected<AST::Expr *, ParseError>();
-        if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
-            Result =
-                ParseArrayTypeExpr(Context, BracketToken, SizeExpr,
-                                   /*ConstraintExpr=*/nullptr);
-        } else {
+        auto Constraint = static_cast<AST::Expr *>(nullptr);
+        if (!TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
             const auto ConstraintOpt = ParseExpression(Context);
             if (!ConstraintOpt.has_value()) {
                 return std::unexpected(ConstraintOpt.error());
@@ -386,12 +382,10 @@ namespace Parse {
                 }
             }
 
-            Result =
-                ParseArrayTypeExpr(Context, BracketToken, SizeExpr,
-                                   ConstraintOpt.value());
+            Constraint = ConstraintOpt.value();
         }
 
-        return Result;
+        return ParseArrayTypeExpr(Context, BracketToken, SizeExpr, Constraint);
     }
 
     static void
@@ -603,8 +597,7 @@ namespace Parse {
             }
         }
 
-        auto &DetailList = DetailListOpt.value();
-        return new AST::ArrayDecl(BracketToken.Loc, std::move(DetailList));
+        __builtin_unreachable();
     }
 
     [[nodiscard]] static auto
@@ -1076,7 +1069,7 @@ done:
             return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        return new AST::ParenExpr(ParenToken, ChildExprOpt.value());
+        return new AST::ParenExpr(ParenToken.Loc, ChildExprOpt.value());
     }
 
     [[nodiscard]] static auto

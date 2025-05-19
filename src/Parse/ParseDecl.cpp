@@ -86,6 +86,16 @@ namespace Parse {
             return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
+        if (!TokenStream.peek().has_value()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = Colon.Loc,
+                .Message = "Expected a type annotation expression after ':'"
+            });
+
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
         return ParseLhs(Context, /*InPlaceOfStmt=*/false);
     }
 
@@ -228,24 +238,17 @@ namespace Parse {
                 {
                     CommaLocOpt = CommaTokenOpt->Loc;
                 }
+
+                FieldList.emplace_back(Stmt);
             } else {
                 const auto DeclOpt =
                     ParseFieldDecl(Context, AllowOptionalFields);
 
-                if (!DeclOpt.has_value()) {
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = DeclLoc,
-                        .Message = "Failed to parse field declaration"
-                    });
-
-                    return DeclOpt.error();
+                if (DeclOpt.has_value()) {
+                    FieldList.emplace_back(DeclOpt.value());
                 }
-
-                Stmt = DeclOpt.value();
             }
 
-            FieldList.emplace_back(Stmt);
             if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
                 if (CommaLocOpt.has_value()) {
                     // Allow trailing comma before closing curly brace, but emit
@@ -310,7 +313,7 @@ namespace Parse {
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
                 .Location = TokenStream.getCurrentOrPreviousLocation(),
-                .Message = "Expected a ',' after field declaration"
+                .Message = "Expected a ',' or '}' following field declaration"
             });
 
             return ParseError::FailedCouldNotProceed;

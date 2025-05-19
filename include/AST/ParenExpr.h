@@ -3,8 +3,6 @@
  */
 
 #pragma once
-
-#include "Lex/Token.h"
 #include "Expr.h"
 
 namespace AST {
@@ -13,14 +11,12 @@ namespace AST {
         constexpr static auto ObjKind = NodeKind::ParenExpr;
     protected:
         SourceLocation Loc;
-        SourceLocation End;
-
         Expr *ChildExpr;
     public:
         constexpr explicit
-        ParenExpr(const Lex::Token Token,
+        ParenExpr(const SourceLocation Loc,
                   Expr *const ChildExpr = nullptr) noexcept
-        : Expr(ObjKind), Loc(Token.Loc), End(Token.End), ChildExpr(ChildExpr) {}
+        : Expr(ObjKind), Loc(Loc), ChildExpr(ChildExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -35,10 +31,6 @@ namespace AST {
         [[nodiscard]]
         constexpr SourceLocation getLoc() const noexcept override {
             return this->Loc;
-        }
-
-        [[nodiscard]] constexpr auto getEnd() const noexcept {
-            return this->End;
         }
 
         [[nodiscard]] constexpr auto getChildExpr() const noexcept {

@@ -251,7 +251,9 @@ namespace Lex {
                             this->Diag.consume({
                                 .Level = DiagnosticLevel::Error,
                                 .Location = this->Loc,
-                                .Message = std::format("Line is too long", Char)
+                                .Message =
+                                    std::format("Unrecognized character '{}'",
+                                                Char)
                             });
 
                             Result.Kind = TokenKind::Invalid;

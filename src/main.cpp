@@ -635,7 +635,7 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
 
             std::print("ObjectBindingVarDecl\n");
 
-            const auto &FieldList =
+            const auto FieldList =
                 ObjectBindingParamVarDecl->getFieldList();
 
             PrintObjectBindingFieldList(FieldList, Depth + 1);
@@ -781,10 +781,16 @@ HandlePrompt(const std::string_view &Prompt,
     }
 
     auto Diag = SourceFileDiagnosticConsumer(std::string_view("<input>"));
-    auto TokenBuffer = Lex::TokenBuffer::Create(*SrcBuffer, Diag);
+    auto TokenBufferResult = Lex::TokenBuffer::Create(*SrcBuffer, Diag);
 
+    if (!TokenBufferResult.has_value()) {
+        Diag.print();
+        return;
+    }
+
+    auto &TokenBuffer = TokenBufferResult.value();
     if (ArgOptions.PrintTokens) {
-        auto TokenList = TokenBuffer->getTokenList();
+        auto TokenList = TokenBuffer.getTokenList();
         std::print("Tokens:\n");
 
         for (const auto Token : TokenList) {
@@ -806,7 +812,7 @@ HandlePrompt(const std::string_view &Prompt,
         .IgnoreUnusedExpressions = true,
     });
 
-    auto Unit = Parse::ParseUnit::Create(*TokenBuffer, Diag, Options);
+    auto Unit = Parse::ParseUnit::Create(TokenBuffer, Diag, Options);
     if (Diag.hasMessages()) {
         Diag.print();
     }

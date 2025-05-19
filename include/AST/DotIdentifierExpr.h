@@ -18,35 +18,35 @@ namespace AST {
     private:
         SourceLocation DotLoc;
 
-        Qualifiers Qualifiers;
+        Qualifiers Quals;
         std::string Identifier;
     public:
         explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
-                          const struct Qualifiers &Qualifiers,
+                          const Qualifiers &Quals,
                           const std::string_view Identifier) noexcept
-        : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(Qualifiers),
+        : Expr(ObjKind), DotLoc(DotLoc), Quals(Quals),
           Identifier(Identifier) {}
 
         explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
-                          const struct Qualifiers &Qualifiers,
+                          const Qualifiers &Quals,
                           std::string &&Identifier) noexcept
-        : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(Qualifiers),
+        : Expr(ObjKind), DotLoc(DotLoc), Quals(Quals),
           Identifier(std::move(Identifier)) {}
 
         explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
-                          struct Qualifiers &&Qualifiers,
+                          Qualifiers &&Quals,
                           const std::string_view Identifier) noexcept
-        : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(std::move(Qualifiers)),
+        : Expr(ObjKind), DotLoc(DotLoc), Quals(std::move(Quals)),
           Identifier(Identifier) {}
 
         explicit
         DotIdentifierExpr(const SourceLocation DotLoc,
-                          struct Qualifiers &&Qualifiers,
+                          Qualifiers &&Quals,
                           std::string &&Identifier) noexcept
-        : Expr(ObjKind), DotLoc(DotLoc), Qualifiers(std::move(Qualifiers)),
+        : Expr(ObjKind), DotLoc(DotLoc), Quals(std::move(Quals)),
           Identifier(std::move(Identifier)) {}
 
         [[nodiscard]]
@@ -73,11 +73,11 @@ namespace AST {
         }
 
         [[nodiscard]] auto &getQualifiers() const noexcept {
-            return this->Qualifiers;
+            return this->Quals;
         }
 
         [[nodiscard]] auto &getQualifiersRef() noexcept {
-            return this->Qualifiers;
+            return this->Quals;
         }
     };
 }

@@ -10,37 +10,36 @@ namespace AST {
     struct ObjectBindingParamVarDecl : public ObjectBindingVarDecl {
     public:
         constexpr static auto ObjKind = NodeKind::ObjectBindingParamVarDecl;
-    protected:
-    public:
+
         explicit
         ObjectBindingParamVarDecl(
             const SourceLocation Loc,
-            const struct Qualifiers &Qualifiers,
+            const Qualifiers &Quals,
             const std::span<ObjectBindingField *> ItemList,
             Expr *const InitExpr) noexcept
-        : ObjectBindingVarDecl(ObjKind, Loc, Qualifiers, ItemList, InitExpr) {}
+        : ObjectBindingVarDecl(ObjKind, Loc, Quals, ItemList, InitExpr) {}
 
         explicit
         ObjectBindingParamVarDecl(const SourceLocation Loc,
-                                  const struct Qualifiers &Qualifiers,
+                                  const Qualifiers &Quals,
                                   std::vector<ObjectBindingField *> &&ItemList,
                                   Expr *const InitExpr) noexcept
-        : ObjectBindingVarDecl(ObjKind, Loc, Qualifiers, ItemList, InitExpr) {}
+        : ObjectBindingVarDecl(ObjKind, Loc, Quals, ItemList, InitExpr) {}
 
         explicit
         ObjectBindingParamVarDecl(
             const SourceLocation Loc,
-            struct Qualifiers &&Qualifiers,
+            Qualifiers &&Quals,
             const std::span<ObjectBindingField *> &ItemList,
             Expr *const InitExpr) noexcept
-        : ObjectBindingVarDecl(ObjKind, Loc, Qualifiers, ItemList, InitExpr) {}
+        : ObjectBindingVarDecl(ObjKind, Loc, Quals, ItemList, InitExpr) {}
 
         explicit
         ObjectBindingParamVarDecl(const SourceLocation Loc,
-                                  struct Qualifiers &&Qualifiers,
+                                  Qualifiers &&Quals,
                                   std::vector<ObjectBindingField *> &&ItemList,
                                   Expr *const InitExpr) noexcept
-        : ObjectBindingVarDecl(ObjKind, Loc, Qualifiers, ItemList, InitExpr) {}
+        : ObjectBindingVarDecl(ObjKind, Loc, Quals, ItemList, InitExpr) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {

@@ -14,17 +14,17 @@ namespace AST {
         constexpr static auto ObjKind = NodeKind::CaptureAllByValueExpr;
     protected:
         SourceLocation Loc;
-        Qualifiers Qualifiers;
+        Qualifiers Quals;
     public:
         explicit
         CaptureAllByValueExpr(const SourceLocation Loc,
-                              const struct Qualifiers &Qualifiers) noexcept
-        : Expr(ObjKind), Loc(Loc), Qualifiers(Qualifiers) {}
+                              const Qualifiers &Quals) noexcept
+        : Expr(ObjKind), Loc(Loc), Quals(Quals) {}
 
         explicit
         CaptureAllByValueExpr(const SourceLocation Loc,
-                              struct Qualifiers &&Qualifiers) noexcept
-        : Expr(ObjKind), Loc(Loc), Qualifiers(std::move(Qualifiers)) {}
+                              Qualifiers &&Quals) noexcept
+        : Expr(ObjKind), Loc(Loc), Quals(std::move(Quals)) {}
 
         [[nodiscard]]
         constexpr static auto IsOfKind(const Stmt &Stmt) noexcept {
@@ -42,11 +42,11 @@ namespace AST {
         }
 
         [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
-            return this->Qualifiers;
+            return this->Quals;
         }
 
         [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
-            return this->Qualifiers;
+            return this->Quals;
         }
     };
 }

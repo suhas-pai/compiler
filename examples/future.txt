@@ -51,7 +51,7 @@ interface I {
         std.print(`Hi {"hi"}`);
     },
 
-    doThing2: (a: u32) -> void = () => {
+    doThing2: (a: u32) -> void = (a) => {
         std.print(`Hi {a:x}`);
     },
 
