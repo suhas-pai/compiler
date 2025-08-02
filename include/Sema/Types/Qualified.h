@@ -21,7 +21,7 @@ namespace Sema {
             return this->TyAndBits.getPointer();
         }
 
-        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return TypeQualifiers(this->TyAndBits.getBits());
         }
 

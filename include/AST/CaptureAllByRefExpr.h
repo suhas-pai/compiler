@@ -41,11 +41,11 @@ namespace AST {
             return this->Loc;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+        [[nodiscard]] auto &getQualifiersRef() noexcept {
             return this->Quals;
         }
     };

@@ -103,11 +103,11 @@ namespace AST {
             return this->NameLoc;
         }
 
-        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+        [[nodiscard]] auto &getQualifiersRef() noexcept {
             return this->Quals;
         }
 
@@ -188,11 +188,11 @@ namespace AST {
             return this->ItemList;
         }
 
-        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+        [[nodiscard]] auto &getQualifiersRef() noexcept {
             return this->Quals;
         }
     };
@@ -259,11 +259,11 @@ namespace AST {
             return this->FieldList;
         }
 
-        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+        [[nodiscard]] auto &getQualifiersRef() noexcept {
             return this->Quals;
         }
     };
@@ -305,11 +305,11 @@ namespace AST {
             return this->SpreadLoc;
         }
 
-        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+        [[nodiscard]] auto &getQualifiersRef() noexcept {
             return this->Quals;
         }
 
@@ -414,11 +414,11 @@ namespace AST {
             return this->FieldList;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiers() noexcept {
+        [[nodiscard]] auto &getQualifiers() noexcept {
             return this->Quals;
         }
 

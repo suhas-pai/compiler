@@ -54,11 +54,11 @@ namespace AST {
             return this->Kind;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+        [[nodiscard]] auto &getQualifiersRef() noexcept {
             return this->Quals;
         }
 
@@ -420,11 +420,11 @@ namespace AST {
             return this->ItemList;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiers() const noexcept {
+        [[nodiscard]] auto &getQualifiers() const noexcept {
             return this->Quals;
         }
 
-        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+        [[nodiscard]] auto &getQualifiersRef() noexcept {
             return this->Quals;
         }
 
