@@ -34,11 +34,25 @@ namespace Lex {
                 return std::pair(Token::invalid(), this->CurrentLineInfo);
             }
 
+            this->Loc.Column++;
+            if (this->Loc.Column > SourceLocation::ColumnLimit) {
+                return std::pair(Token::invalid(), this->CurrentLineInfo);
+            }
+
             switch (State) {
                 case State::Start:
+                    // We're at the start of a token, whose start index will be
+                    // the current index, minus one because we just consumed the
+                    // starting token.
+
                     Result.Loc.Index = this->Loc.Index - 1;
+                    Result.Loc.Column = this->Loc.Column - 1;
+
                     switch (Char) {
                         case '\n':
+                            // On seeing a newline, increment the row and reset
+                            // the column. Also update the current line info.
+
                             this->Loc.Row++;
                             this->Loc.Column = 0;
                             this->CurrentLineInfo = {
@@ -60,19 +74,16 @@ namespace Lex {
                         case ' ':
                         case '\t':
                         case '\r':
+                            // Whitespace characters are ignored.
                             break;
                         case '\'':
                             State = State::CharLiteral;
-
                             Result.Kind = TokenKind::CharLiteral;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '"':
                             State = State::StringLiteral;
-
                             Result.Kind = TokenKind::StringLiteral;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case 'a'...'z':
@@ -80,57 +91,41 @@ namespace Lex {
                         case '_':
                             State = State::Identifier;
                             Result.Kind = TokenKind::Identifier;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '0'...'9':
                             State = State::IntegerLiteral;
-
                             Result.Kind = TokenKind::IntegerLiteral;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '+':
                             State = State::Plus;
-
                             Result.Kind = TokenKind::Plus;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '-':
                             State = State::Minus;
-
                             Result.Kind = TokenKind::Minus;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '*':
                             State = State::Star;
-
                             Result.Kind = TokenKind::Star;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '%':
                             State = State::Percent;
-
                             Result.Kind = TokenKind::Percent;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '/':
                             State = State::Slash;
-
                             Result.Kind = TokenKind::Slash;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '^':
                             State = State::Caret;
-                            this->Loc.Column++;
-
                             Result.Kind = TokenKind::Caret;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '&':
@@ -139,113 +134,69 @@ namespace Lex {
 
                             break;
                         case '|':
-                            State = State::Pipe;
-
-                            Result.Kind = TokenKind::Pipe;
-                            Result.Loc.Column = this->Loc.Column;
+                            State = State::VerticalLine;
+                            Result.Kind = TokenKind::VerticalLine;
 
                             break;
                         case '~':
                             State = State::Tilde;
-
                             Result.Kind = TokenKind::Tilde;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '<':
                             State = State::LessThan;
-
                             Result.Kind = TokenKind::LessThan;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '>':
                             State = State::GreaterThan;
-
                             Result.Kind = TokenKind::GreaterThan;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '=':
                             State = State::Equal;
-
                             Result.Kind = TokenKind::Equal;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '!':
                             State = State::Exclamation;
-
                             Result.Kind = TokenKind::Exclamation;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case '(':
                             Result.Kind = TokenKind::OpenParen;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case ')':
                             Result.Kind = TokenKind::CloseParen;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case '{':
                             Result.Kind = TokenKind::OpenCurlyBrace;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case '}':
                             Result.Kind = TokenKind::CloseCurlyBrace;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case '[':
                             Result.Kind = TokenKind::LeftSquareBracket;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case ']':
                             Result.Kind = TokenKind::RightSquareBracket;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case ',':
                             Result.Kind = TokenKind::Comma;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case '.':
                             State = State::Dot;
-
                             Result.Kind = TokenKind::Dot;
-                            Result.Loc.Column = this->Loc.Column;
 
                             break;
                         case ':':
                             Result.Kind = TokenKind::Colon;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case ';':
                             Result.Kind = TokenKind::Semicolon;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         case '?':
                             Result.Kind = TokenKind::QuestionMark;
-                            Result.Loc.Column = this->Loc.Column;
-
-                            this->Loc.Column += 1;
                             goto done;
                         default:
                             this->Diag.consume({
@@ -348,7 +299,6 @@ namespace Lex {
                             this->Loc.Index--;
                             this->Loc.Column--;
 
-                            Result.End.Index = this->Loc.Index;
                             const auto KeywordOpt =
                                 KeywordToLexemeMap.keyFor(
                                     Result.getString(Text));
@@ -476,13 +426,16 @@ namespace Lex {
                     }
 
                     break;
-                case State::Pipe:
+                case State::VerticalLine:
                     switch (Char) {
                         case '|':
-                            Result.Kind = TokenKind::DoublePipe;
+                            Result.Kind = TokenKind::DoubleVerticalLine;
+                            goto done;
+                        case '>':
+                            Result.Kind = TokenKind::PipeOperator;
                             goto done;
                         case '=':
-                            Result.Kind = TokenKind::PipeEqual;
+                            Result.Kind = TokenKind::VerticalLineEqual;
                             goto done;
                         default:
                             this->Loc.Index--;
@@ -652,19 +605,13 @@ namespace Lex {
                     .ByteOffset = this->Loc.Index
                 };
             }
-
-            this->Loc.Column++;
-            if (this->Loc.Column > SourceLocation::ColumnLimit) {
-                return std::pair(Token::invalid(), this->CurrentLineInfo);
-            }
         }
 
     done:
         State = State::Start;
 
-        Result.End.Row = this->Loc.Row;
-        Result.End.Column = this->Loc.Column;
         Result.End.Index = this->Loc.Index;
+        Result.End.Column = this->Loc.Column;
 
         return std::pair(Result, this->CurrentLineInfo);
     }
