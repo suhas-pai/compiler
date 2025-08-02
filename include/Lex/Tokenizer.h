@@ -31,7 +31,7 @@ namespace Lex {
             Slash,
             Caret,
             Ampersand,
-            Pipe,
+            VerticalLine,
             Tilde,
             LessThan,
             GreaterThan,

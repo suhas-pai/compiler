@@ -1,7 +1,8 @@
 1. Type objects are always immutable
 2. Function variables used in types/constraints must be const
-3. Number types must always be provided (i.e. 0u32, 1.0f64), except only when the
-   compiler can make a 100% guess, and except in integer ranges (i.e. 0..<10, 1..=20) where
-   the compiler will infer the smallest integer type possible.
-4. The inferred type for the object type in arrays is the type inferred for the first element.
-5. The inferred type for the return value of a function w/o a specified return type is the type inferred from the earliest return statement.
+3. The inferred type for the base type in arrays is the type inferred for the first element.
+4. The inferred type for the return value of a function w/o a specified return type is the type inferred from the earliest return statement.
+5. All function parameters can refer to each other, even those that haven't been declared "yet" (when reading left-to-right)
+6. All top-level (global) can be referred to other top-level (global) decls that haven't been declared yet.
+7. Function parameters without type information will be given implied constraints based on the function implementation.
+8. Function values cannot be used as constraints, even if they don't qualify as constraints

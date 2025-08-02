@@ -692,7 +692,7 @@ namespace Backend::LLVM {
             case AST::NodeKind::ArrayBindingParamVarDecl:
             case AST::NodeKind::ObjectBindingVarDecl:
             case AST::NodeKind::ObjectBindingParamVarDecl:
-            case AST::NodeKind::InlineArrayParamVarDecl:
+            case AST::NodeKind::InlineTupleParamVarDecl:
             case AST::NodeKind::ForStmt:
             case AST::NodeKind::CommaSepStmtList:
             case AST::NodeKind::ArrayType:
@@ -704,6 +704,7 @@ namespace Backend::LLVM {
             case AST::NodeKind::ArrayPointerType:
             case AST::NodeKind::StructType:
             case AST::NodeKind::ShapeType:
+            case AST::NodeKind::TupleDecl:
             case AST::NodeKind::UnionType:
                 __builtin_unreachable();
         }

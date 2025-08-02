@@ -22,6 +22,9 @@ namespace AST {
     private:
         ObjectBindingFieldKind Kind;
     protected:
+        std::string_view Key;
+        SourceLocation KeyLoc;
+
         constexpr explicit
         ObjectBindingField(const ObjectBindingFieldKind Kind,
                            const std::string_view Key,
@@ -32,23 +35,53 @@ namespace AST {
             return this->Kind;
         }
 
-        std::string_view Key;
-        SourceLocation KeyLoc;
+        [[nodiscard]] constexpr auto getKey() const noexcept {
+            return this->Key;
+        }
+
+        [[nodiscard]] constexpr auto getKeyLoc() const noexcept {
+            return this->KeyLoc;
+        }
+
+        constexpr auto setKey(const std::string_view Key) noexcept
+            -> decltype(*this)
+        {
+            this->Key = Key;
+            return *this;
+        }
+
+        constexpr auto setKeyLoc(const SourceLocation KeyLoc) noexcept
+            -> decltype(*this)
+        {
+            this->KeyLoc = KeyLoc;
+            return *this;
+        }
     };
 
     struct ObjectBindingFieldIdentifier : public ObjectBindingField {
+    public:
         constexpr static auto ObjKind = ObjectBindingFieldKind::Identifier;
+    protected:
         Qualifiers Quals;
 
         std::string_view Name;
         SourceLocation NameLoc;
-
+    public:
         explicit
         ObjectBindingFieldIdentifier(const std::string_view Key,
                                      const SourceLocation KeyLoc,
                                      const std::string_view Name,
                                      const SourceLocation NameLoc,
                                      const Qualifiers &Quals) noexcept
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Quals(Quals),
+          Name(Name), NameLoc(NameLoc) {}
+
+        explicit
+        ObjectBindingFieldIdentifier(const std::string_view Key,
+                                     const SourceLocation KeyLoc,
+                                     const std::string_view Name,
+                                     const SourceLocation NameLoc,
+                                     Qualifiers &&Quals) noexcept
         : ObjectBindingField(ObjKind, Key, KeyLoc), Quals(Quals),
           Name(Name), NameLoc(NameLoc) {}
 
@@ -61,15 +94,46 @@ namespace AST {
         static auto classof(const ObjectBindingField *const Field) noexcept {
             return IsOfKind(*Field);
         }
+
+        [[nodiscard]] constexpr auto getName() const noexcept {
+            return this->Name;
+        }
+
+        [[nodiscard]] constexpr auto getNameLoc() const noexcept {
+            return this->NameLoc;
+        }
+
+        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+            return this->Quals;
+        }
+
+        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+            return this->Quals;
+        }
+
+        constexpr auto setName(const std::string_view Name) noexcept
+            -> decltype(*this)
+        {
+            this->Name = Name;
+            return *this;
+        }
+
+        constexpr auto setNameLoc(const SourceLocation NameLoc) noexcept
+            -> decltype(*this)
+        {
+            this->NameLoc = NameLoc;
+            return *this;
+        }
     };
 
     struct ArrayBindingItem;
     struct ObjectBindingFieldArray : public ObjectBindingField {
+    public:
         constexpr static auto ObjKind = ObjectBindingFieldKind::Array;
-
+    protected:
         Qualifiers Quals;
         std::vector<ArrayBindingItem *> ItemList;
-
+    public:
         explicit
         ObjectBindingFieldArray(
             const std::string_view Key,
@@ -88,6 +152,24 @@ namespace AST {
         : ObjectBindingField(ObjKind, Key, KeyLoc), Quals(Quals),
           ItemList(std::move(ItemList)) {}
 
+        explicit
+        ObjectBindingFieldArray(
+            const std::string_view Key,
+            const SourceLocation KeyLoc,
+            Qualifiers &&Quals,
+            const std::span<ArrayBindingItem *> ItemList) noexcept
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Quals(Quals),
+          ItemList(ItemList.begin(), ItemList.end()) {}
+
+        explicit
+        ObjectBindingFieldArray(
+            const std::string_view Key,
+            const SourceLocation KeyLoc,
+            Qualifiers &&Quals,
+            std::vector<ArrayBindingItem *> &&ItemList) noexcept
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Quals(Quals),
+          ItemList(std::move(ItemList)) {}
+
         [[nodiscard]] constexpr
         static auto IsOfKind(const ObjectBindingField &Field) noexcept {
             return Field.getKind() == ObjKind;
@@ -97,14 +179,31 @@ namespace AST {
         static auto classof(const ObjectBindingField *const Field) noexcept {
             return IsOfKind(*Field);
         }
+
+        [[nodiscard]] constexpr auto getItemList() const noexcept {
+            return std::span(this->ItemList);
+        }
+
+        [[nodiscard]] constexpr auto &getItemListRef() noexcept {
+            return this->ItemList;
+        }
+
+        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+            return this->Quals;
+        }
+
+        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+            return this->Quals;
+        }
     };
 
     struct ObjectBindingFieldObject : public ObjectBindingField {
+    public:
         constexpr static auto ObjKind = ObjectBindingFieldKind::Object;
-
+    protected:
         Qualifiers Quals;
         std::vector<ObjectBindingField *> FieldList;
-
+    public:
         explicit
         ObjectBindingFieldObject(
             const std::string_view Key,
@@ -151,19 +250,44 @@ namespace AST {
         static auto classof(const ObjectBindingField *const Field) noexcept {
             return IsOfKind(*Field);
         }
+
+        [[nodiscard]] constexpr auto getFieldList() const noexcept {
+            return std::span(this->FieldList);
+        }
+
+        [[nodiscard]] constexpr auto &getFieldListRef() noexcept {
+            return this->FieldList;
+        }
+
+        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+            return this->Quals;
+        }
+
+        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+            return this->Quals;
+        }
     };
 
     struct ObjectBindingFieldSpread : public ObjectBindingField {
+    public:
+        constexpr static auto ObjKind = ObjectBindingFieldKind::Spread;
+    protected:
         Qualifiers Quals;
         SourceLocation SpreadLoc;
-
-        constexpr static auto ObjKind = ObjectBindingFieldKind::Spread;
-
+    public:
         explicit
         ObjectBindingFieldSpread(const std::string_view Key,
                                  const SourceLocation KeyLoc,
                                  const SourceLocation SpreadLoc,
                                  const Qualifiers &Quals) noexcept
+        : ObjectBindingField(ObjKind, Key, KeyLoc), Quals(Quals),
+          SpreadLoc(SpreadLoc) {}
+
+        explicit
+        ObjectBindingFieldSpread(const std::string_view Key,
+                                 const SourceLocation KeyLoc,
+                                 const SourceLocation SpreadLoc,
+                                 Qualifiers &&Quals) noexcept
         : ObjectBindingField(ObjKind, Key, KeyLoc), Quals(Quals),
           SpreadLoc(SpreadLoc) {}
 
@@ -175,6 +299,25 @@ namespace AST {
         [[nodiscard]] constexpr
         static auto classof(const ObjectBindingField *const Field) noexcept {
             return IsOfKind(*Field);
+        }
+
+        [[nodiscard]] constexpr auto getSpreadLoc() const noexcept {
+            return this->SpreadLoc;
+        }
+
+        [[nodiscard]] constexpr auto getQualifiers() const noexcept {
+            return this->Quals;
+        }
+
+        [[nodiscard]] constexpr auto &getQualifiersRef() noexcept {
+            return this->Quals;
+        }
+
+        constexpr auto setSpreadLoc(const SourceLocation SpreadLoc) noexcept
+            -> decltype(*this)
+        {
+            this->SpreadLoc = SpreadLoc;
+            return *this;
         }
     };
 

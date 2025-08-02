@@ -16,7 +16,7 @@
 
 namespace Parse {
     static void
-    HandleArrayBindingArrayItem(
+    HandleArrayBindingItemList(
         std::span<AST::ArrayBindingItem *const> ItemList,
         ADT::UnorderedStringMap<AST::LvalueNamedDecl *> &TopLevelDeclList,
         std::vector<ParseUnit::AddError::DeclName> &DeclNameList) noexcept;
@@ -49,9 +49,10 @@ namespace Parse {
                 const auto IdentifierItem =
                     llvm::cast<AST::ArrayBindingItemIdentifier>(Item);
 
-                const auto Name = IdentifierItem->Name;
+                const auto Name = IdentifierItem->getName();
                 if (TopLevelDeclList.contains(Name)) {
-                    DeclNameList.emplace_back(Name, IdentifierItem->NameLoc);
+                    DeclNameList.emplace_back(Name,
+                                              IdentifierItem->getNameLoc());
                 }
 
                 break;
@@ -60,25 +61,34 @@ namespace Parse {
                 const auto ArrayItem =
                     llvm::cast<AST::ArrayBindingItemArray>(Item);
 
-                HandleArrayBindingArrayItem(ArrayItem->ItemList,
-                                            TopLevelDeclList, DeclNameList);
+                HandleArrayBindingItemList(ArrayItem->getItemList(),
+                                           TopLevelDeclList, DeclNameList);
                 break;
             }
             case AST::ArrayBindingItemKind::Object: {
                 const auto ObjectItem =
                     llvm::cast<AST::ArrayBindingItemObject>(Item);
 
-                HandleObjectBindingFieldList(ObjectItem->FieldList,
+                HandleObjectBindingFieldList(ObjectItem->getFieldList(),
                                              TopLevelDeclList, DeclNameList);
                 break;
             }
-            case AST::ArrayBindingItemKind::Spread:
+            case AST::ArrayBindingItemKind::Spread: {
+                const auto SpreadItem =
+                    llvm::cast<AST::ArrayBindingItemSpread>(Item);
+
+                if (TopLevelDeclList.contains(SpreadItem->getName())) {
+                    DeclNameList.emplace_back(SpreadItem->getName(),
+                                              SpreadItem->getNameLoc());
+                }
+
                 break;
+            }
         }
     }
 
     static void
-    HandleArrayBindingArrayItem(
+    HandleArrayBindingItemList(
         std::span<AST::ArrayBindingItem *const> ItemList,
         ADT::UnorderedStringMap<AST::LvalueNamedDecl *> &TopLevelDeclList,
         std::vector<ParseUnit::AddError::DeclName> &DeclNameList) noexcept
@@ -99,9 +109,10 @@ namespace Parse {
                 const auto IdentifierField =
                     llvm::cast<AST::ObjectBindingFieldIdentifier>(Field);
 
-                const auto Name = IdentifierField->Name;
+                const auto Name = IdentifierField->getName();
                 if (TopLevelDeclList.contains(Name)) {
-                    DeclNameList.emplace_back(Name, IdentifierField->NameLoc);
+                    DeclNameList.emplace_back(Name,
+                                              IdentifierField->getNameLoc());
                 }
 
                 break;
@@ -110,8 +121,8 @@ namespace Parse {
                 const auto ArrayField =
                     llvm::cast<AST::ObjectBindingFieldArray>(Field);
 
-                HandleArrayBindingArrayItem(ArrayField->ItemList,
-                                            TopLevelDeclList, DeclNameList);
+                HandleArrayBindingItemList(ArrayField->getItemList(),
+                                           TopLevelDeclList, DeclNameList);
                 break;
             }
             case AST::ObjectBindingFieldKind::Object: {
@@ -126,9 +137,9 @@ namespace Parse {
                 const auto SpreadField =
                     llvm::cast<AST::ObjectBindingFieldSpread>(Field);
 
-                if (TopLevelDeclList.contains(SpreadField->Key)) {
-                    DeclNameList.emplace_back(SpreadField->Key,
-                                              SpreadField->KeyLoc);
+                if (TopLevelDeclList.contains(SpreadField->getKey())) {
+                    DeclNameList.emplace_back(SpreadField->getKey(),
+                                              SpreadField->getKeyLoc());
                 }
 
                 break;
@@ -145,26 +156,33 @@ namespace Parse {
             }
 
             this->TopLevelDeclList.emplace(Decl->getName(), Decl);
-            return AddError::withNameList({
+            return AddError::WithNameList({
                 ParseUnit::AddError::DeclName(Decl->getName(),
                                               Decl->getNameLoc())
             });
         }
 
         auto DeclNameList = std::vector<ParseUnit::AddError::DeclName>();
-        if (const auto Decl =
-                llvm::dyn_cast<AST::ArrayBindingVarDecl>(Stmt))
-        {
-            for (const auto &Item : Decl->getItemList()) {
-                HandleArrayBindingItem(Item, this->TopLevelDeclList,
-                                       DeclNameList);
+        if (const auto Decl = llvm::dyn_cast<AST::ArrayBindingVarDecl>(Stmt)) {
+            HandleArrayBindingItemList(Decl->getItemList(),
+                                       this->TopLevelDeclList, DeclNameList);
+
+            if (DeclNameList.empty()) {
+                return AddError::none();
             }
 
-            if (!DeclNameList.empty()) {
-                return AddError::withNameList(std::move(DeclNameList));
+            return AddError::WithNameList(std::move(DeclNameList));
+        }
+
+        if (const auto Decl = llvm::dyn_cast<AST::ObjectBindingVarDecl>(Stmt)) {
+            HandleObjectBindingFieldList(Decl->getFieldList(),
+                                         this->TopLevelDeclList, DeclNameList);
+
+            if (DeclNameList.empty()) {
+                return AddError::none();
             }
 
-            return AddError::none();
+            return AddError::WithNameList(std::move(DeclNameList));
         }
 
         return AddError::none();

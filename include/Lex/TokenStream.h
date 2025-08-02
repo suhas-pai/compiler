@@ -227,6 +227,11 @@ namespace Lex {
             const std::initializer_list<Lex::TokenKind> KindList) noexcept
                 -> std::expected<Lex::Token, FindError>;
 
+        auto
+        findNextNotOneOfAndGoToToken(
+            const std::initializer_list<Lex::TokenKind> KindList) noexcept
+                -> std::expected<Lex::Token, FindError>;
+
         constexpr auto inWindow(auto &&Func) noexcept {
             const auto OriginalIndex = this->position();
             const auto Result = Func(*this);

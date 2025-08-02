@@ -49,8 +49,7 @@ namespace ADT {
             -> SourceBuffer *;
 
         [[nodiscard]] static
-        auto FromString(const std::string_view Text) noexcept
-            -> SourceBuffer *
+        auto FromString(const std::string_view Text) noexcept -> SourceBuffer *
         {
             const auto Copy = new char[Text.length() + 1]{0};
             memcpy(Copy, Text.data(), Text.length());

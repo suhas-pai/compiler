@@ -375,7 +375,7 @@ namespace Parse {
                 return BinaryOperator::BitwiseXor;
             case Lex::TokenKind::Ampersand:
                 return BinaryOperator::BitwiseAnd;
-            case Lex::TokenKind::Pipe:
+            case Lex::TokenKind::VerticalLine:
                 return BinaryOperator::BitwiseOr;
             case Lex::TokenKind::ShiftLeft:
                 return BinaryOperator::LeftShift;
@@ -393,7 +393,7 @@ namespace Parse {
                 return BinaryOperator::ModuloAssign;
             case Lex::TokenKind::AmpersandEqual:
                 return BinaryOperator::BitwiseAndAssign;
-            case Lex::TokenKind::PipeEqual:
+            case Lex::TokenKind::VerticalLineEqual:
                 return BinaryOperator::BitwiseOrAssign;
             case Lex::TokenKind::CaretEqual:
                 return BinaryOperator::BitwiseXorAssign;
@@ -411,7 +411,7 @@ namespace Parse {
                 return BinaryOperator::GreaterThanOrEqual;
             case Lex::TokenKind::DoubleAmpersand:
                 return BinaryOperator::LogicalAnd;
-            case Lex::TokenKind::DoublePipe:
+            case Lex::TokenKind::DoubleVerticalLine:
                 return BinaryOperator::LogicalOr;
             case Lex::TokenKind::DoubleEqual:
                 return BinaryOperator::Equality;
@@ -437,6 +437,7 @@ namespace Parse {
             case Lex::TokenKind::CloseCurlyBrace:
             case Lex::TokenKind::LeftSquareBracket:
             case Lex::TokenKind::RightSquareBracket:
+            case Lex::TokenKind::PipeOperator:
             case Lex::TokenKind::Comma:
             case Lex::TokenKind::Colon:
             case Lex::TokenKind::Semicolon:

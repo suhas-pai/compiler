@@ -25,6 +25,7 @@ namespace Parse {
         Power,           // **
         PointerToMember, // ->
         Ternary,         // ?:
+        Pipe,           // |
     };
 
     enum class OperatorAssoc : uint8_t {
@@ -59,7 +60,7 @@ namespace Parse {
             case Lex::TokenKind::ShiftRightEqual:
             case Lex::TokenKind::AmpersandEqual:
             case Lex::TokenKind::CaretEqual:
-            case Lex::TokenKind::PipeEqual:
+            case Lex::TokenKind::VerticalLineEqual:
                 return OperatorInfo(Precedence::Assignment,
                                     OperatorAssoc::Left);
             case Lex::TokenKind::QuestionMark:
@@ -108,7 +109,7 @@ namespace Parse {
                 }
 
                 break;
-            case Lex::TokenKind::Pipe:
+            case Lex::TokenKind::VerticalLine:
                 return OperatorInfo(Precedence::InclusiveOr,
                                     OperatorAssoc::Left);
             case Lex::TokenKind::Caret:
@@ -150,13 +151,15 @@ namespace Parse {
             case Lex::TokenKind::DoubleAmpersand:
                 return OperatorInfo(Precedence::LogicalAnd,
                                     OperatorAssoc::Left);
-            case Lex::TokenKind::DoublePipe:
+            case Lex::TokenKind::DoubleVerticalLine:
                 return OperatorInfo(Precedence::LogicalOr,
                                     OperatorAssoc::Left);
             case Lex::TokenKind::Tilde:
                 return OperatorInfo(Precedence::Comma, OperatorAssoc::Left);
             case Lex::TokenKind::Colon:
                 return OperatorInfo(Precedence::Ternary, OperatorAssoc::Left);
+            case Lex::TokenKind::PipeOperator:
+                return OperatorInfo(Precedence::Pipe, OperatorAssoc::Left);
             case Lex::TokenKind::TildeEqual:
             case Lex::TokenKind::Exclamation:
             case Lex::TokenKind::OpenParen:

@@ -19,6 +19,7 @@
 #include "AST/Decls/ParamVarDecl.h"
 #include "AST/Decls/ShapeDecl.h"
 #include "AST/Decls/StructDecl.h"
+#include "AST/Decls/TupleDecl.h"
 #include "AST/Decls/UnionDecl.h"
 #include "AST/Decls/VarDecl.h"
 
@@ -65,7 +66,7 @@ static void PrintDepth(const uint8_t Depth) noexcept {
     }
 }
 
-static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept;
+static void PrintAST(AST::Stmt *Stmt, uint8_t Depth) noexcept;
 
 static void
 PrintArrayBindingItemIndex(const AST::ArrayBindingIndex &Item,
@@ -79,8 +80,8 @@ PrintArrayBindingItemIndex(const AST::ArrayBindingIndex &Item,
 
 static void
 PrintObjectBindingFieldList(
-    const std::span<AST::ObjectBindingField *const> FieldList,
-    const uint8_t Depth) noexcept;
+    std::span<AST::ObjectBindingField *const> FieldList,
+    uint8_t Depth) noexcept;
 
 static void
 PrintArrayBindingItemList(
@@ -95,9 +96,9 @@ PrintArrayBindingItemList(
                     llvm::cast<AST::ArrayBindingItemIdentifier>(Item);
 
                 std::print("ArrayBindingItemIdentifier<\"{}\">\n",
-                           IdentifierItem->Name);
+                           IdentifierItem->getName());
 
-                if (const auto Index = Item->Index) {
+                if (const auto Index = Item->getIndex()) {
                     PrintArrayBindingItemIndex(Index.value(), Depth + 1);
                 }
 
@@ -108,9 +109,9 @@ PrintArrayBindingItemList(
                     llvm::cast<AST::ArrayBindingItemArray>(Item);
 
                 std::print("ArrayBindingItemArray\n");
-                PrintArrayBindingItemList(ArrayItem->ItemList, Depth + 1);
+                PrintArrayBindingItemList(ArrayItem->getItemList(), Depth + 1);
 
-                if (const auto Index = Item->Index) {
+                if (const auto Index = Item->getIndex()) {
                     PrintArrayBindingItemIndex(Index.value(), Depth + 1);
                 }
 
@@ -121,9 +122,10 @@ PrintArrayBindingItemList(
                     llvm::cast<AST::ArrayBindingItemObject>(Item);
 
                 std::print("ArrayBindingItemObject\n");
-                PrintObjectBindingFieldList(ObjectItem->FieldList, Depth + 1);
+                PrintObjectBindingFieldList(ObjectItem->getFieldList(),
+                                            Depth + 1);
 
-                if (const auto Index = Item->Index) {
+                if (const auto Index = Item->getIndex()) {
                     PrintArrayBindingItemIndex(Index.value(), Depth + 1);
                 }
 
@@ -134,9 +136,9 @@ PrintArrayBindingItemList(
                     llvm::cast<AST::ArrayBindingItemSpread>(Item);
 
                 std::print("ArrayBindingItemSpread<\"{}\">\n",
-                           SpreadItem->Name);
+                           SpreadItem->getName());
 
-                if (const auto Index = Item->Index) {
+                if (const auto Index = Item->getIndex()) {
                     PrintArrayBindingItemIndex(Index.value(), Depth + 1);
                 }
 
@@ -161,7 +163,7 @@ PrintObjectBindingFieldList(
                     llvm::cast<AST::ObjectBindingFieldIdentifier>(Item);
 
                 std::print("ObjectBindingItemIdentifier<\"{}\">\n",
-                           ObjectBindingIdentifier->Name);
+                           ObjectBindingIdentifier->getName());
 
                 continue;
             }
@@ -170,9 +172,9 @@ PrintObjectBindingFieldList(
                     llvm::cast<AST::ObjectBindingFieldArray>(Item);
 
                 std::print("ObjectBindingItemArray<\"{}\">\n",
-                           ObjectBindingArray->Key);
+                           ObjectBindingArray->getKey());
 
-                PrintArrayBindingItemList(ObjectBindingArray->ItemList,
+                PrintArrayBindingItemList(ObjectBindingArray->getItemList(),
                                           Depth + 1);
 
                 continue;
@@ -182,9 +184,9 @@ PrintObjectBindingFieldList(
                     llvm::cast<AST::ObjectBindingFieldObject>(Item);
 
                 std::print("ObjectBindingItemObject<\"{}\">\n",
-                           ObjectBindingObject->Key);
+                           ObjectBindingObject->getKey());
 
-                PrintObjectBindingFieldList(ObjectBindingObject->FieldList,
+                PrintObjectBindingFieldList(ObjectBindingObject->getFieldList(),
                                             Depth + 1);
 
                 continue;
@@ -194,7 +196,7 @@ PrintObjectBindingFieldList(
                     llvm::cast<AST::ObjectBindingFieldSpread>(Item);
 
                 std::print("ObjectBindingItemSpread<\"{}\">\n",
-                           ObjectBindingSpread->Key);
+                           ObjectBindingSpread->getKey());
 
                 continue;
             }
@@ -643,9 +645,9 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
 
             return;
         }
-        case AST::NodeKind::InlineArrayParamVarDecl: {
+        case AST::NodeKind::InlineTupleParamVarDecl: {
             const auto InlineArrayParamVarDecl =
-                llvm::cast<AST::InlineArrayParamVarDecl>(Stmt);
+                llvm::cast<AST::InlineTupleParamVarDecl>(Stmt);
 
             std::print("InlineArrayParamVarDecl\n");
             PrintDepth(Depth + 1);
@@ -657,6 +659,19 @@ static void PrintAST(AST::Stmt *const Stmt, const uint8_t Depth) noexcept {
             std::print("DefaultExpr\n");
 
             PrintAST(InlineArrayParamVarDecl->getDefaultExpr(), Depth + 2);
+            return;
+        }
+        case AST::NodeKind::TupleDecl: {
+            const auto TupleDecl = llvm::cast<AST::TupleDecl>(Stmt);
+            std::print("TupleDecl\n");
+
+            PrintDepth(Depth + 1);
+            std::print("FieldList\n");
+
+            for (const auto Field : TupleDecl->getElementList()) {
+                PrintAST(Field, Depth + 2);
+            }
+
             return;
         }
         case AST::NodeKind::CastExpr: {

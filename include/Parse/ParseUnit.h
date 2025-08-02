@@ -41,7 +41,7 @@ namespace Parse {
                 std::string_view Name;
                 SourceLocation Loc;
 
-                constexpr explicit
+                constexpr
                 DeclName(const std::string_view Name,
                          const SourceLocation Loc) noexcept
                 : Name(Name), Loc(Loc) {}
@@ -55,7 +55,7 @@ namespace Parse {
             }
 
             [[nodiscard]] constexpr static auto
-            withNameList(const std::initializer_list<DeclName> &List) noexcept {
+            WithNameList(const std::initializer_list<DeclName> &List) noexcept {
                 return AddError{
                     .Code = Code::DeclNameReused,
                     .DeclNameList = List
@@ -63,7 +63,7 @@ namespace Parse {
             }
 
             [[nodiscard]] constexpr
-            static auto withNameList(std::vector<DeclName> &&List) noexcept {
+            static auto WithNameList(std::vector<DeclName> &&List) noexcept {
                 return AddError{
                     .Code = Code::DeclNameReused,
                     .DeclNameList = std::move(List)

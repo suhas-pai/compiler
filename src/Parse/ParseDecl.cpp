@@ -19,8 +19,8 @@
 #include "AST/CaptureAllByValueExpr.h"
 
 #include "Parse/ParseDecl.h"
+#include "Lex/Token.h"
 #include "Parse/ParseExpr.h"
-#include "Parse/ParseIfExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseStmt.h"
 
@@ -198,136 +198,38 @@ namespace Parse {
 
     [[nodiscard]] static auto
     ParseFieldList(ParseContext &Context,
-                   const SourceLocation DeclLoc,
                    const bool AllowOptionalFields,
                    std::vector<AST::Stmt *> &FieldList) noexcept -> ParseError
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
-
-        if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
-            return ParseError::None;
-        }
-
-        while (true) {
-            auto WasControlFlowExpr = false;
-
-            auto Stmt = static_cast<AST::Stmt *>(nullptr);
-            auto CommaLocOpt = std::optional<SourceLocation>(std::nullopt);
-
-            if (const auto IfTokenOpt =
-                    TokenStream.consumeIfIsKeyword(Lex::Keyword::If))
-            {
-                const auto IfExprOpt =
-                    ParseIfExpr(Context, IfTokenOpt.value(),
-                                [=](ParseContext &Context) noexcept {
-                                    return ParseFieldDecl(Context,
-                                                          AllowOptionalFields);
-                                },
-                                /*SeparatorOpt=*/Lex::TokenKind::Comma);
-
-                if (!IfExprOpt.has_value()) {
-                    return IfExprOpt.error();
-                }
-
-                Stmt = IfExprOpt.value();
-                WasControlFlowExpr = true;
-
-                if (const auto CommaTokenOpt =
-                        TokenStream.consumeIfIs(Lex::TokenKind::Comma))
+        auto Result =
+            ParseMultiExprListWithSeparator(
+                Context, Lex::TokenKind::CloseCurlyBrace, Lex::TokenKind::Comma,
+                [=](ParseContext &Context) noexcept
+                    -> std::expected<AST::Stmt *, ParseError>
                 {
-                    CommaLocOpt = CommaTokenOpt->Loc;
-                }
+                    return ParseFieldDecl(Context, AllowOptionalFields);
+                },
+                {
+                    .Name = "field declaration",
+                    .WarnOnTrailingSeparator = false,
+                    .RequireSeparatorOnControlFlowExpr = false
+                });
 
-                FieldList.emplace_back(Stmt);
-            } else {
-                const auto DeclOpt =
-                    ParseFieldDecl(Context, AllowOptionalFields);
-
-                if (DeclOpt.has_value()) {
-                    FieldList.emplace_back(DeclOpt.value());
-                }
-            }
-
-            if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
-                if (CommaLocOpt.has_value()) {
-                    // Allow trailing comma before closing curly brace, but emit
-                    // a warning for it.
-
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Warning,
-                        .Location = CommaLocOpt.value(),
-                        .Message =
-                            "Trailing comma before closing '}' in field list"
-                    });
-                }
-
-                break;
-            }
-
-            // Allow missing commas for control-flow expressions, but not for
-            // other cases.
-
-            if (WasControlFlowExpr) {
-                continue;
-            }
-
-            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Warning,
-                        .Location = TokenStream.getCurrentOrPreviousLocation(),
-                        .Message = "Extra ',' after field declaration"
-                    });
-
-                    break;
-                }
-
-                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Warning,
-                        .Location = TokenStream.getCurrentOrPreviousLocation(),
-                        .Message = "Multiple ',' found after field declaration"
-                    });
-
-                    // Skip to the next field or closing curly brace.
-                    const auto ProceedResult =
-                        ProceedToAndConsumeCommaOrEnd(
-                            Context,
-                            Lex::TokenKind::CloseCurlyBrace);
-
-                    if (ProceedResult == ProceedResult::Failed) {
-                        return ParseError::FailedCouldNotProceed;
-                    }
-
-                    if (ProceedResult == ProceedResult::EndToken) {
-                        break;
-                    }
-
-                    continue;
-                }
-
-                continue;
-            }
-
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrentOrPreviousLocation(),
-                .Message = "Expected a ',' or '}' following field declaration"
-            });
-
-            return ParseError::FailedCouldNotProceed;
+        if (!Result.has_value()) {
+            return Result.error();
         }
 
+        FieldList = std::move(Result.value());
         return ParseError::None;
     }
 
     [[nodiscard]] static auto
-    ParseArrayBindingItemList(ParseContext &Context) noexcept
+    ParseArrayBindingItemList(ParseContext &Context,
+                              Lex::Token BracketToken) noexcept
         -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>;
 
-    [[nodiscard]] static auto
-    ParseObjectBindingFieldList(ParseContext &Context) noexcept
+    [[nodiscard]]
+    static auto ParseObjectBindingFieldList(ParseContext &Context) noexcept
         -> std::expected<std::vector<AST::ObjectBindingField *>, ParseError>;
 
     [[nodiscard]]
@@ -348,34 +250,38 @@ namespace Parse {
             return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        const auto ParamNameToken = ParamNameTokenOpt.value();
-        if (ParamNameToken.Kind == Lex::TokenKind::LeftSquareBracket) {
-            auto ItemListResult = ParseArrayBindingItemList(Context);
+        const auto ParamNameOrBracketToken = ParamNameTokenOpt.value();
+        if (ParamNameOrBracketToken.Kind == Lex::TokenKind::LeftSquareBracket) {
+            auto ItemListResult =
+                ParseArrayBindingItemList(Context, ParamNameOrBracketToken);
+
             if (!ItemListResult.has_value()) {
                 return std::unexpected(ItemListResult.error());
             }
 
             auto &ItemList = ItemListResult.value();
-            return new AST::ArrayBindingParamVarDecl(ParamNameToken.Loc,
-                                                     AST::Qualifiers(),
-                                                     std::move(ItemList),
-                                                     /*InitExpr=*/nullptr);
+            return new AST::ArrayBindingParamVarDecl(
+                ParamNameOrBracketToken.Loc,
+                AST::Qualifiers(),
+                std::move(ItemList),
+                /*InitExpr=*/nullptr);
         }
 
-        if (ParamNameToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
+        if (ParamNameOrBracketToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
             auto FieldListResult = ParseObjectBindingFieldList(Context);
             if (!FieldListResult.has_value()) {
                 return std::unexpected(FieldListResult.error());
             }
 
             auto &FieldList = FieldListResult.value();
-            return new AST::ObjectBindingParamVarDecl(ParamNameToken.Loc,
-                                                      AST::Qualifiers(),
-                                                      std::move(FieldList),
-                                                      /*InitExpr=*/nullptr);
+            return new AST::ObjectBindingParamVarDecl(
+                ParamNameOrBracketToken.Loc,
+                AST::Qualifiers(),
+                std::move(FieldList),
+                /*InitExpr=*/nullptr);
         }
 
-        if (!VerifyDeclName(Context, ParamNameToken, "parameter")) {
+        if (!VerifyDeclName(Context, ParamNameOrBracketToken, "parameter")) {
             return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
@@ -395,76 +301,37 @@ namespace Parse {
 
         const auto TypeExpr = TypeExprOpt.value();
         const auto InitExpr = InitExprOpt.value();
-        const auto ParamName = TokenStream.tokenContent(ParamNameToken);
+        const auto ParamName =
+            TokenStream.tokenContent(ParamNameOrBracketToken);
 
         if (IsInlineArray) {
-            return new AST::InlineArrayParamVarDecl(
-                ParamName, ParamNameToken.Loc, TypeExpr, InitExpr);
+            return new AST::InlineTupleParamVarDecl(
+                ParamName, ParamNameOrBracketToken.Loc, TypeExpr, InitExpr);
         }
 
-        return new AST::ParamVarDecl(ParamName, ParamNameToken.Loc, TypeExpr,
-                                     InitExpr);
+        return new AST::ParamVarDecl(ParamName, ParamNameOrBracketToken.Loc,
+                                     TypeExpr, InitExpr);
     }
 
-    [[nodiscard]] static auto
-    ParseFunctionParamList(ParseContext &Context,
-                           const Lex::Token ParenToken) noexcept
+    [[nodiscard]]
+    static auto ParseFunctionParamList(ParseContext &Context) noexcept
         -> std::expected<std::vector<AST::Stmt *>, ParseError>
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
-
-        const auto ProceedToNextParam = [&]() noexcept {
-            return
-                ProceedToAndConsumeCommaOrEnd(Context,
-                                              Lex::TokenKind::CloseParen);
-        };
-
-        auto List = std::vector<AST::Stmt *>();
-        if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
-            return List;
-        }
-
-        do {
-            const auto ParamOpt = ParseSingleFunctionParam(Context);
-            if (!ParamOpt.has_value()) {
-                switch (ProceedToNextParam()) {
-                    case ProceedResult::Failed:
-                        return std::unexpected(
-                            ParseError::FailedCouldNotProceed);
-                    case ProceedResult::Comma:
-                        continue;
-                    case ProceedResult::EndToken:
-                        goto done;
-                }
-            }
-
-            List.emplace_back(ParamOpt.value());
-            if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
-                break;
-            }
-
-            if (!TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = TokenStream.getCurrentOrPreviousLocation(),
-                    .Message = "Expected ',' or ')' after function parameter"
+        const auto Result =
+            ParseMultiExprListWithSeparator(
+                Context, Lex::TokenKind::CloseParen, Lex::TokenKind::Comma,
+                ParseSingleFunctionParam,
+                {
+                    .Name = "function parameter",
+                    .WarnOnTrailingSeparator = false,
+                    .RequireSeparatorOnControlFlowExpr = false,
                 });
 
-                switch (ProceedToNextParam()) {
-                    case ProceedResult::Failed:
-                        return std::unexpected(
-                            ParseError::FailedCouldNotProceed);
-                    case ProceedResult::Comma:
-                        continue;
-                    case ProceedResult::EndToken:
-                        goto done;
-                }
-            }
-        } while (true);
+        if (!Result.has_value()) {
+            return std::unexpected(Result.error());
+        }
 
-    done:
-        return List;
+        return std::move(Result.value());
     }
 
     [[nodiscard]] static
@@ -522,8 +389,6 @@ namespace Parse {
         // (expressions) names are just ignored.
 
         const auto NameOrParenToken = NameOrParenTokenOpt.value();
-        auto ParenToken = NameOrParenToken;
-
         if (NameOrParenToken.Kind != Lex::TokenKind::OpenParen) {
             if (!VerifyDeclName(Context, NameOrParenToken, "function")) {
                 return std::unexpected(ParseError::FailedCouldNotProceed);
@@ -533,37 +398,41 @@ namespace Parse {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
                     .Location = TokenStream.getCurrentOrPreviousLocation(),
-                    .Message = "Expected '{' after function declaration"
+                    .Message = "Expected '(' after function declaration for "
+                               "parameters list, or '()' for an empty list"
                 });
             }
 
             NameTokOut = NameOrParenToken;
-            ParenToken = TokenStream.consume().value();
         }
 
-        auto ParamListOpt = ParseFunctionParamList(Context, ParenToken);
+        auto ParamListOpt = ParseFunctionParamList(Context);
         if (!ParamListOpt.has_value()) {
             return std::unexpected(ParamListOpt.error());
         }
 
-        auto CurlyTokenOpt = std::optional<Lex::Token>(std::nullopt);
+        auto NextTokenOpt = std::optional<Lex::Token>(std::nullopt);
         const auto ReturnTypeOpt = ParseFunctionTypeReturnTypeIfFound(Context);
 
         if (!ReturnTypeOpt.has_value()) {
-            if (!TokenStream.proceedToAndConsume(
-                    Lex::TokenKind::OpenCurlyBrace))
-            {
+            const auto TokenList = {
+                Lex::TokenKind::OpenCurlyBrace,
+                Lex::TokenKind::FatArrow,
+            };
+
+            if (!TokenStream.proceedToAndConsumeOneOf(TokenList)) {
                 return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 
-            CurlyTokenOpt = TokenStream.current();
+            NextTokenOpt = TokenStream.current();
         } else {
-            CurlyTokenOpt = TokenStream.consume();
-            if (!CurlyTokenOpt.has_value()) {
+            NextTokenOpt = TokenStream.consume();
+            if (!NextTokenOpt.has_value()) {
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
                     .Location = TokenStream.getCurrentOrPreviousLocation(),
-                    .Message = "Expected '{' after function declaration"
+                    .Message = "Expected '=>' or '{' after function parameter "
+                               "list"
                 });
 
                 if (!TokenStream.proceedToAndConsume(
@@ -572,18 +441,34 @@ namespace Parse {
                     return std::unexpected(ParseError::FailedCouldNotProceed);
                 }
 
-                CurlyTokenOpt = TokenStream.current();
+                NextTokenOpt = TokenStream.current();
             }
         }
 
-        const auto CurlyToken = CurlyTokenOpt.value();
-        if (CurlyToken.Kind != Lex::TokenKind::OpenCurlyBrace) {
-            const auto CurlyTokenContent =
-                TokenStream.tokenContent(CurlyToken);
+        const auto NextToken = NextTokenOpt.value();
+        auto Body = static_cast<AST::Stmt *>(nullptr);
 
+        if (NextToken.Kind == Lex::TokenKind::FatArrow) {
+            const auto ReturnValueOpt = ParseExpression(Context);
+            if (!ReturnTypeOpt.has_value()) {
+                return std::unexpected(ReturnValueOpt.error());
+            }
+
+            Body =
+                new AST::ReturnStmt(SourceLocation::invalid(),
+                                    ReturnValueOpt.value());
+        } else if (NextToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
+            const auto BodyOpt = ParseCompoundStmt(Context, NextToken);
+            if (!BodyOpt.has_value()) {
+                return std::unexpected(BodyOpt.error());;
+            }
+
+            Body = BodyOpt.value();
+        } else {
+            const auto CurlyTokenContent = TokenStream.tokenContent(NextToken);
             Diag.consume({
                 .Level = DiagnosticLevel::Error,
-                .Location = CurlyToken.Loc,
+                .Location = NextToken.Loc,
                 .Message =
                     std::format("Expected {} after function declaration, found "
                                 "'{}' instead",
@@ -594,15 +479,10 @@ namespace Parse {
             return std::unexpected(ParseError::FailedCouldNotProceed);
         }
 
-        const auto BodyOpt = ParseCompoundStmt(Context, CurlyToken);
-        if (!BodyOpt.has_value()) {
-            return std::unexpected(BodyOpt.error());;
-        }
-
         auto &ParamList = ParamListOpt.value();
         return new AST::FunctionDecl(KeywordToken.Loc, AST::Qualifiers(),
                                      std::move(ParamList),
-                                     ReturnTypeOpt.value(), BodyOpt.value());
+                                     ReturnTypeOpt.value(), Body);
     }
 
     [[nodiscard]] static auto
@@ -672,103 +552,73 @@ namespace Parse {
                             const Lex::Token BracketToken) noexcept
         -> std::expected<std::vector<AST::Stmt *>, ParseError>
     {
-        auto &TokenStream = Context.TokenStream;
-        auto CaptureList = std::vector<AST::Stmt *>();
+        const auto Parser =
+            [=](ParseContext &Context) noexcept
+                -> std::expected<AST::Stmt *, ParseError>
+            {
+                auto &TokenStream = Context.TokenStream;
+                if (TokenStream.consumeIfIs(Lex::TokenKind::Ampersand)) {
+                    auto Pos = TokenStream.position() - 1;
+                    auto Qualifiers = AST::Qualifiers();
 
-        if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
-            return CaptureList;
+                    ParseQualifiers(Context, Qualifiers);
+                    if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                        return
+                            new AST::CaptureAllByRefExpr(BracketToken.Loc,
+                                                         std::move(Qualifiers));
+                    }
+
+                    if (TokenStream.consumeIfIs(
+                            Lex::TokenKind::RightSquareBracket))
+                    {
+                        return
+                            new AST::CaptureAllByRefExpr(BracketToken.Loc,
+                                                         std::move(Qualifiers));
+                    }
+
+                    TokenStream.goToPosition(Pos);
+                }
+
+                if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
+                    auto Pos = TokenStream.position() - 1;
+                    auto Quals = AST::Qualifiers();
+
+                    ParseQualifiers(Context, Quals);
+                    if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+                        return
+                            new AST::CaptureAllByValueExpr(BracketToken.Loc,
+                                                           std::move(Quals));
+                    }
+
+                    if (TokenStream.consumeIfIs(
+                            Lex::TokenKind::RightSquareBracket))
+                    {
+                        return
+                            new AST::CaptureAllByValueExpr(BracketToken.Loc,
+                                                           std::move(Quals));
+                    }
+
+                    TokenStream.goToPosition(Pos);
+                }
+
+                return ParseExpression(Context);
+            };
+
+        const auto Result =
+            ParseMultiExprListWithSeparator(
+                Context, Lex::TokenKind::RightSquareBracket,
+                Lex::TokenKind::Comma, Parser,
+                {
+                    .Name = "closure-capture element",
+                    .WarnOnTrailingSeparator = false,
+                    .RequireSeparatorOnControlFlowExpr = false
+                });
+
+        if (!Result.has_value()) {
+            return std::unexpected(Result.error());
         }
 
-        auto &Diag = Context.Diag;
-        do {
-            if (TokenStream.consumeIfIs(Lex::TokenKind::Ampersand)) {
-                auto Pos = TokenStream.position() - 1;
-                auto Qualifiers = AST::Qualifiers();
-
-                ParseQualifiers(Context, Qualifiers);
-                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                    CaptureList.emplace_back(
-                        new AST::CaptureAllByRefExpr(BracketToken.Loc,
-                                                     std::move(Qualifiers)));
-                    continue;
-                }
-
-                if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket))
-                {
-                    CaptureList.emplace_back(
-                        new AST::CaptureAllByRefExpr(BracketToken.Loc,
-                                                     std::move(Qualifiers)));
-                    break;
-                }
-
-                TokenStream.goToPosition(Pos);
-            }
-
-            if (TokenStream.consumeIfIs(Lex::TokenKind::Equal)) {
-                auto Pos = TokenStream.position() - 1;
-                auto Qualifiers = AST::Qualifiers();
-
-                ParseQualifiers(Context, Qualifiers);
-                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                    CaptureList.emplace_back(
-                        new AST::CaptureAllByValueExpr(BracketToken.Loc,
-                                                       std::move(Qualifiers)));
-                    continue;
-                }
-
-                if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket))
-                {
-                    CaptureList.emplace_back(
-                        new AST::CaptureAllByValueExpr(BracketToken.Loc,
-                                                       std::move(Qualifiers)));
-                    break;
-                }
-
-                TokenStream.goToPosition(Pos);
-            }
-
-            const auto ExprOpt = ParseExpression(Context);
-            if (!ExprOpt.has_value()) {
-                return std::unexpected(ExprOpt.error());
-            }
-
-            CaptureList.emplace_back(ExprOpt.value());
-            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                continue;
-            }
-
-            if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
-                break;
-            }
-
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrentOrPreviousLocation(),
-                .Message = "Expected ']'",
-            });
-
-            const auto ProceedResult =
-                ProceedToAndConsumeCommaOrEnd(
-                    Context, Lex::TokenKind::RightSquareBracket);
-
-            switch (ProceedResult) {
-                case ProceedResult::Failed:
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = BracketToken.Loc,
-                        .Message = "Expected ']'",
-                    });
-
-                    return std::unexpected(ParseError::FailedCouldNotProceed);
-                case ProceedResult::Comma:
-                    continue;
-                case ProceedResult::EndToken:
-                    goto done;
-            }
-        } while (true);
-
-    done:
-        return CaptureList;
+        return std::move(Result.value());
     }
 
     auto
@@ -787,7 +637,7 @@ namespace Parse {
         assert(ParenToken.Kind == Lex::TokenKind::OpenParen &&
                "Token should be '(' after closure capture-list");
 
-        auto ParamListOpt = ParseFunctionParamList(Context, ParenToken);
+        auto ParamListOpt = ParseFunctionParamList(Context);
         if (!ParamListOpt.has_value()) {
             return std::unexpected(ParamListOpt.error());
         }
@@ -814,7 +664,7 @@ namespace Parse {
                                          const Lex::Token ParenToken) noexcept
         -> std::expected<AST::Expr *, ParseError>
     {
-        auto ParamListOpt = ParseFunctionParamList(Context, ParenToken);
+        auto ParamListOpt = ParseFunctionParamList(Context);
         if (!ParamListOpt.has_value()) {
             return std::unexpected(ParamListOpt.error());
         }
@@ -862,8 +712,8 @@ namespace Parse {
         auto FieldList = std::vector<AST::Stmt *>();
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             if (const auto Error =
-                    ParseFieldList(Context, InterfaceKeywordToken.Loc,
-                                   /*AllowOptionalFields=*/true, FieldList);
+                    ParseFieldList(Context, /*AllowOptionalFields=*/true,
+                                   FieldList);
                 Error != ParseError::None)
             {
                 return std::unexpected(Error);
@@ -904,8 +754,8 @@ namespace Parse {
         TokenStream.consume();
 
         if (const auto Error =
-                ParseFieldList(Context, NameToken.Loc,
-                               /*AllowOptionalFields=*/true, FieldList);
+                ParseFieldList(Context, /*AllowOptionalFields=*/true,
+                               FieldList);
             Error != ParseError::None)
         {
             return std::unexpected(Error);
@@ -927,8 +777,8 @@ namespace Parse {
         auto FieldList = std::vector<AST::Stmt *>();
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
             if (const auto Error =
-                    ParseFieldList(Context, ShapeKeywordToken.Loc,
-                                   /*AllowOptionalFields=*/true, FieldList);
+                    ParseFieldList(Context, /*AllowOptionalFields=*/true,
+                                   FieldList);
                 Error != ParseError::None)
             {
                 return std::unexpected(Error);
@@ -969,8 +819,8 @@ namespace Parse {
         TokenStream.consume();
 
         if (const auto Error =
-                ParseFieldList(Context, NameToken.Loc,
-                               /*AllowOptionalFields=*/true, FieldList);
+                ParseFieldList(Context, /*AllowOptionalFields=*/true,
+                               FieldList);
             Error != ParseError::None)
         {
             return std::unexpected(Error);
@@ -989,13 +839,12 @@ namespace Parse {
         auto &TokenStream = Context.TokenStream;
 
         auto FieldList = std::vector<AST::Stmt *>();
-        const auto StructKeywordTokenOpt = TokenStream.current();
-
-        if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
-            const auto StructKeywordToken = StructKeywordTokenOpt.value();
+        if (const auto CurlyTokenOpt =
+                TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace))
+        {
             if (const auto Error =
-                    ParseFieldList(Context, StructKeywordToken.Loc,
-                                   /*AllowOptionalFields=*/false, FieldList);
+                    ParseFieldList(Context, /*AllowOptionalFields=*/false,
+                                   FieldList);
                 Error != ParseError::None)
             {
                 return std::unexpected(Error);
@@ -1036,8 +885,8 @@ namespace Parse {
         TokenStream.consume();
 
         if (const auto Error =
-                ParseFieldList(Context, NameToken.Loc,
-                               /*AllowOptionalFields=*/false, FieldList);
+                ParseFieldList(Context, /*AllowOptionalFields=*/false,
+                               FieldList);
             Error != ParseError::None)
         {
             return std::unexpected(Error);
@@ -1057,13 +906,10 @@ namespace Parse {
         auto &TokenStream = Context.TokenStream;
 
         auto FieldList = std::vector<AST::Stmt *>();
-        const auto UnionKeywordTokenOpt = TokenStream.current();
-
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
-            const auto UnionKeywordToken = UnionKeywordTokenOpt.value();
             if (const auto Error =
-                    ParseFieldList(Context, UnionKeywordToken.Loc,
-                                   /*AllowOptionalFields=*/false, FieldList);
+                    ParseFieldList(Context, /*AllowOptionalFields=*/false,
+                                   FieldList);
                 Error != ParseError::None)
             {
                 return std::unexpected(Error);
@@ -1104,8 +950,8 @@ namespace Parse {
         TokenStream.consume();
 
         if (const auto Error =
-                ParseFieldList(Context, NameToken.Loc,
-                               /*AllowOptionalFields=*/false, FieldList);
+                ParseFieldList(Context, /*AllowOptionalFields=*/false,
+                               FieldList);
             Error != ParseError::None)
         {
             return std::unexpected(Error);
@@ -1127,9 +973,11 @@ namespace Parse {
         auto Qualifiers = AST::Qualifiers();
         ParseQualifiers(Context, Qualifiers);
 
-        if (TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket)) {
-            auto ItemLoc = TokenStream.getCurrentOrPreviousLocation();
-            auto ArrayBindingItemListOpt = ParseArrayBindingItemList(Context);
+        if (const auto BracketTokenOpt =
+                TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket))
+        {
+            auto ArrayBindingItemListOpt =
+                ParseArrayBindingItemList(Context, BracketTokenOpt.value());
 
             if (!ArrayBindingItemListOpt.has_value()) {
                 return std::unexpected(ArrayBindingItemListOpt.error());
@@ -1146,7 +994,7 @@ namespace Parse {
             const auto Result =
                 new AST::ArrayBindingItemArray(Qualifiers, IndexItem,
                                                std::move(ArrayBindingItemList),
-                                               ItemLoc);
+                                               BracketTokenOpt.value().Loc);
 
             return Result;
         }
@@ -1208,8 +1056,9 @@ namespace Parse {
         return Result;
     }
 
-    [[nodiscard]]
-    static auto ParseArrayBindingItemList(ParseContext &Context) noexcept
+    [[nodiscard]] static auto
+    ParseArrayBindingItemList(ParseContext &Context,
+                              const Lex::Token BracketToken) noexcept
         -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>;
 
     [[nodiscard]] static auto
@@ -1248,9 +1097,11 @@ namespace Parse {
             TokenStream.goBack();
         }
 
-        if (TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket)) {
-            auto ItemLoc = TokenStream.getCurrentOrPreviousLocation();
-            auto ItemListOpt = ParseArrayBindingItemList(Context);
+        if (const auto BracketTokenOpt =
+                TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket))
+        {
+            auto ItemListOpt =
+                ParseArrayBindingItemList(Context, BracketTokenOpt.value());
 
             if (!ItemListOpt.has_value()) {
                 return std::unexpected(ItemListOpt.error());
@@ -1259,7 +1110,8 @@ namespace Parse {
             auto &ItemList = ItemListOpt.value();
             return new AST::ArrayBindingItemArray(Qualifiers,
                                                   /*Index=*/std::nullopt,
-                                                  std::move(ItemList), ItemLoc);
+                                                  std::move(ItemList),
+                                                  BracketTokenOpt.value().Loc);
         }
 
         if (TokenStream.consumeIfIs(Lex::TokenKind::OpenCurlyBrace)) {
@@ -1341,69 +1193,34 @@ namespace Parse {
         return std::unexpected(ParseError::FailedCouldNotProceed);
     }
 
-    static auto ParseArrayBindingItemList(ParseContext &Context) noexcept
+    static auto
+    ParseArrayBindingItemList(ParseContext &Context,
+                              const Lex::Token BracketToken) noexcept
         -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
-
-        auto BindingItemList = std::vector<AST::ArrayBindingItem *>();
-        do {
-            const auto BindingItemOpt = ParseSingleArrayBindingItem(Context);
-            if (!BindingItemOpt.has_value()) {
-                return std::unexpected(BindingItemOpt.error());
-            }
-
-            BindingItemList.emplace_back(BindingItemOpt.value());
-            if (TokenStream.consumeIfIs(Lex::TokenKind::RightSquareBracket)) {
-                break;
-            }
-
-            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                continue;
-            }
-
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrentOrPreviousLocation(),
-                .Message = "Expected ',' or ']' after array binding item"
-            });
-
-            const auto ProceedResult =
-                ProceedToAndConsumeCommaOrEnd(
-                    Context, Lex::TokenKind::RightSquareBracket);
-
-            switch (ProceedResult) {
-                case ProceedResult::Failed:
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = TokenStream.getCurrentOrPreviousLocation(),
-                        .Message = "Reached end of file while parsing array "
-                                   "binding item, expected ']'"
-                    });
-
-                    return std::unexpected(ParseError::FailedCouldNotProceed);
-                case ProceedResult::Comma:
-                    continue;
-                case ProceedResult::EndToken:
-                    goto done;
-            }
-        } while (true);
-
-    done:
-        return BindingItemList;
+        return
+            ParseListWithSeparator<AST::ArrayBindingItem *>(
+                Context, Lex::TokenKind::RightSquareBracket,
+                Lex::TokenKind::Comma, ParseSingleArrayBindingItem,
+                {
+                    .Name = "array-binding item",
+                    .WarnOnTrailingSeparator = false,
+                    .RequireSeparatorOnControlFlowExpr = false
+                });
     }
 
     [[nodiscard]] static auto
     ParseArrayBindingVarDecl(ParseContext &Context,
                              const AST::Qualifiers &PreIntroducerQualifiers,
-                             const SourceLocation SquareBracketLoc) noexcept
+                             const Lex::Token SquareBracketToken) noexcept
         -> std::expected<AST::Stmt *, ParseError>
     {
         auto Qualifiers = AST::Qualifiers();
         ParseQualifiers(Context, Qualifiers);
 
-        auto BindingItemListOpt = ParseArrayBindingItemList(Context);
+        auto BindingItemListOpt =
+            ParseArrayBindingItemList(Context, SquareBracketToken);
+
         if (!BindingItemListOpt.has_value()) {
             return std::unexpected(BindingItemListOpt.error());
         }
@@ -1414,7 +1231,7 @@ namespace Parse {
         }
 
         auto &BindingItemList = BindingItemListOpt.value();
-        return new AST::ArrayBindingVarDecl(SquareBracketLoc, Qualifiers,
+        return new AST::ArrayBindingVarDecl(SquareBracketToken.Loc, Qualifiers,
                                             std::move(BindingItemList),
                                             InitExprOpt.value());
     }
@@ -1506,8 +1323,12 @@ namespace Parse {
         ParseQualifiers(Context, AtKeyLocQualifiers);
 
         const auto Key = TokenStream.tokenContent(KeyToken);
-        if (TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket)) {
-            auto ArrayBindingItemListOpt = ParseArrayBindingItemList(Context);
+        if (const auto BracketTokenOpt =
+                TokenStream.consumeIfIs(Lex::TokenKind::LeftSquareBracket))
+        {
+            auto ArrayBindingItemListOpt =
+                ParseArrayBindingItemList(Context, BracketTokenOpt.value());
+
             if (!ArrayBindingItemListOpt.has_value()) {
                 // FIXME: Properly recover here.
                 return std::unexpected(ArrayBindingItemListOpt.error());
@@ -1565,62 +1386,19 @@ namespace Parse {
                                                      AtKeyLocQualifiers);
     }
 
-    static auto ParseObjectBindingFieldList(ParseContext &Context) noexcept
+    static auto
+    ParseObjectBindingFieldList(ParseContext &Context) noexcept
         -> std::expected<std::vector<AST::ObjectBindingField *>, ParseError>
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
-
-        auto BindingItemList = std::vector<AST::ObjectBindingField *>();
-        if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
-            Diag.consume({
-                .Level = DiagnosticLevel::Error,
-                .Location = TokenStream.getCurrentOrPreviousLocation(),
-                .Message = "Can't have an empty object-like destructure-list "
-                           "after '{'"
-            });
-
-            return std::unexpected(ParseError::FailedAndProceeded);
-        }
-
-        do {
-            const auto BindingItemOpt = ParseSingleObjectBindingField(Context);
-            if (!BindingItemOpt.has_value()) {
-                return std::unexpected(BindingItemOpt.error());
-            }
-
-            BindingItemList.emplace_back(BindingItemOpt.value());
-            if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
-                break;
-            }
-
-            if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                continue;
-            }
-
-            const auto ProceedResult =
-                ProceedToAndConsumeCommaOrEnd(Context,
-                                              Lex::TokenKind::CloseCurlyBrace);
-
-            switch (ProceedResult) {
-                case ProceedResult::Failed:
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = TokenStream.getCurrentOrPreviousLocation(),
-                        .Message = "Expected ',' or '}' after object-like "
-                                   "destructuring item"
-                    });
-
-                    return std::unexpected(ParseError::FailedCouldNotProceed);
-                case ProceedResult::Comma:
-                    continue;
-                case ProceedResult::EndToken:
-                    goto done;
-            }
-        } while (true);
-
-    done:
-        return BindingItemList;
+        return
+            ParseListWithSeparator<AST::ObjectBindingField *>(
+                Context, Lex::TokenKind::CloseCurlyBrace,
+                Lex::TokenKind::Comma, ParseSingleObjectBindingField,
+                {
+                    .Name = "object-binding field",
+                    .WarnOnTrailingSeparator = false,
+                    .RequireSeparatorOnControlFlowExpr = false
+                });
     }
 
     [[nodiscard]] static auto
@@ -1665,18 +1443,18 @@ namespace Parse {
 
         const auto NameTokenOpt = TokenStream.consume();
         if (NameTokenOpt.has_value()) {
-            const auto NameToken = NameTokenOpt.value();
-            if (NameToken.Kind == Lex::TokenKind::LeftSquareBracket) {
+            const auto NameOrBracketToken = NameTokenOpt.value();
+            if (NameOrBracketToken.Kind == Lex::TokenKind::LeftSquareBracket) {
                 return ParseArrayBindingVarDecl(Context, PreQualifiers,
-                                                NameToken.Loc);
+                                                NameOrBracketToken);
             }
 
-            if (NameToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
+            if (NameOrBracketToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
                 return ParseObjectBindingVarDecl(Context, PreQualifiers,
-                                                 NameToken.Loc);
+                                                 NameOrBracketToken.Loc);
             }
 
-            if (!VerifyDeclName(Context, NameToken, "variable")) {
+            if (!VerifyDeclName(Context, NameOrBracketToken, "variable")) {
                 return std::unexpected(ParseError::FailedCouldNotProceed);
             }
 

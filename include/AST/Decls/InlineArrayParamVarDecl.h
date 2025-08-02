@@ -7,12 +7,12 @@
 #include "AST/Decls/ParamVarDecl.h"
 
 namespace AST {
-    struct InlineArrayParamVarDecl : public ParamVarDecl {
+    struct InlineTupleParamVarDecl : public ParamVarDecl {
     public:
-        constexpr static auto ObjKind = NodeKind::InlineArrayParamVarDecl;
+        constexpr static auto ObjKind = NodeKind::InlineTupleParamVarDecl;
 
         constexpr explicit
-        InlineArrayParamVarDecl(const std::string_view Name,
+        InlineTupleParamVarDecl(const std::string_view Name,
                                 const SourceLocation NameLoc,
                                 Expr *const TypeExpr,
                                 Expr *const DefaultExpr) noexcept

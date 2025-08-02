@@ -7,7 +7,6 @@
 
 #include "Parse/ParseDecl.h"
 #include "Parse/ParseExpr.h"
-#include "Parse/ParseIfExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseStmt.h"
 
@@ -17,54 +16,29 @@ namespace Parse {
                       const Lex::Token CurlyToken) noexcept
         -> std::expected<AST::CompoundStmt *, ParseError>
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
-
-        auto StmtList = std::vector<AST::Stmt *>();
-        while (true) {
-            const auto TokenOpt = TokenStream.peek();
-            if (!TokenOpt.has_value()) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = CurlyToken.Loc,
-                    .Message = "Expected closing curly-bracket to end closing "
-                               "statement"
+        auto Result =
+            ParseMultiExprListWithSeparator(
+                Context, Lex::TokenKind::CloseCurlyBrace,
+                Lex::TokenKind::Semicolon, ParseStmt, ParseListOptions{
+                    .Name = "compound statement",
+                    .WarnOnTrailingSeparator = false,
+                    .RequireSeparatorOnControlFlowExpr = false,
+                    .RequireSeparatorInControlFlowExpr = true
                 });
 
-                return std::unexpected(ParseError::FailedCouldNotProceed);
-            }
-
-            if (TokenStream.consumeIfIs(Lex::TokenKind::CloseCurlyBrace)) {
-                break;
-            }
-
-            const auto StmtOpt = ParseStmt(Context);
-            if (!StmtOpt.has_value()) {
-                return std::unexpected(StmtOpt.error());
-            }
-
-            if (!ExpectSemicolon(Context)) {
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = CurlyToken.Loc,
-                    .Message = "Expected semicolon to end statement"
-                });
-
-                TokenStream.proceedToAndConsume(
-                    Lex::TokenKind::CloseCurlyBrace);
-            }
-
-            StmtList.emplace_back(StmtOpt.value());
+        if (!Result.has_value()) {
+            return std::unexpected(Result.error());
         }
 
-        return new AST::CompoundStmt(CurlyToken.Loc, std::move(StmtList));
+        return new AST::CompoundStmt(CurlyToken.Loc, std::move(Result.value()));
     }
 
     auto ParseIfStmt(ParseContext &Context, const Lex::Token IfToken) noexcept
         -> std::expected<AST::IfExpr *, ParseError>
     {
         return ParseIfExpr(Context, IfToken, ParseStmt,
-                           Lex::TokenKind::Semicolon);
+                           Lex::TokenKind::Semicolon,
+                           /*WarnOnTrailingSeparator=*/false);
     }
 
     auto

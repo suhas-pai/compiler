@@ -53,9 +53,11 @@ namespace Lex {
         AmpersandEqual,
         DoubleAmpersand,
 
-        Pipe,
-        PipeEqual,
-        DoublePipe,
+        VerticalLine,
+        VerticalLineEqual,
+        DoubleVerticalLine,
+
+        PipeOperator,
 
         Tilde,
         TildeEqual,
@@ -121,7 +123,7 @@ namespace Lex {
             case TokenKind::ShiftLeft:
             case TokenKind::ShiftRight:
             case TokenKind::Caret:
-            case TokenKind::Pipe:
+            case TokenKind::VerticalLine:
             case TokenKind::LessThan:
             case TokenKind::GreaterThan:
             case TokenKind::LessThanOrEqual:
@@ -146,8 +148,9 @@ namespace Lex {
             case TokenKind::CaretEqual:
             case TokenKind::AmpersandEqual:
             case TokenKind::DoubleAmpersand:
-            case TokenKind::PipeEqual:
-            case TokenKind::DoublePipe:
+            case TokenKind::VerticalLineEqual:
+            case TokenKind::DoubleVerticalLine:
+            case TokenKind::PipeOperator:
             case TokenKind::TildeEqual:
             case TokenKind::DoubleEqual:
             case TokenKind::OpenParen:
@@ -201,7 +204,8 @@ namespace Lex {
             case TokenKind::ShiftRight:
             case TokenKind::Caret:
             case TokenKind::Ampersand:
-            case TokenKind::Pipe:
+            case TokenKind::VerticalLine:
+            case TokenKind::PipeOperator:
             case TokenKind::LessThan:
             case TokenKind::GreaterThan:
             case TokenKind::LessThanOrEqual:
@@ -233,8 +237,8 @@ namespace Lex {
                 }
 
                 [[fallthrough]];
-            case TokenKind::PipeEqual:
-            case TokenKind::DoublePipe:
+            case TokenKind::VerticalLineEqual:
+            case TokenKind::DoubleVerticalLine:
             case TokenKind::Tilde:
             case TokenKind::TildeEqual:
             case TokenKind::Exclamation:
@@ -326,12 +330,14 @@ namespace Lex {
                 return "ampersand-equal";
             case TokenKind::DoubleAmpersand:
                 return "double-ampersand";
-            case TokenKind::Pipe:
-                return "pipe";
-            case TokenKind::PipeEqual:
-                return "pipe-equal";
-            case TokenKind::DoublePipe:
-                return "double-pipe";
+            case TokenKind::VerticalLine:
+                return "vertical-line";
+            case TokenKind::VerticalLineEqual:
+                return "vertical-line-equal";
+            case TokenKind::DoubleVerticalLine:
+                return "double-vertical-line";
+            case TokenKind::PipeOperator:
+                return "pipe-operator";
             case TokenKind::Tilde:
                 return "tilde";
             case TokenKind::TildeEqual:
@@ -455,12 +461,14 @@ namespace Lex {
                 return "&=";
             case TokenKind::DoubleAmpersand:
                 return "&&";
-            case TokenKind::Pipe:
+            case TokenKind::VerticalLine:
                 return "|";
-            case TokenKind::PipeEqual:
+            case TokenKind::VerticalLineEqual:
                 return "|=";
-            case TokenKind::DoublePipe:
+            case TokenKind::DoubleVerticalLine:
                 return "||";
+            case TokenKind::PipeOperator:
+                return "|>";
             case TokenKind::Tilde:
                 return "~";
             case TokenKind::TildeEqual:

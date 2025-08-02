@@ -7,13 +7,14 @@
 
 namespace Parse {
     auto
-    ProceedToAndConsumeCommaOrEnd(ParseContext &Context,
-                                  const Lex::TokenKind EndKind) noexcept
+    ProceedToAndConsumeSeparatorOrEnd(ParseContext &Context,
+                                      const Lex::TokenKind SeparatorKind,
+                                      const Lex::TokenKind EndKind) noexcept
         -> ProceedResult
     {
         auto &TokenStream = Context.TokenStream;
 
-        const auto SkipToList = { Lex::TokenKind::Comma, EndKind };
+        const auto SkipToList = { SeparatorKind, EndKind };
         const auto TokenOpt = TokenStream.findNextAndConsumeOneOf(SkipToList);
 
         if (!TokenOpt.has_value()) {
@@ -25,7 +26,7 @@ namespace Parse {
             return ProceedResult::EndToken;
         }
 
-        return ProceedResult::Comma;
+        return ProceedResult::Separator;
     }
 
     void

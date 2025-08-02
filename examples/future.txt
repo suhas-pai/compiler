@@ -1,57 +1,52 @@
-@meta.deprecated({ message: "Unsafe function." })
 func b(c: *mut volatile u32) {
+    @apply @meta.deprecated({ message: "Unsafe function." });
+
     a.b = 0;
     return 0u32;
 }
 
-func ttest<let T: u32 or u64, let U>(a: std.vector<U>(T)): u32 {
+func ttest(a: cmatch std.vector(u32 or u64)): u32 {
     return 0u32;
 }
 
-func gttest<let T>(a: T, b: () -> T)
-func gttest2(a, b: () -> typeof(a))
-
 extern let ptr: pointer;
 func b_func(): type {
-    let arr: [2; (a) => a > 0]u32 = [0, ...1]
-    return <let T>(a: T): T => {
+    let arr: [2; func(a) => a > 0]u32 = [1, ...2]
+    let T = u32;
+
+    return func(a: T): T {
         return a;
     }
 }
 
-func btest(a: u64, <let T>(a: T): T) {
-    return a;
-}
-
 interface Allocator {
-    getHandleType: () -> type = func() {
+    getHandleType: func() -> type = func() {
         return ptr;
     },
 
-    alloc: () -> ?getHandleType() = () => {
-        return null;
-    },
+    alloc: func() -> ?getHandleType() = func() => null,
 
-    free: () -> void,
-    optFree?: () -> void
+    free: func() -> void,
+    optFree?: func() -> void
 }
 
 shape Sh {
     a: u32 or u64,
-    b: () -> void,
+    b: func() -> void,
     c?: s8 or s32
+    d: u8
 };
 
 func funcConstraint(a: Function): bit {
-    return a == () -> u32;
+    return a == func() -> u32;
 }
 
 interface I {
-    doThing: () -> void = () => {
+    doThing: func() -> void = func() {
         std.print(`Hi {"hi"}`);
     },
 
-    doThing2: (a: u32) -> void = (a) => {
+    doThing2: func(a: u32) -> void = func(a) {
         std.print(`Hi {a:x}`);
     },
 
@@ -60,7 +55,8 @@ interface I {
 
 func tupleExample(a: u32): tuple(uint32_t, meta.string) {
     // FIXME:
-    return @[a, b];
+    return (a,);
+    return (a, 1)
 }
 
 // In structs, fields are mutable by default
@@ -87,10 +83,6 @@ struct A {
     }
 };
 
-export impl I for A {
-
-}
-
 func SGen(T: Struct, a: u32) {
     return struct {
         a: *T,
@@ -98,22 +90,23 @@ func SGen(T: Struct, a: u32) {
     };
 }
 
-impl I for SGen(T: Struct, a: 2) = () => {
+// impl I for SGen(T: Struct, a: 2) = func() {}
+impl(I, match SGen(T: Struct, a: 2)) {
     if (T == A) {
         doThing: func() {
-            std::print("{}", T);
+            std.print("{}", T);
         },
 
-        doThing2() {
+        doThing2: func() {
             if (\Sh.?c) {
-                std::print("{}", T);
+                std.print("{}", T);
             }
         }
     }
 }
 
 func inf(a...: typeof(b), b: u16 or u32 or u64): typeof(a[0]) {
-    std::println("Got {} items", a.length);
+    std.println("Got {} items", a.length);
     return a[0];
 }
 
@@ -161,7 +154,7 @@ class C {
 
 func B(a: i32, b: u32): type {
     let bc = func() { return true; }
-    let bd: () -> bit = () => true;
+    let bd: func() -> bit = func() => true;
 
     for (let mut i = 0; i != 10; i++) {
 
@@ -197,7 +190,7 @@ enum E {
     }
 };
 
-// constraint = (T: any) -> bit or (T: any, index: u64) -> bit
+// constraint = func(T: any) -> bit or func(T: any, index: u64) -> bit
 
 let Ec: constraint = E as constraint;
 let strict_type: constraint = Struct or Enum or Union or Wrapper or Pointer;
@@ -246,7 +239,7 @@ func D() {
                     kind: .formal,
                     padding: .rem(4)
                     text: "Click here",
-                    onclick: <L>[]() => return print(`Hello, {variable}`),
+                    onclick: func<L>[]() => return print(`Hello, {variable}`),
                     ...default
                 }
             }
@@ -256,7 +249,7 @@ func D() {
                     kind: .formal,
                     padding: .rem(4)
                     text: "Click here",
-                    onclick: <L>[]() => print(`Hello, {variable}`) as void,
+                    onclick: func<L>[]() => print(`Hello, {variable}`) as void,
                     ...default
                 }
             }
@@ -312,15 +305,15 @@ wrapper(f64) {
     }
 }
 
-let listConstraint = (val, index) => val != 0 and index % 2 == 0;
+let listConstraint = func(val, index) => val != 0 and index % 2 == 0;
 func infiniteList(a...: listConstraint, b: typeof(a[0])) {
     return a[0] + b;
 }
 
 let closure: LambdaFn<(a: u64, b: bit) -> bit>(L) =
-    (a: int, b: bit) => return true
+    func(a: int, b: bit) => return true
 
-let D: constraint = (T: type): bit => return true
+let D: constraint = func(T: type): bit => return true
 let C: constraint = bit or u64;
 
 func cons_example(a: D) {
@@ -333,7 +326,7 @@ func main(argc: s32, argv: []*u8) -> int {
     let mut ea = [...e, 1];
     let mut eb: [10]int = [...ea, ...2];
 
-    let mut [2: state, [1, 2]] = useState("");
+    let mut [2: state, [a, b]] = useState("");
 
     eb[0..<5] = ...[...ea, ...eb];
     eb[5..=9] = 2;
@@ -342,7 +335,7 @@ func main(argc: s32, argv: []*u8) -> int {
     let volatile f = .c.d;
 
     let mut volatile g = f();
-    let callback: LambdaFn<L>(a: u64) = <L>[&](a: u64): bit => {
+    let callback: LambdaFn<L>(a: u64) = func<L>[&](a: u64): bit => {
         return true;
     }
 

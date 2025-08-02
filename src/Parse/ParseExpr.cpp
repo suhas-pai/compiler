@@ -4,6 +4,7 @@
  */
 
 #include "AST/Decls/ArrayDecl.h"
+#include "AST/Decls/TupleDecl.h"
 
 #include "AST/Types/ArrayPointerType.h"
 #include "AST/Types/ArrayType.h"
@@ -27,7 +28,6 @@
 
 #include "Parse/ParseDecl.h"
 #include "Parse/ParseExpr.h"
-#include "Parse/ParseIfExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseString.h"
 
@@ -67,8 +67,9 @@ namespace Parse {
             }
 
             const auto ProceedResult =
-                ProceedToAndConsumeCommaOrEnd(
-                    Context, Lex::TokenKind::RightSquareBracket);
+                ProceedToAndConsumeSeparatorOrEnd(
+                    Context, Lex::TokenKind::Comma,
+                    Lex::TokenKind::RightSquareBracket);
 
             switch (ProceedResult) {
                 case ProceedResult::Failed:
@@ -79,7 +80,7 @@ namespace Parse {
                     });
 
                     return std::unexpected(ParseError::FailedCouldNotProceed);
-                case ProceedResult::Comma:
+                case ProceedResult::Separator:
                     continue;
                 case ProceedResult::EndToken:
                     goto done;
@@ -710,67 +711,47 @@ namespace Parse {
                   const Lex::Token ParenToken) noexcept
         -> std::expected<AST::CallExpr *, ParseError>
     {
-        auto &Diag = Context.Diag;
-        auto &TokenStream = Context.TokenStream;
+        auto Result =
+            ParseListWithSeparator<AST::CallExpr::Argument>(
+                Context, Lex::TokenKind::CloseParen, Lex::TokenKind::Comma,
+                [](ParseContext &Context) noexcept
+                    -> std::expected<AST::CallExpr::Argument, ParseError>
+                {
+                    auto ArgNameOpt =
+                        std::optional<std::string_view>(std::nullopt);
 
-        auto ArgList = std::vector<AST::CallExpr::Argument>();
-        if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
-            goto done;
+                    auto &TokenStream = Context.TokenStream;
+                    if (const auto IdentTokenOpt =
+                            TokenStream.consumeIfIs(Lex::TokenKind::Identifier))
+                    {
+                        if (TokenStream.consumeIfIs(Lex::TokenKind::Colon)) {
+                            ArgNameOpt =
+                                TokenStream.tokenContent(IdentTokenOpt.value());
+                        } else {
+                            TokenStream.goBack();
+                        }
+                    }
+
+                    const auto Result = ParseExpression(Context);
+                    if (!Result.has_value()) {
+                        return std::unexpected(Result.error());
+                    }
+
+                    auto Arg = Result.value();
+                    return AST::CallExpr::Argument(ArgNameOpt, Arg);
+                },
+                {
+                    .Name = "function argument",
+                    .WarnOnTrailingSeparator = false,
+                    .RequireSeparatorOnControlFlowExpr = false
+                });
+
+        if (!Result.has_value()) {
+            return std::unexpected(Result.error());
         }
 
-        do {
-            auto ArgNameOpt = std::optional<std::string_view>(std::nullopt);
-            if (const auto IdentTokenOpt =
-                    TokenStream.consumeIfIs(Lex::TokenKind::Identifier))
-            {
-                if (TokenStream.consumeIfIs(Lex::TokenKind::Colon)) {
-                    ArgNameOpt =
-                        TokenStream.tokenContent(IdentTokenOpt.value());
-                } else {
-                    TokenStream.goBack();
-                }
-            }
-
-            if (const auto ExprOpt = ParseExpression(Context)) {
-                ArgList.emplace_back(ArgNameOpt, ExprOpt.value());
-                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                    continue;
-                }
-
-                if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
-                    break;
-                }
-
-                Diag.consume({
-                    .Level = DiagnosticLevel::Error,
-                    .Location = ParenToken.Loc,
-                    .Message = "Expected ',' or ')'",
-                });
-            }
-
-            const auto ProceedResult =
-                ProceedToAndConsumeCommaOrEnd(Context,
-                                              Lex::TokenKind::CloseParen);
-
-            switch (ProceedResult) {
-                case ProceedResult::Failed:
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = ParenToken.Loc,
-                        .Message = "Expected ',' or ')'",
-                    });
-
-                    return std::unexpected(ParseError::FailedCouldNotProceed);
-                case ProceedResult::Comma:
-                    continue;
-                case ProceedResult::EndToken:
-                    goto done;
-            }
-        } while (true);
-
-done:
         return new AST::CallExpr(CalleeExpr, ParenToken.Loc, Qualifiers,
-                                 std::move(ArgList));
+                                 std::move(Result.value()));
     }
 
     [[nodiscard]] static auto
@@ -939,7 +920,8 @@ done:
             case Lex::Keyword::If: {
                 const auto Result =
                     ParseIfExpr(Context, KeywordTok, ParseExpression,
-                                /*SeparatorOpt=*/std::nullopt);
+                                /*SeparatorOpt=*/std::nullopt,
+                                /*WarnOnTrailingSeparator=*/false);
 
                 if (!Result.has_value()) {
                     return std::unexpected(Result.error());
@@ -1057,6 +1039,13 @@ done:
             }
 
             return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
+
+        if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
+            if (TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
+                return new AST::TupleDecl(ParenToken.Loc,
+                                          { std::move(ChildExprOpt.value()) });
+            }
         }
 
         if (!TokenStream.consumeIfIs(Lex::TokenKind::CloseParen)) {
@@ -1318,9 +1307,10 @@ done:
                     case Lex::TokenKind::CaretEqual:
                     case Lex::TokenKind::AmpersandEqual:
                     case Lex::TokenKind::DoubleAmpersand:
-                    case Lex::TokenKind::Pipe:
-                    case Lex::TokenKind::PipeEqual:
-                    case Lex::TokenKind::DoublePipe:
+                    case Lex::TokenKind::VerticalLine:
+                    case Lex::TokenKind::VerticalLineEqual:
+                    case Lex::TokenKind::DoubleVerticalLine:
+                    case Lex::TokenKind::PipeOperator:
                     case Lex::TokenKind::TildeEqual:
                     case Lex::TokenKind::LessThan:
                     case Lex::TokenKind::GreaterThan:

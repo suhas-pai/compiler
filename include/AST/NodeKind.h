@@ -27,6 +27,7 @@ namespace AST {
         InterfaceDecl,
         StructDecl,
         ShapeDecl,
+        TupleDecl,
         UnionDecl,
 
         LvalueNamedDecl,
@@ -43,7 +44,7 @@ namespace AST {
         ObjectBindingVarDecl,
         ObjectBindingParamVarDecl,
 
-        InlineArrayParamVarDecl,
+        InlineTupleParamVarDecl,
 
         CallExpr,
         FieldExpr,
