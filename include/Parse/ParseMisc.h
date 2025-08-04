@@ -55,7 +55,7 @@ namespace Parse {
     [[nodiscard]] static auto
     ParseListWithSeparator(
         ParseContext &Context,
-        const Lex::TokenKind CloseTokenKind,
+        const std::span<const Lex::TokenKind> CloseTokenKindList,
         const std::optional<Lex::TokenKind> SeparatorTokenKindOpt,
         auto &&Parser,
         const ParseListOptions &Options) noexcept
@@ -64,7 +64,7 @@ namespace Parse {
         auto &TokenStream = Context.TokenStream;
         auto ResultList = std::vector<T>();
 
-        if (TokenStream.consumeIfIs(CloseTokenKind)) {
+        if (TokenStream.consumeIfIsOneOf(CloseTokenKindList)) {
             return ResultList;
         }
 
@@ -139,7 +139,9 @@ namespace Parse {
                 }
             }
 
-            if (TokenStream.consumeIfIs(CloseTokenKind)) {
+            if (const auto CloseTokenOpt =
+                    TokenStream.consumeIfIsOneOf(CloseTokenKindList))
+            {
                 if (SeparatorLocOpt.has_value()) {
                     const auto SepKind = SeparatorTokenKindOpt.value();
                     if (Options.WarnOnTrailingSeparator)  {
@@ -155,7 +157,7 @@ namespace Parse {
                                             Lex::TokenKindGetLexeme(SepKind)
                                                 .value(),
                                             Lex::TokenKindGetLexeme(
-                                                CloseTokenKind).value(),
+                                                CloseTokenOpt->Kind).value(),
                                             Options.Name)
                         });
                     }
@@ -172,7 +174,7 @@ namespace Parse {
     [[nodiscard]] static auto
     ParseMultiExprListWithSeparator(
         ParseContext &Context,
-        const Lex::TokenKind CloseTokenKind,
+        const std::span<const Lex::TokenKind> CloseTokenKindList,
         const std::optional<Lex::TokenKind> SeparatorTokenKindOpt,
         auto &&Parser,
         const ParseListOptions &Options) noexcept
@@ -181,7 +183,7 @@ namespace Parse {
         auto &TokenStream = Context.TokenStream;
         auto ResultList = std::vector<T *>();
 
-        if (TokenStream.consumeIfIs(CloseTokenKind)) {
+        if (TokenStream.consumeIfIsOneOf(CloseTokenKindList)) {
             return ResultList;
         }
 
@@ -278,7 +280,9 @@ namespace Parse {
                 continue;
             }
 
-            if (TokenStream.consumeIfIs(CloseTokenKind)) {
+            if (const auto CloseTokenOpt =
+                    TokenStream.consumeIfIsOneOf(CloseTokenKindList))
+            {
                 if (SeparatorLocOpt.has_value()) {
                     const auto SepKind = SeparatorTokenKindOpt.value();
                     if (Options.WarnOnTrailingSeparator)  {
@@ -294,7 +298,7 @@ namespace Parse {
                                             Lex::TokenKindGetLexeme(SepKind)
                                                 .value(),
                                             Lex::TokenKindGetLexeme(
-                                                CloseTokenKind).value(),
+                                                CloseTokenOpt->Kind).value(),
                                             Options.Name)
                         });
                     }
@@ -341,13 +345,14 @@ namespace Parse {
                                     Options.Name)
                 });
             } else {
+                // FIXME: Print the full list of close tokens.
                 Diag.consume({
                     .Level = DiagnosticLevel::Error,
                     .Location = TokenStream.getCurrentOrPreviousLocation(),
                     .Message =
                         std::format("Expected a '{}' after {}",
-                                    Lex::TokenKindGetLexeme(CloseTokenKind)
-                                        .value(),
+                                    Lex::TokenKindGetLexeme(
+                                        CloseTokenKindList.front()).value(),
                                     Options.Name)
                 });
             }
@@ -367,9 +372,13 @@ namespace Parse {
         std::optional<SourceLocation> &LastSeparatorLocOut) noexcept
             -> std::expected<AST::CompoundStmt *, ParseError>
     {
+        const auto CloseTokenKindList = {
+            Lex::TokenKind::CloseCurlyBrace
+        };
+
         auto Result =
             ParseMultiExprListWithSeparator(
-                Context, Lex::TokenKind::CloseCurlyBrace, SeparatorOpt, Parser,
+                Context, CloseTokenKindList, SeparatorOpt, Parser,
                 ParseListOptions{
                     .Name = "if-else",
                     .WarnOnTrailingSeparator = true,

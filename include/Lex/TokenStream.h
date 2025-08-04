@@ -140,6 +140,19 @@ namespace Lex {
             return this->consume();
         }
 
+        [[nodiscard]] constexpr auto
+        consumeIfIsOneOf(const std::span<const Lex::TokenKind> Kind) noexcept
+            -> std::optional<Lex::Token>
+        {
+            for (const auto K : Kind) {
+                if (const auto TokenOpt = this->consumeIfIs(K)) {
+                    return TokenOpt;
+                }
+            }
+
+            return std::nullopt;
+        }
+
         [[nodiscard]]
         constexpr auto consumeIfIsKeyword(const Lex::Keyword Kind) noexcept
             -> std::optional<Lex::Token>

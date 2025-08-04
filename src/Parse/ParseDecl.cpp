@@ -18,8 +18,9 @@
 #include "AST/CaptureAllByRefExpr.h"
 #include "AST/CaptureAllByValueExpr.h"
 
+#include "llvm/Support/Casting.h"
+
 #include "Parse/ParseDecl.h"
-#include "Lex/Token.h"
 #include "Parse/ParseExpr.h"
 #include "Parse/ParseMisc.h"
 #include "Parse/ParseStmt.h"
@@ -201,9 +202,10 @@ namespace Parse {
                    const bool AllowOptionalFields,
                    std::vector<AST::Stmt *> &FieldList) noexcept -> ParseError
     {
+        const auto CloseTokenKindList = { Lex::TokenKind::CloseCurlyBrace };
         auto Result =
             ParseMultiExprListWithSeparator(
-                Context, Lex::TokenKind::CloseCurlyBrace, Lex::TokenKind::Comma,
+                Context, CloseTokenKindList, Lex::TokenKind::Comma,
                 [=](ParseContext &Context) noexcept
                     -> std::expected<AST::Stmt *, ParseError>
                 {
@@ -261,10 +263,8 @@ namespace Parse {
 
             auto &ItemList = ItemListResult.value();
             return new AST::ArrayBindingParamVarDecl(
-                ParamNameOrBracketToken.Loc,
-                AST::Qualifiers(),
-                std::move(ItemList),
-                /*InitExpr=*/nullptr);
+                ParamNameOrBracketToken.Loc, AST::Qualifiers(),
+                std::move(ItemList), /*InitExpr=*/nullptr);
         }
 
         if (ParamNameOrBracketToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
@@ -275,10 +275,8 @@ namespace Parse {
 
             auto &FieldList = FieldListResult.value();
             return new AST::ObjectBindingParamVarDecl(
-                ParamNameOrBracketToken.Loc,
-                AST::Qualifiers(),
-                std::move(FieldList),
-                /*InitExpr=*/nullptr);
+                ParamNameOrBracketToken.Loc, AST::Qualifiers(),
+                std::move(FieldList), /*InitExpr=*/nullptr);
         }
 
         if (!VerifyDeclName(Context, ParamNameOrBracketToken, "parameter")) {
@@ -317,9 +315,10 @@ namespace Parse {
     static auto ParseFunctionParamList(ParseContext &Context) noexcept
         -> std::expected<std::vector<AST::Stmt *>, ParseError>
     {
+        const auto CloseTokenKindList = { Lex::TokenKind::CloseParen };
         const auto Result =
             ParseMultiExprListWithSeparator(
-                Context, Lex::TokenKind::CloseParen, Lex::TokenKind::Comma,
+                Context, CloseTokenKindList, Lex::TokenKind::Comma,
                 ParseSingleFunctionParam,
                 {
                     .Name = "function parameter",
@@ -454,9 +453,14 @@ namespace Parse {
                 return std::unexpected(ReturnValueOpt.error());
             }
 
-            Body =
-                new AST::ReturnStmt(SourceLocation::invalid(),
-                                    ReturnValueOpt.value());
+            const auto ReturnValue = ReturnValueOpt.value();
+            if (llvm::isa<AST::ReturnStmt>(ReturnValue)) {
+                Body = ReturnValue;
+            } else {
+                Body =
+                    new AST::ReturnStmt(SourceLocation::invalid(),
+                                        ReturnValueOpt.value());
+            }
         } else if (NextToken.Kind == Lex::TokenKind::OpenCurlyBrace) {
             const auto BodyOpt = ParseCompoundStmt(Context, NextToken);
             if (!BodyOpt.has_value()) {
@@ -604,10 +608,10 @@ namespace Parse {
                 return ParseExpression(Context);
             };
 
+        const auto CloseTokenKindList = { Lex::TokenKind::RightSquareBracket };
         const auto Result =
             ParseMultiExprListWithSeparator(
-                Context, Lex::TokenKind::RightSquareBracket,
-                Lex::TokenKind::Comma, Parser,
+                Context, CloseTokenKindList, Lex::TokenKind::Comma, Parser,
                 {
                     .Name = "closure-capture element",
                     .WarnOnTrailingSeparator = false,
@@ -1189,7 +1193,7 @@ namespace Parse {
             .Message = "Expected a colon after array-binding index"
         });
 
-        // FIXME: We're missing a colon here, recover here.
+        // FIXME: Recover from missing a colon here
         return std::unexpected(ParseError::FailedCouldNotProceed);
     }
 
@@ -1198,10 +1202,11 @@ namespace Parse {
                               const Lex::Token BracketToken) noexcept
         -> std::expected<std::vector<AST::ArrayBindingItem *>, ParseError>
     {
+        const auto CloseTokenKindList = { Lex::TokenKind::RightSquareBracket };
         return
             ParseListWithSeparator<AST::ArrayBindingItem *>(
-                Context, Lex::TokenKind::RightSquareBracket,
-                Lex::TokenKind::Comma, ParseSingleArrayBindingItem,
+                Context, CloseTokenKindList, Lex::TokenKind::Comma,
+                ParseSingleArrayBindingItem,
                 {
                     .Name = "array-binding item",
                     .WarnOnTrailingSeparator = false,
@@ -1390,10 +1395,11 @@ namespace Parse {
     ParseObjectBindingFieldList(ParseContext &Context) noexcept
         -> std::expected<std::vector<AST::ObjectBindingField *>, ParseError>
     {
+        const auto CloseTokenKindList = { Lex::TokenKind::CloseCurlyBrace };
         return
             ParseListWithSeparator<AST::ObjectBindingField *>(
-                Context, Lex::TokenKind::CloseCurlyBrace,
-                Lex::TokenKind::Comma, ParseSingleObjectBindingField,
+                Context, CloseTokenKindList, Lex::TokenKind::Comma,
+                ParseSingleObjectBindingField,
                 {
                     .Name = "object-binding field",
                     .WarnOnTrailingSeparator = false,

@@ -40,55 +40,42 @@ namespace Parse {
         const Lex::Token BracketToken) noexcept
             -> std::expected<std::vector<AST::Stmt *>, ParseError>
     {
-        auto &TokenStream = Context.TokenStream;
-        auto DetailList = std::vector<AST::Stmt *>();
+        const auto EndTokenKindList = {
+            Lex::TokenKind::Semicolon,
+            Lex::TokenKind::RightSquareBracket
+        };
 
-        if (TokenStream.peekIs(Lex::TokenKind::RightSquareBracket)) {
-            return DetailList;
+        const auto DetailListOpt =
+            ParseMultiExprListWithSeparator(
+                Context, EndTokenKindList, Lex::TokenKind::Comma,
+                ParseExpression,
+                {
+                    .Name = "array detail",
+                    .WarnOnTrailingSeparator = true,
+                    .RequireSeparatorOnControlFlowExpr = false
+                });
+
+        if (!DetailListOpt.has_value()) {
+            return std::unexpected(DetailListOpt.error());
         }
 
         auto &Diag = Context.Diag;
-        do {
-            if (const auto ExprOpt = ParseExpression(Context)) {
-                DetailList.emplace_back(ExprOpt.value());
-                if (TokenStream.consumeIfIs(Lex::TokenKind::Comma)) {
-                    continue;
-                }
+        auto &DetailList = DetailListOpt.value();
 
-                if (TokenStream.peekIs(Lex::TokenKind::RightSquareBracket)) {
-                    break;
-                }
+        if (DetailList.empty()) {
+            Diag.consume({
+                .Level = DiagnosticLevel::Error,
+                .Location = BracketToken.Loc,
+                .Message = "Expected at least one element in array declaration"
+            });
 
-                if (TokenStream.peekIs(Lex::TokenKind::Semicolon)) {
-                    break;
-                }
-            } else {
-                return std::unexpected(ExprOpt.error());
-            }
+            return std::unexpected(ParseError::FailedCouldNotProceed);
+        }
 
-            const auto ProceedResult =
-                ProceedToAndConsumeSeparatorOrEnd(
-                    Context, Lex::TokenKind::Comma,
-                    Lex::TokenKind::RightSquareBracket);
+        auto &TokenStream = Context.TokenStream;
+        TokenStream.goBack();
 
-            switch (ProceedResult) {
-                case ProceedResult::Failed:
-                    Diag.consume({
-                        .Level = DiagnosticLevel::Error,
-                        .Location = BracketToken.Loc,
-                        .Message = "Expected ']'",
-                    });
-
-                    return std::unexpected(ParseError::FailedCouldNotProceed);
-                case ProceedResult::Separator:
-                    continue;
-                case ProceedResult::EndToken:
-                    goto done;
-            }
-        } while (true);
-
-    done:
-        return DetailList;
+        return DetailListOpt.value();
     }
 
     [[nodiscard]] static auto
@@ -711,9 +698,10 @@ namespace Parse {
                   const Lex::Token ParenToken) noexcept
         -> std::expected<AST::CallExpr *, ParseError>
     {
+        const auto CloseTokenKindList = { Lex::TokenKind::CloseParen };
         auto Result =
             ParseListWithSeparator<AST::CallExpr::Argument>(
-                Context, Lex::TokenKind::CloseParen, Lex::TokenKind::Comma,
+                Context, CloseTokenKindList, Lex::TokenKind::Comma,
                 [](ParseContext &Context) noexcept
                     -> std::expected<AST::CallExpr::Argument, ParseError>
                 {

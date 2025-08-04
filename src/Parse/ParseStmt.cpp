@@ -16,10 +16,12 @@ namespace Parse {
                       const Lex::Token CurlyToken) noexcept
         -> std::expected<AST::CompoundStmt *, ParseError>
     {
+        const auto CloseTokenKindList = { Lex::TokenKind::CloseCurlyBrace };
         auto Result =
             ParseMultiExprListWithSeparator(
-                Context, Lex::TokenKind::CloseCurlyBrace,
-                Lex::TokenKind::Semicolon, ParseStmt, ParseListOptions{
+                Context, CloseTokenKindList, Lex::TokenKind::Semicolon,
+                ParseStmt,
+                {
                     .Name = "compound statement",
                     .WarnOnTrailingSeparator = false,
                     .RequireSeparatorOnControlFlowExpr = false,
