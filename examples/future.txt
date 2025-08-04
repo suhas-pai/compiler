@@ -5,7 +5,7 @@ func b(c: *mut volatile u32) {
     return 0u32;
 }
 
-func ttest(a: cmatch std.vector(u32 or u64)): u32 {
+func ttest(a: some std.vector(u32 or u64)): u32 {
     return 0u32;
 }
 
