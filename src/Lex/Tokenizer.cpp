@@ -299,14 +299,6 @@ namespace Lex {
                             this->Loc.Index--;
                             this->Loc.Column--;
 
-                            const auto KeywordOpt =
-                                KeywordToLexemeMap.keyFor(
-                                    Result.getString(Text));
-
-                            if (KeywordOpt.has_value()) {
-                                Result.Kind = TokenKind::Keyword;
-                            }
-
                             goto done;
                     }
 
@@ -611,7 +603,17 @@ namespace Lex {
         State = State::Start;
 
         Result.End.Index = this->Loc.Index;
+        Result.End.Row = this->Loc.Row;
         Result.End.Column = this->Loc.Column;
+
+        if (Result.Kind == TokenKind::Identifier) {
+            const auto KeywordOpt =
+                KeywordToLexemeMap.keyFor(Result.getString(Text));
+
+            if (KeywordOpt.has_value()) {
+                Result.Kind = TokenKind::Keyword;
+            }
+        }
 
         return std::pair(Result, this->CurrentLineInfo);
     }
